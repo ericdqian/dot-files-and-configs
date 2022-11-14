@@ -1,0 +1,2 @@
+alias ca="conda activate"
+alias cda="conda deactivate"

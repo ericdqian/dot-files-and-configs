@@ -37,5 +37,6 @@ for filename in ${DOTFILE_CONFIG_PATH}/zsh_config/aliases/*; do
   source $filename
 done
 
-
+## Git autocomplete
+autoload -Uz compinit && compinit
 

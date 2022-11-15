@@ -13,6 +13,10 @@ if [[ -f ~/powerlevel10k/powerlevel10k.zsh-theme ]]; then source ~/powerlevel10k
 ## Set up fzf
 if [ -f ~/.fzf.zsh ]; then source ~/.fzf.zsh; else echo Fzf not installed... please follow README instructions to install; fi
 
+## Set up nvm
+export NVM_DIR=~/.nvm
+if [ -s "$NVM_DIR/nvm.sh" ]; then \. "$NVM_DIR/nvm.sh"; else echo nvm not installed... please follow README instructions to install; fi
+
 ## Import aliases
 CONFIG_ZSHRC_PATH=$(readlink -f ~/.zshrc)
 DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
@@ -36,6 +40,3 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion

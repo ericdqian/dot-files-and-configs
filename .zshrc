@@ -6,9 +6,13 @@
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
-if [[ -f ~/powerlevel10k/powerlevel10k.zsh-theme ]]; then source ~/powerlevel10k/powerlevel10k.zsh-theme; else echo Powerlevel10k not installed... please follow README instructions to install or; fi
+if [[ -f ~/powerlevel10k/powerlevel10k.zsh-theme ]]; then source ~/powerlevel10k/powerlevel10k.zsh-theme; else echo Powerlevel10k not installed... please follow README instructions to install; fi
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+## Set up Oh My Zsh
+export ZSH="$HOME/.oh-my-zsh"
+if [ -f "$ZSH/oh-my-zsh.sh" ]; then source "$ZSH/oh-my-zsh.sh"; else echo Oh My Zsh not installed... please follow README instructions to install; fi
 
 ## Set up fzf
 if [ -f ~/.fzf.zsh ]; then source ~/.fzf.zsh; else echo Fzf not installed... please follow README instructions to install; fi

@@ -17,6 +17,19 @@ if [ -f ~/.fzf.zsh ]; then source ~/.fzf.zsh; else echo Fzf not installed... ple
 export NVM_DIR=~/.nvm
 if [ -s "$NVM_DIR/nvm.sh" ]; then \. "$NVM_DIR/nvm.sh"; else echo nvm not installed... please follow README instructions to install; fi
 
+## Set up miniconda
+__conda_setup="$(~/miniconda/bin/conda 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f ~/miniconda/etc/profile.d/conda.sh ]; then
+        . ~/miniconda/etc/profile.d/conda.sh
+    else
+        export PATH="$HOME/miniconda/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+
 ## Import aliases
 CONFIG_ZSHRC_PATH=$(readlink -f ~/.zshrc)
 DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
@@ -24,19 +37,5 @@ for filename in ${DOTFILE_CONFIG_PATH}/zsh_config/aliases/*; do
   source $filename
 done
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/ericqian/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/ericqian/opt/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/ericqian/opt/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/ericqian/opt/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
 
 

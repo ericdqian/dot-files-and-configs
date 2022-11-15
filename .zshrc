@@ -1,5 +1,4 @@
-CONFIG_ZSHRC_PATH=$(readlink -f ~/.zshrc)
-DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
+## Set up Powerlevel10k
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -7,25 +6,19 @@ DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
-
-#Import aliases
-for filename in ${DOTFILE_CONFIG_PATH}/zsh_config/aliases/*; do
-  source $filename
-done
-
-# Python alias
-alias py='python3'
-
-# Git alias
-alias mkcd='mkdir $1 && cd $1'
-alias cdpj='cd /Users/ericqian/Documents/Projects'
-
-source ~/powerlevel10k/powerlevel10k.zsh-theme
-
+if [[ -f ~/powerlevel10k/powerlevel10k.zsh-theme ]]; then source ~/powerlevel10k/powerlevel10k.zsh-theme; else echo Powerlevel10k not installed... please follow README instructions to install or; fi
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+## Set up fzf
+if [ -f ~/.fzf.zsh ]; then source ~/.fzf.zsh; else echo Fzf not installed... please follow README instructions to install; fi
+
+## Import aliases
+CONFIG_ZSHRC_PATH=$(readlink -f ~/.zshrc)
+DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
+for filename in ${DOTFILE_CONFIG_PATH}/zsh_config/aliases/*; do
+  source $filename
+done
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!

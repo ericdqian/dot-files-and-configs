@@ -37,7 +37,7 @@ unset __conda_setup
 ## Import aliases
 CONFIG_ZSHRC_PATH=$(readlink -f ~/.zshrc)
 DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
-for filename in ${DOTFILE_CONFIG_PATH}/zsh_config/aliases/*; do
+for filename in ${DOTFILE_CONFIG_PATH}/aliases/*; do
   source $filename
 done
 

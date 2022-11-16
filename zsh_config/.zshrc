@@ -21,6 +21,9 @@ if [ -f ~/.fzf.zsh ]; then source ~/.fzf.zsh; else echo Fzf not installed... ple
 export NVM_DIR=~/.nvm
 if [ -s "$NVM_DIR/nvm.sh" ]; then \. "$NVM_DIR/nvm.sh"; else echo nvm not installed... please follow README instructions to install; fi
 
+## Set up nvim
+if [ -f ~/nvim-macos/bin/nvim ]; then PATH="$HOME/nvim-macos/bin:$PATH"; else echo nvim not installed... please follow README instructions to install; fi
+
 ## Set up miniconda
 __conda_setup="$(~/miniconda/bin/conda 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then

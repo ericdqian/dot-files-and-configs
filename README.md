@@ -5,7 +5,12 @@
 ### Oh-my-zsh
 ```
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --keep-zshrc
+```
 
+### Neovim
+```
+curl -LO --output-dir ~/ https://github.com/neovim/neovim/releases/download/nightly/nvim-macos.tar.gz
+tar xzf ~/nvim-macos.tar.gz
 ```
 
 ### Powerlevel10k

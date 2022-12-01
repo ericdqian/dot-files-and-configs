@@ -1,1 +1,2 @@
 *.swp
+nvim_config/plugin/packer_compiled.lua

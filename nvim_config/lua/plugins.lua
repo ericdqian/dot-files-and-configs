@@ -17,15 +17,15 @@ require('packer').startup(function(use)
     use("tpope/vim-vinegar")
     use("jiangmiao/auto-pairs")
     use({
-		"junegunn/fzf",
-		run = function()
-			vim.fn["fzf#install"](0)
-		end,
-	})
+        "junegunn/fzf",
+        run = function()
+            vim.fn["fzf#install"](0)
+        end,
+    })
     use({
-		"junegunn/fzf.vim",
-		config = function()
-			vim.cmd([[
+        "junegunn/fzf.vim",
+        config = function()
+            vim.cmd([[
 function! RipgrepFzf(query, fullscreen)
   let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
   let initial_command = printf(command_fmt, shellescape(a:query))
@@ -39,8 +39,8 @@ nmap <Leader>a :RG<CR>
 nmap <Leader>t :Files<CR>
 nmap <Leader>tt :GFiles<CR>
             ]])
-		end,
-	})
+        end,
+    })
 
     use("preservim/nerdcommenter")
 
@@ -51,20 +51,44 @@ nmap <Leader>tt :GFiles<CR>
     use({ "neoclide/coc-json", run = "yarn install --frozen-lockfile" })
     use({ "neoclide/coc-prettier", run = "yarn install --frozen-lockfile" })
     use({ "josa42/coc-lua", run = "yarn install --frozen-lockfile" })
-	-- use({ "xiyaowong/coc-stylua", run = "yarn install --frozen-lockfile" })
+    -- use({ "xiyaowong/coc-stylua", run = "yarn install --frozen-lockfile" })
     use({ "fannheyward/coc-rust-analyzer", run = "yarn install --frozen-lockfile" })
     use({ "fannheyward/coc-pyright", run = "yarn install --frozen-lockfile" })
     use("tpope/vim-fugitive")
     use("airblade/vim-gitgutter")
     use({
-		"kylechui/nvim-surround",
-		config = function()
-			require("nvim-surround").setup({
-				-- Configuration here, or leave empty to use defaults
-			})
-		end,
-	})
+        "kylechui/nvim-surround",
+        config = function()
+            require("nvim-surround").setup({
+                -- Configuration here, or leave empty to use defaults
+            })
+        end,
+    })
     use("rhysd/git-messenger.vim")
+
+    use({
+        "phaazon/hop.nvim",
+        config = function()
+            local hop = require("hop")
+            hop.setup()
+            local HintDirection = require("hop.hint").HintDirection
+            vim.keymap.set("", ",,w", function()
+                hop.hint_words({ direction = HintDirection.AFTER_CURSOR })
+            end)
+            vim.keymap.set("", ",,b", function()
+                hop.hint_words({ direction = HintDirection.BEFORE_CURSOR })
+            end)
+            vim.keymap.set("", "s", function()
+                hop.hint_char2({ direction = HintDirection.AFTER_CURSOR })
+            end)
+            vim.keymap.set("", "S", function()
+                hop.hint_char2({ direction = HintDirection.BEFORE_CURSOR })
+            end)
+            vim.keymap.set("", ",,m", function()
+                hop.hint_words({ multi_windows = true })
+            end)
+        end,
+    })
 
 
   -- Automatically set up your configuration after cloning packer.nvim

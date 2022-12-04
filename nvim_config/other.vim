@@ -1,1 +1,2 @@
-set nu
+set number 
+set relativenumber

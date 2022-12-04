@@ -15,13 +15,14 @@ require('packer').startup(function(use)
     use ('wbthomason/packer.nvim')
     -- My plugins here
     use("tpope/vim-vinegar")
+    use("jiangmiao/auto-pairs")
     use({
 		"junegunn/fzf",
 		run = function()
 			vim.fn["fzf#install"](0)
 		end,
 	})
-	use({
+    use({
 		"junegunn/fzf.vim",
 		config = function()
 			vim.cmd([[
@@ -41,21 +42,21 @@ nmap <Leader>tt :GFiles<CR>
 		end,
 	})
 
-	use("preservim/nerdcommenter")
-    use("jiangmiao/auto-pairs")
+    use("preservim/nerdcommenter")
 
     use({ "neoclide/coc.nvim", branch = "release" })
-	use({ "neoclide/coc-tsserver", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-eslint", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-json", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-prettier", run = "yarn install --frozen-lockfile" })
-	use({ "josa42/coc-lua", run = "yarn install --frozen-lockfile" })
+    -- Some of these guys may need you to :CoCInstall separately
+    use({ "neoclide/coc-tsserver", run = "yarn install --frozen-lockfile" })
+    use({ "neoclide/coc-eslint", run = "yarn install --frozen-lockfile" })
+    use({ "neoclide/coc-json", run = "yarn install --frozen-lockfile" })
+    use({ "neoclide/coc-prettier", run = "yarn install --frozen-lockfile" })
+    use({ "josa42/coc-lua", run = "yarn install --frozen-lockfile" })
 	-- use({ "xiyaowong/coc-stylua", run = "yarn install --frozen-lockfile" })
-	use({ "fannheyward/coc-rust-analyzer", run = "yarn install --frozen-lockfile" })
-	use({ "fannheyward/coc-pyright", run = "yarn install --frozen-lockfile" })
+    use({ "fannheyward/coc-rust-analyzer", run = "yarn install --frozen-lockfile" })
+    use({ "fannheyward/coc-pyright", run = "yarn install --frozen-lockfile" })
     use("tpope/vim-fugitive")
-	use("airblade/vim-gitgutter")
-	use({
+    use("airblade/vim-gitgutter")
+    use({
 		"kylechui/nvim-surround",
 		config = function()
 			require("nvim-surround").setup({

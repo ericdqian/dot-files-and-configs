@@ -12,10 +12,10 @@ end
 local packer_bootstrap = ensure_packer()
 
 require('packer').startup(function(use)
-  use ('wbthomason/packer.nvim')
-  -- My plugins here
-  use("tpope/vim-vinegar")
-  use({
+    use ('wbthomason/packer.nvim')
+    -- My plugins here
+    use("tpope/vim-vinegar")
+    use({
 		"junegunn/fzf",
 		run = function()
 			vim.fn["fzf#install"](0)
@@ -35,13 +35,14 @@ endfunction
 command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
 nmap ; :Buffers<CR>
 nmap <Leader>a :RG<CR>
-nmap <Leader>t :GFiles<CR>
-nmap <Leader>tt :Files<CR>
+nmap <Leader>t :Files<CR>
+nmap <Leader>tt :GFiles<CR>
             ]])
 		end,
 	})
 
 	use("preservim/nerdcommenter")
+    use("jiangmiao/auto-pairs")
 
     use({ "neoclide/coc.nvim", branch = "release" })
 	use({ "neoclide/coc-tsserver", run = "yarn install --frozen-lockfile" })

@@ -1,5 +1,12 @@
 # dot-files-and-configs
 
+## Terminal
+
+### Kitty
+```
+curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+```
+
 ## Zsh setup
 
 ### Oh-my-zsh

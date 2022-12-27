@@ -90,6 +90,11 @@ nmap <Leader>tt :GFiles<CR>
         end,
     })
 
+    use {'navarasu/onedark.nvim'}
+    use {'nvim-lualine/lualine.nvim',
+        requires = { 'kyazdani42/nvim-web-devicons', opt = true }
+    }
+
 
   -- Automatically set up your configuration after cloning packer.nvim
   -- Put this at the end after all plugins
@@ -99,6 +104,8 @@ nmap <Leader>tt :GFiles<CR>
   end
 end)
 
+require('lualine').setup()
+
 
 vim.cmd([[
   augroup packer_user_config
@@ -106,6 +113,8 @@ vim.cmd([[
     autocmd BufWritePost plugins.lua source <afile> | PackerCompile
   augroup end
 ]])
+
+vim.cmd.colorscheme "onedark"
 
 vim.cmd([[
     " May need for vim (not neovim) since coc.nvim calculate byte offset by count

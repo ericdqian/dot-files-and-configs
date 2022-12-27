@@ -106,6 +106,11 @@ end)
 
 require('lualine').setup()
 
+require('onedark').setup {
+    style = 'darker'
+}
+require('onedark').load()
+
 
 vim.cmd([[
   augroup packer_user_config
@@ -113,8 +118,6 @@ vim.cmd([[
     autocmd BufWritePost plugins.lua source <afile> | PackerCompile
   augroup end
 ]])
-
-vim.cmd.colorscheme "onedark"
 
 vim.cmd([[
     " May need for vim (not neovim) since coc.nvim calculate byte offset by count

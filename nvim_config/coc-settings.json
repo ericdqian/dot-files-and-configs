@@ -1,7 +1,5 @@
 {
-  "coc.preferences.formatOnSaveFiletypes": [
-      "*"
-  ],
+  "coc.preferences.formatOnSaveFiletypes": ["*"],
   "eslint.alwaysShowStatus": true,
   "eslint.filetypes": [
     "javascript",
@@ -20,13 +18,8 @@
   "languageserver": {
     "terraform": {
       "command": "terraform-ls",
-      "args": [
-        "serve"
-      ],
-      "filetypes": [
-        "terraform",
-        "tf"
-      ],
+      "args": ["serve"],
+      "filetypes": ["terraform", "tf"],
       "initializationOptions": {},
       "settings": {}
     }

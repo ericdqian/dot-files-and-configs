@@ -30,3 +30,9 @@ noremap j gj
 noremap k gk 
 nnoremap <expr> j v:count ? 'j' : 'gj'
 nnoremap <expr> k v:count ? 'k' : 'gk'
+
+" Map so , advances a search from f/t/F/T and < goes backwards
+nnoremap , ;
+vnoremap , ;
+nnoremap < ,
+vnoremap < ,

@@ -228,7 +228,7 @@ vim.cmd([[
 
     " Use <leader>wp to jump into preview
     nnoremap <silent> <leader>wp :call coc#float#jump()<CR>
-    " Call <Ctrl>+w o in order to exit the window
+    " Call :q in order to exit the window
 
     function! ShowDocumentation()
       if CocAction('hasProvider', 'hover')

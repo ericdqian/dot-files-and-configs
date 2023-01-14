@@ -20,3 +20,13 @@ nnoremap  <leader>y  "+y
 nnoremap <leader>p "+p
 vnoremap <leader>p "+p
 
+
+" Don't auto-continue comments
+autocmd BufNewFile,BufRead * setlocal formatoptions-=cro
+
+
+" For long lines that soft wrap, make j and k behave as they were different lines but have expressions respect line numbers
+noremap j gj  
+noremap k gk 
+nnoremap <expr> j v:count ? 'j' : 'gj'
+nnoremap <expr> k v:count ? 'k' : 'gk'

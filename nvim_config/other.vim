@@ -28,8 +28,8 @@ autocmd BufNewFile,BufRead * setlocal formatoptions-=cro
 " For long lines that soft wrap, make j and k behave as they were different lines but have expressions respect line numbers
 noremap j gj  
 noremap k gk 
-nnoremap <expr> j v:count ? 'j' : 'gj'
-nnoremap <expr> k v:count ? 'k' : 'gk'
+noremap <expr> j v:count ? 'j' : 'gj'
+noremap <expr> k v:count ? 'k' : 'gk'
 
 " Map so , advances a search from f/t/F/T and < goes backwards
 nnoremap , ;

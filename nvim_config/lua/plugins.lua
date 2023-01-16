@@ -244,9 +244,9 @@ vim.cmd([[
     " Symbol renaming.
     nmap <leader>rn <Plug>(coc-rename)
 
-    " Formatting selected code.
-    xmap <leader>f  <Plug>(coc-format-selected)
-    nmap <leader>f  <Plug>(coc-format-selected)
+    "" Formatting selected code.
+    "xmap <leader>f  <Plug>(coc-format-selected)
+    "nmap <leader>f  <Plug>(coc-format-selected)
 
     augroup mygroup
       autocmd!
@@ -256,15 +256,15 @@ vim.cmd([[
       autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
     augroup end
 
-    " Applying code actions to the selected code block.
-    " Example: `<leader>aap` for current paragraph
-    xmap <leader>p  <Plug>(coc-codeaction-selected)
-    nmap <leader>p  <Plug>(coc-codeaction-selected)
+    "" Applying code actions to the selected code block.
+    "" Example: `<leader>aap` for current paragraph
+    "xmap <leader>p  <Plug>(coc-codeaction-selected)
+    "nmap <leader>p  <Plug>(coc-codeaction-selected)
 
     " Remap keys for apply code actions at the cursor position.
     nmap <leader>ac  <Plug>(coc-codeaction-cursor)
-    " Remap keys for apply code actions affect whole buffer.
-    nmap <leader>as  <Plug>(coc-codeaction-source)
+    "" Remap keys for apply code actions affect whole buffer.
+    "nmap <leader>as  <Plug>(coc-codeaction-source)
     " Apply the most preferred quickfix action to fix diagnostic on the current line.
     nmap <leader>qf  <Plug>(coc-fix-current)
 

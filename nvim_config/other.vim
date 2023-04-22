@@ -1,3 +1,4 @@
+" This file is for custom mappings
 set number 
 set relativenumber
 
@@ -36,3 +37,8 @@ nnoremap , ;
 vnoremap , ;
 nnoremap < ,
 vnoremap < ,
+
+" Map to 
+onoremap in( :<c-u>normal! f(vi(<cr>
+onoremap ip( :<c-u>normal! f(vi(<cr>
+

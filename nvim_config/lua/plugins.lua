@@ -15,7 +15,10 @@ local packer_bootstrap = ensure_packer()
 
 require('packer').startup(function(use)
     use ('wbthomason/packer.nvim')
+
     -- My plugins here
+
+    -- Directory / searching plugins
     use("tpope/vim-vinegar")
     use({
         "junegunn/fzf",
@@ -43,7 +46,8 @@ require('packer').startup(function(use)
         end,
     })
 
-    use("preservim/nerdcommenter")
+
+    -- LSP plugins
     use ('neovim/nvim-lspconfig') -- Configurations for Nvim LSP
     use ( 'hrsh7th/nvim-cmp' ) -- Autocompletion plugin
     use({
@@ -54,25 +58,16 @@ require('packer').startup(function(use)
     use ( 'saadparwaiz1/cmp_luasnip' ) -- Snippets source for nvim-cmp
     use ( 'L3MON4D3/LuaSnip' ) -- Snippets plugin
 
+
+
+    -- Editing plugins
+    use("preservim/nerdcommenter")
     use {
         "windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {
 
         } end
     }
-
-    use("tpope/vim-fugitive")
-    use("airblade/vim-gitgutter")
-    use({
-        "kylechui/nvim-surround",
-        config = function()
-            require("nvim-surround").setup({
-                -- Configuration here, or leave empty to use defaults
-            })
-        end,
-    })
-    use("rhysd/git-messenger.vim")
-
     use({
         "phaazon/hop.nvim",
         config = function()
@@ -97,13 +92,46 @@ require('packer').startup(function(use)
         end,
     })
 
+    -- Initialize  'this' after hop so that "S" in visual mode does surround
+    use({
+        "kylechui/nvim-surround",
+        config = function()
+            require("nvim-surround").setup({
+                keymaps = {
+                    visual = "s",
+                }
+            })
+            local surround = require("nvim-surround") 
+               --'local' VisualSurround = require('nv'im-surround')'.visual
+               --vim.keymap.set("x", "s", function()
+                   --surround.visual_surround({ line_mode = false}) 
+                --end, { buffer = true})
+        end,
+    })
+    -- Documentation generator; TODO: figure out how to use
     use {
       'kkoomen/vim-doge',
       run = ':call doge#install()'
     }
 
+
+    -- Git plugins
+    use("tpope/vim-fugitive")
+    use {
+        'lewis6991/gitsigns.nvim',
+        config = function()
+            require('gitsigns').setup {
+                current_line_blame = true,
+            }
+        end
+    }
+
+
+    -- Visual plugins
+    -- Editor 'theme'
     use {'navarasu/onedark.nvim'}
-    use {'nvim-lualine/lualine.nvim',
+    -- Editor status line
+    use {'nvim-lualine/lualine.nvim', 
         requires = { 'kyazdani42/nvim-web-devicons', opt = true }
     }
 
@@ -125,6 +153,7 @@ require('onedark').setup {
 vim.cmd("highlight Comment ctermfg=gray")
 require('onedark').load()
 
+-- Initializing lualine has to come after onedark in order for proper UI to take effect
 require('lualine').setup {
     options = {
         icons_enabled = true,

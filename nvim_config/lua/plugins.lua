@@ -20,36 +20,6 @@ require('packer').startup(function(use)
 
     -- Directory / searching plugins
     use("tpope/vim-vinegar")
-    -- use({
-    --     "junegunn/fzf",
-    --     run = function()
-    --         vim.fn["fzf#install"](0)
-    --     end,
-    -- })
-    -- use({
-    --     "junegunn/fzf.vim",
-    --     config = function()
-    --         vim.cmd([[
-    --             function! RipgrepFzf(query, fullscreen)
-    --               let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
-    --               let initial_command = printf(command_fmt, shellescape(a:query))
-    --               let reload_command = printf(command_fmt, '{q}')
-    --               let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
-    --               call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
-    --             endfunction
-    --             command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
-    --             nmap ; :Buffers<CR>
-    --             nmap <Leader>a :RG<CR>
-    --             nmap <Leader>tt :Files<CR>
-    --             nmap <Leader>z :GFiles<CR>
-    --         ]])
-    --     end,
-    -- })
-
-    -- use {
-    --   'nvim-lua/plenary.nvim',
-    --   requires = {'nvim-lua/plenary.nvim'},
-    -- }
 
     use {
       'nvim-telescope/telescope.nvim', tag = '0.1.1',
@@ -75,6 +45,45 @@ require('packer').startup(function(use)
     use ( 'saadparwaiz1/cmp_luasnip' ) -- Snippets source for nvim-cmp
     use ( 'L3MON4D3/LuaSnip' ) -- Snippets plugin
 
+
+    use({
+        "glepnir/lspsaga.nvim",
+        opt = true,
+        branch = "main",
+        event = "LspAttach",
+        config = function()
+            require("lspsaga").setup({
+                finder = {
+                    keys = {
+                        vsplit = 'v',
+                        split = 'o',
+                        quit = { "<ESC>", "q" },
+                        expand_or_jump = '<cr>',
+                    }
+                },
+                -- For peeking only
+                definition = {
+                    vsplit = '<C-c>v',
+                    split = '<C-c>o',
+                    quit = { "<ESC>", "q" },
+                    edit = '<cr>',
+                },
+                code_action = {
+                    keys = {
+                        quit = "<ESC>",
+                    }
+                },
+                rename = {
+                    quit = "<ESC>"
+                }
+            })
+        end,
+        requires = {
+            {"nvim-tree/nvim-web-devicons"},
+            --Please make sure you install markdown and markdown_inline parser
+            {"nvim-treesitter/nvim-treesitter"}
+        }
+    })
 
 
     -- Editing plugins
@@ -217,7 +226,7 @@ require('lualine').setup {
 
 require'nvim-treesitter.configs'.setup {
   -- A list of parser names, or "all" (the four listed parsers should always be installed)
-  ensure_installed = { "javascript",   "typescript", "python", "rust", "lua", "vim", "help" },
+  ensure_installed = { "javascript",   "typescript", "python", "rust", "lua", "vim", "help", "markdown", "markdown_inline" },
 
   -- Install parsers synchronously (only applied to `ensure_installed`)
   sync_install = false,
@@ -328,13 +337,108 @@ cmp.setup {
   },
 }
 
+
+
+local keymap = vim.keymap.set
+
+-- LSP finder - Find the symbol's definition
+-- If there is no definition, it will instead be hidden
+-- When you use an action in finder like "open vsplit",
+-- you can use <C-t> to jump back
+keymap("n", "gr", "<cmd>Lspsaga lsp_finder<CR>")
+
+-- Code action
+keymap({"n","v"}, "<leader>ca", "<cmd>Lspsaga code_action<CR>")
+
+-- Rename all occurrences of the hovered word for the entire file
+keymap("n", "rn", "<cmd>Lspsaga rename<CR>")
+
+-- Rename all occurrences of the hovered word for the selected files
+-- keymap("n", "rn", "<cmd>Lspsaga rename ++project<CR>")
+
+-- Peek definition
+-- You can edit the file containing the definition in the floating window
+-- It also supports open/vsplit/etc operations, do refer to "definition_action_keys"
+-- It also supports tagstack
+-- Use <C-t> to jump back
+keymap("n", "gp", "<cmd>Lspsaga peek_definition<CR>")
+
+-- Go to definition
+keymap("n","gd", "<cmd>Lspsaga goto_definition<CR>")
+
+-- Peek type definition
+-- You can edit the file containing the type definition in the floating window
+-- It also supports open/vsplit/etc operations, do refer to "definition_action_keys"
+-- It also supports tagstack
+-- Use <C-t> to jump back
+keymap("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>")
+
+-- Go to type definition
+-- keymap("n","gt", "<cmd>Lspsaga goto_type_definition<CR>")
+
+
+-- Show line diagnostics
+-- You can pass argument ++unfocus to
+-- unfocus the show_line_diagnostics floating window
+keymap("n", "<leader>sl", "<cmd>Lspsaga show_line_diagnostics<CR>")
+
+-- Show buffer diagnostics
+keymap("n", "<leader>sb", "<cmd>Lspsaga show_buf_diagnostics<CR>")
+
+-- Show workspace diagnostics
+keymap("n", "<leader>sw", "<cmd>Lspsaga show_workspace_diagnostics<CR>")
+
+-- Show cursor diagnostics
+keymap("n", "<leader>sc", "<cmd>Lspsaga show_cursor_diagnostics<CR>")
+
+-- Diagnostic jump
+-- You can use <C-o> to jump back to your previous location
+keymap("n", "[e", "<cmd>Lspsaga diagnostic_jump_prev<CR>")
+keymap("n", "]e", "<cmd>Lspsaga diagnostic_jump_next<CR>")
+
+-- Diagnostic jump with filters such as only jumping to an error
+keymap("n", "[g", function()
+  require("lspsaga.diagnostic"):goto_prev({ severity = vim.diagnostic.severity.ERROR })
+end)
+keymap("n", "]g", function()
+  require("lspsaga.diagnostic"):goto_next({ severity = vim.diagnostic.severity.ERROR })
+end)
+keymap("n", "[t", function()
+  require("lspsaga.diagnostic"):goto_prev({ severity = { max= vim.diagnostic.severity.WARN } })
+end)
+keymap("n", "]t", function()
+  require("lspsaga.diagnostic"):goto_next({ severity = { max= vim.diagnostic.severity.WARN } })
+end)
+
+-- Toggle outline
+keymap("n","<leader>o", "<cmd>Lspsaga outline<CR>")
+
+-- Hover Doc
+-- If there is no hover doc,
+-- there will be a notification stating that
+-- there is no information available.
+-- To disable it just use ":Lspsaga hover_doc ++quiet"
+-- Pressing the key twice will enter the hover window
+keymap("n", "K", "<cmd>Lspsaga hover_doc<CR>")
+
+-- If you want to keep the hover window in the top right hand corner,
+-- you can pass the ++keep argument
+-- Note that if you use hover with ++keep, pressing this key again will
+-- close the hover window. If you want to jump to the hover window
+-- you should use the wincmd command "<C-w>w"
+-- keymap("n", "K", "<cmd>Lspsaga hover_doc ++keep<CR>")
+
+-- Call hierarchy
+keymap("n", "<Leader>ci", "<cmd>Lspsaga incoming_calls<CR>")
+keymap("n", "<Leader>co", "<cmd>Lspsaga outgoing_calls<CR>")
+
+-- Floating terminal
+keymap({"n", "t"}, "<A-d>", "<cmd>Lspsaga term_toggle<CR>")
+
 -- Global mappings.
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
 -- local vimDiagnosticOpts = {severity_limit = vim.diagnostic.severity.ERROR}
 -- vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
-vim.keymap.set('n', '[g', vim.diagnostic.goto_prev)
-vim.keymap.set('n', ']g', vim.diagnostic.goto_next)
-vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
 
 -- vim.api.nvim_set_var('vimDiagnosticJumpSeverity', 'Error')
 -- vim.api.nvim_set_var('vimDiagnosticJumpSeverityOther', {'Warning', 'Information', 'Hint'})
@@ -351,66 +455,84 @@ vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
-vim.api.nvim_create_autocmd('LspAttach', {
-  group = vim.api.nvim_create_augroup('UserLspConfig', {}),
-  callback = function(ev)
-    -- Enable completion triggered by <c-x><c-o>
-    vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
-
-
-    -- Buffer local mappings.
-    -- See `:help vim.lsp.*` for documentation on any of the below functions
-    local opts = { buffer = ev.buf }
-    vim.api.nvim_buf_set_keymap(ev.buf, 'n', 'gD', "<cmd> lua vim.lsp.buf.declaration()<CR>", {noremap = true, silent = true})
-    vim.api.nvim_buf_set_keymap(ev.buf, 'n', ']g', "<cmd> lua vim.diagnostic.goto_next({ severity = 'Error'})<CR>", {noremap = true, silent = true})
-    vim.api.nvim_buf_set_keymap(ev.buf, 'n', '[g', "<cmd> lua vim.diagnostic.goto_prev({ severity = 'Error'})<CR>", {noremap = true, silent = true})
-    vim.api.nvim_buf_set_keymap(ev.buf, 'n', ']t', "<cmd> lua vim.diagnostic.goto_next({ severity = {max= 'Warn'}})<CR>", {noremap = true, silent = true})
-    vim.api.nvim_buf_set_keymap(ev.buf, 'n', '[t', "<cmd> lua vim.diagnostic.goto_prev({ severity = {max= 'Warn'}})<CR>", {noremap = true, silent = true})
-    -- vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
-    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-    -- vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
-    vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
-    vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
-    vim.keymap.set('n', '<space>wl', function()
-      print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-    end, opts)
 
 
 
-    local input_opts = {
-      prompt = "Enter something: ",
-      on_keypress = function(key)
-        -- Check if the pressed key is option+backspace
-        if key == "a" then
-          -- Return `false` to prevent the input dialog from closing
-          return false
-        end
-      end
-    }
 
 
-    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
-    vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
-    -- vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-    vim.keymap.set('n', 'gr', "<cmd> Telescope vim.lsp.buf.references()<CR>", opts)
-    vim.keymap.set('n', '<space>f', function()
-      vim.lsp.buf.format { async = true }
-    end, opts)
 
-    vim.api.nvim_create_autocmd("BufWritePre", {
-        buffer = ev.buf,
-        callback = function()
-            vim.lsp.buf.format { async = false }
-        end
-    })
-    -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-n>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
-    -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-p>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
-    -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<CR>', '<cmd>lua vim.lsp.buf.definition()<CR>', { noremap = true, silent = true })
-  end,
-})
+
+-- vim.api.nvim_create_autocmd('LspAttach', {
+--   group = vim.api.nvim_create_augroup('UserLspConfig', {}),
+--   callback = function(ev)
+--     -- Enable completion triggered by <c-x><c-o>
+--     vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
+--
+--
+--     -- Buffer local mappings.
+--     -- See `:help vim.lsp.*` for documentation on any of the below functions
+--     local opts = { buffer = ev.buf }
+--     vim.api.nvim_buf_set_keymap(ev.buf, 'n', 'gD', "<cmd> lua vim.lsp.buf.declaration()<CR>", {noremap = true, silent = true})
+--     vim.api.nvim_buf_set_keymap(ev.buf, 'n', ']g', "<cmd> lua vim.diagnostic.goto_next({ severity = 'Error'})<CR>", {noremap = true, silent = true})
+--     vim.api.nvim_buf_set_keymap(ev.buf, 'n', '[g', "<cmd> lua vim.diagnostic.goto_prev({ severity = 'Error'})<CR>", {noremap = true, silent = true})
+--     vim.api.nvim_buf_set_keymap(ev.buf, 'n', ']t', "<cmd> lua vim.diagnostic.goto_next({ severity = {max= 'Warn'}})<CR>", {noremap = true, silent = true})
+--     vim.api.nvim_buf_set_keymap(ev.buf, 'n', '[t', "<cmd> lua vim.diagnostic.goto_prev({ severity = {max= 'Warn'}})<CR>", {noremap = true, silent = true})
+--     -- vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
+--     vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+--     vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
+--     vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
+--     vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+--     -- vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+--     vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
+--     vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
+--     vim.keymap.set('n', '<space>wl', function()
+--       print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+--     end, opts)
+--
+--
+--
+--     local input_opts = {
+--       prompt = "Enter something: ",
+--       on_keypress = function(key)
+--         -- Check if the pressed key is option+backspace
+--         if key == "a" then
+--           -- Return `false` to prevent the input dialog from closing
+--           return false
+--         end
+--       end
+--     }
+--
+--
+--     vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
+--     vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
+--     -- vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+--     vim.keymap.set('n', 'gr', "<cmd> Telescope vim.lsp.buf.references()<CR>", opts)
+--     vim.keymap.set('n', '<space>f', function()
+--       vim.lsp.buf.format { async = true }
+--     end, opts)
+--
+--     vim.api.nvim_create_autocmd("BufWritePre", {
+--         buffer = ev.buf,
+--         callback = function()
+--             vim.lsp.buf.format { async = false }
+--         end
+--     })
+--     -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-n>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
+--     -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-p>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
+--     -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<CR>', '<cmd>lua vim.lsp.buf.definition()<CR>', { noremap = true, silent = true })
+--   end,
+-- })
+
+
+
+
+
+
+
+
+
+
+
 
 --vim.cmd([[
     --" May need for vim (not neovim) since coc.nvim calculate byte offset by count

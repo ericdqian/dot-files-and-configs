@@ -40,8 +40,8 @@ require('packer').startup(function(use)
                 command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
                 nmap ; :Buffers<CR>
                 nmap <Leader>a :RG<CR>
-                nmap <Leader>t :Files<CR>
-                nmap <Leader>tt :GFiles<CR>
+                nmap <Leader>tt :Files<CR>
+                nmap <Leader>z :GFiles<CR>
             ]])
         end,
     })
@@ -313,11 +313,24 @@ cmp.setup {
 
 -- Global mappings.
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
---local vimDiagnosticOpts = {severity = vim.diagnostic.severity.ERROR}
---vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
---vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, vimDiagnosticOpts)
---vim.keymap.set('n', ']d', vim.diagnostic.goto_next, vimDiagnosticOpts)
---vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+-- local vimDiagnosticOpts = {severity_limit = vim.diagnostic.severity.ERROR}
+-- vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
+vim.keymap.set('n', '[g', vim.diagnostic.goto_prev)
+vim.keymap.set('n', ']g', vim.diagnostic.goto_next)
+vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+
+-- vim.api.nvim_set_var('vimDiagnosticJumpSeverity', 'Error')
+-- vim.api.nvim_set_var('vimDiagnosticJumpSeverityOther', {'Warning', 'Information', 'Hint'})
+
+-- vim.keymap.set('n', '[g', vim.diagnostic.goto_prev, {severity = 'Error'})
+-- vim.keymap.set('n', ']g', vim.diagnostic.goto_next, {severity = 'Error'})
+-- vim.keymap.set('n', '[t', vim.diagnostic.goto_prev, {severity = vimDiagnosticJumpSeverityOther})
+-- vim.keymap.set('n', ']t', vim.diagnostic.goto_next, {severity = vimDiagnosticJumpSeverityOther})
+
+-- vim.keymap.set('n', '[g', vim.diagnostic.goto_prev, {test = true})
+-- vim.keymap.set('n', ']g', vim.diagnostic.goto_next, config)
+-- vim.keymap.set('n', '[t', vim.diagnostic.goto_prev, {severity = vimDiagnosticJumpSeverityOther})
+-- vim.keymap.set('n', ']t', vim.diagnostic.goto_next, {severity = vimDiagnosticJumpSeverityOther})
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
@@ -327,26 +340,36 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Enable completion triggered by <c-x><c-o>
     vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
 
+
     -- Buffer local mappings.
     -- See `:help vim.lsp.*` for documentation on any of the below functions
     local opts = { buffer = ev.buf }
-    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
+    vim.api.nvim_buf_set_keymap(ev.buf, 'n', 'gD', "<cmd> lua vim.lsp.buf.declaration()<CR>", {noremap = true, silent = true})
+    vim.api.nvim_buf_set_keymap(ev.buf, 'n', ']g', "<cmd> lua vim.diagnostic.goto_next({ severity = 'Error'})<CR>", {noremap = true, silent = true})
+    vim.api.nvim_buf_set_keymap(ev.buf, 'n', '[g', "<cmd> lua vim.diagnostic.goto_prev({ severity = 'Error'})<CR>", {noremap = true, silent = true})
+    vim.api.nvim_buf_set_keymap(ev.buf, 'n', ']t', "<cmd> lua vim.diagnostic.goto_next({ severity = {max= 'Warn'}})<CR>", {noremap = true, silent = true})
+    vim.api.nvim_buf_set_keymap(ev.buf, 'n', '[t', "<cmd> lua vim.diagnostic.goto_prev({ severity = {max= 'Warn'}})<CR>", {noremap = true, silent = true})
+    -- vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
     vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
     vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-    --vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    -- vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
     vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
     vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
     vim.keymap.set('n', '<space>wl', function()
       print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
     end, opts)
-    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
     vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
     vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
     vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
     vim.keymap.set('n', '<space>f', function()
       vim.lsp.buf.format { async = true }
     end, opts)
+
+    -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-n>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
+    -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-p>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
+    -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<CR>', '<cmd>lua vim.lsp.buf.definition()<CR>', { noremap = true, silent = true })
   end,
 })
 

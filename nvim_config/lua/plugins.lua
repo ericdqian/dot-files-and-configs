@@ -61,7 +61,6 @@ require('packer').startup(function(use)
 
 
     -- Editing plugins
-    use("preservim/nerdcommenter")
     use {
         "windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {
@@ -80,13 +79,13 @@ require('packer').startup(function(use)
         end,
     })
 
-    -- Initialize  'this' after hop so that "S" in visual mode does surround
+    -- Initialize  this after hop so that "S" in visual mode does surround
     use({
         "kylechui/nvim-surround",
         config = function()
             require("nvim-surround").setup({
                 keymaps = {
-                    visual = "s",
+                    visual = "<leader>s",
                 }
             })
             local surround = require("nvim-surround") 
@@ -96,10 +95,39 @@ require('packer').startup(function(use)
                 --end, { buffer = true})
         end,
     })
-    -- Documentation generator; TODO: figure out how to use
     use {
-      'kkoomen/vim-doge',
-      run = ':call doge#install()'
+        "danymat/neogen",
+        config = function()
+            require('neogen').setup {}
+            local neogen = require('neogen');
+            local opts = { noremap = true, silent = true }
+            vim.keymap.set("n", "<leader>gcc", function()
+                neogen.generate()
+            end , opts)
+        end,
+        requires = "nvim-treesitter/nvim-treesitter",
+        -- tag = "*"
+    }
+    use {
+        'numToStr/Comment.nvim',
+        config = function()
+            require('Comment').setup {
+                mappings = {
+                 basic = true,
+                 extra = false,
+                },
+                toggler = {
+                    line = 'gl',
+                    block = 'gb',
+                },
+                opleader = {
+                    line = 'gl',
+                    block = 'gb',
+                },
+            }
+            vim.keymap.set("", "<leader>cc", '<Plug>(comment_toggle_linewise)')
+            --vim.keymap.set("", "<leader>cs", function() comment.blockwise() end, { expr = true, desc = 'Comment toggle blockwise' })
+        end
     }
 
 
@@ -113,13 +141,21 @@ require('packer').startup(function(use)
             }
         end
     }
-
+    
     -- Visual plugins
     -- Editor 'theme'
     use {'navarasu/onedark.nvim'}
     -- Editor status line
     use {'nvim-lualine/lualine.nvim', 
         requires = { 'kyazdani42/nvim-web-devicons', opt = true }
+    }
+    use {
+      "folke/todo-comments.nvim",
+      requires = "nvim-lua/plenary.nvim",
+      config = function()
+        require("todo-comments").setup {
+        }
+      end
     }
 
     use {'nvim-treesitter/nvim-treesitter', run = ':TSUpdate all'}

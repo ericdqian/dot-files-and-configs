@@ -79,7 +79,7 @@ require('packer').startup(function(use)
         end,
     })
 
-    -- Initialize  this after hop so that "S" in visual mode does surround
+    -- Initialize  this after hop so that "<leader>s" in visual mode does surround
     use({
         "kylechui/nvim-surround",
         config = function()
@@ -95,13 +95,14 @@ require('packer').startup(function(use)
                 --end, { buffer = true})
         end,
     })
+    -- For generating docs; sometimes it doesn't work if the lsp isn't up and running
     use {
         "danymat/neogen",
         config = function()
             require('neogen').setup {}
             local neogen = require('neogen');
             local opts = { noremap = true, silent = true }
-            vim.keymap.set("n", "<leader>gcc", function()
+            vim.keymap.set("n", "<leader>gd", function()
                 neogen.generate()
             end , opts)
         end,
@@ -117,16 +118,14 @@ require('packer').startup(function(use)
                  extra = false,
                 },
                 toggler = {
-                    line = 'gl',
-                    block = 'gb',
+                    line = '<leader>gl',
+                    block = '<leader>gb',
                 },
                 opleader = {
-                    line = 'gl',
-                    block = 'gb',
+                    line = '<leader>gl',
+                    block = '<leader>gb',
                 },
             }
-            vim.keymap.set("", "<leader>cc", '<Plug>(comment_toggle_linewise)')
-            --vim.keymap.set("", "<leader>cs", function() comment.blockwise() end, { expr = true, desc = 'Comment toggle blockwise' })
         end
     }
 

@@ -360,13 +360,35 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set('n', '<space>wl', function()
       print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
     end, opts)
+
+
+
+    local input_opts = {
+      prompt = "Enter something: ",
+      on_keypress = function(key)
+        -- Check if the pressed key is option+backspace
+        if key == "a" then
+          -- Return `false` to prevent the input dialog from closing
+          return false
+        end
+      end
+    }
+
+
     vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
     vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
-    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+    -- vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+    vim.keymap.set('n', 'gr', "<cmd> Telescope vim.lsp.buf.references()<CR>", opts)
     vim.keymap.set('n', '<space>f', function()
       vim.lsp.buf.format { async = true }
     end, opts)
 
+    vim.api.nvim_create_autocmd("BufWritePre", {
+        buffer = ev.buf,
+        callback = function()
+            vim.lsp.buf.format { async = false }
+        end
+    })
     -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-n>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
     -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<C-p>', '<cmd>lua vim.lsp.buf.references()<CR>', { noremap = true, silent = true })
     -- vim.api.nvim_buf_set_keymap(ev.buf, 'n', '<CR>', '<cmd>lua vim.lsp.buf.definition()<CR>', { noremap = true, silent = true })

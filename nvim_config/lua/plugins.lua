@@ -68,27 +68,15 @@ require('packer').startup(function(use)
 
         } end
     }
+
     use({
-        "phaazon/hop.nvim",
-        config = function()
-            local hop = require("hop")
-            hop.setup()
-            local HintDirection = require("hop.hint").HintDirection
-            --vim.keymap.set("", ",,w", function()
-                --hop.hint_words({ direction = HintDirection.AFTER_CURSOR })
-            --end)
-            --vim.keymap.set("", ",,b", function()
-                --hop.hint_words({ direction = HintDirection.BEFORE_CURSOR })
-            --end)
-            vim.keymap.set("", "s", function()
-                hop.hint_char2({ direction = HintDirection.AFTER_CURSOR })
-            end)
-            vim.keymap.set("", "S", function()
-                hop.hint_char2({ direction = HintDirection.BEFORE_CURSOR })
-            end)
-            --vim.keymap.set("", ",,m", function()
-                --hop.hint_words({ multi_windows = true })
-            --end)
+        'ggandor/leap.nvim',
+        requires = { 'tpope/vim-repeat', opt = true },
+        keys = { "s", "S" },
+        config = function() 
+            local leap = require "leap"
+            leap.set_default_keymaps()
+            leap.init_highlight(true)
         end,
     })
 
@@ -126,7 +114,6 @@ require('packer').startup(function(use)
         end
     }
 
-
     -- Visual plugins
     -- Editor 'theme'
     use {'navarasu/onedark.nvim'}
@@ -136,6 +123,7 @@ require('packer').startup(function(use)
     }
 
     use {'nvim-treesitter/nvim-treesitter', run = ':TSUpdate all'}
+
 
 
   -- Automatically set up your configuration after cloning packer.nvim

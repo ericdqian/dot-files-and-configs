@@ -20,31 +20,48 @@ require('packer').startup(function(use)
 
     -- Directory / searching plugins
     use("tpope/vim-vinegar")
-    use({
-        "junegunn/fzf",
-        run = function()
-            vim.fn["fzf#install"](0)
-        end,
-    })
-    use({
-        "junegunn/fzf.vim",
-        config = function()
-            vim.cmd([[
-                function! RipgrepFzf(query, fullscreen)
-                  let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
-                  let initial_command = printf(command_fmt, shellescape(a:query))
-                  let reload_command = printf(command_fmt, '{q}')
-                  let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
-                  call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
-                endfunction
-                command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
-                nmap ; :Buffers<CR>
-                nmap <Leader>a :RG<CR>
-                nmap <Leader>tt :Files<CR>
-                nmap <Leader>z :GFiles<CR>
-            ]])
-        end,
-    })
+    -- use({
+    --     "junegunn/fzf",
+    --     run = function()
+    --         vim.fn["fzf#install"](0)
+    --     end,
+    -- })
+    -- use({
+    --     "junegunn/fzf.vim",
+    --     config = function()
+    --         vim.cmd([[
+    --             function! RipgrepFzf(query, fullscreen)
+    --               let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
+    --               let initial_command = printf(command_fmt, shellescape(a:query))
+    --               let reload_command = printf(command_fmt, '{q}')
+    --               let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
+    --               call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
+    --             endfunction
+    --             command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
+    --             nmap ; :Buffers<CR>
+    --             nmap <Leader>a :RG<CR>
+    --             nmap <Leader>tt :Files<CR>
+    --             nmap <Leader>z :GFiles<CR>
+    --         ]])
+    --     end,
+    -- })
+
+    -- use {
+    --   'nvim-lua/plenary.nvim',
+    --   requires = {'nvim-lua/plenary.nvim'},
+    -- }
+
+    use {
+      'nvim-telescope/telescope.nvim', tag = '0.1.1',
+      requires = { {'nvim-lua/plenary.nvim'} },
+      config = function()
+          local builtin = require('telescope.builtin')
+            vim.keymap.set('n', '<leader>z', builtin.find_files, {})
+            vim.keymap.set('n', '<leader>a', builtin.live_grep, {})
+            vim.keymap.set('n', ';', builtin.buffers, {})
+            -- vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+      end
+    }
 
 
     -- LSP plugins

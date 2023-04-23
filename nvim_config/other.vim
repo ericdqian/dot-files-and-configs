@@ -33,10 +33,18 @@ noremap <expr> j v:count ? 'j' : 'gj'
 noremap <expr> k v:count ? 'k' : 'gk'
 
 " Map so , advances a search from f/t/F/T and < goes backwards
+function! s:MapCommaOrUnindent() abort
+  if mode() !=# 'v' || col('.') == 1
+    return '<'
+  else
+    return ','
+  endif
+endfunction
+
 nnoremap , ;
 vnoremap , ;
 nnoremap < ,
-vnoremap < ,
+vnoremap <expr> < <SID>MapCommaOrUnindent()
 
 " Map to 
 onoremap in( :<c-u>normal! f(vi(<cr>

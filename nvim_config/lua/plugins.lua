@@ -30,6 +30,17 @@ require('packer').startup(function(use)
             vim.keymap.set('n', '<leader>a', builtin.live_grep, {})
             vim.keymap.set('n', ';', builtin.buffers, {})
             -- vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+            local telescope = require('telescope')
+            local actions = require('telescope.actions')
+          telescope.setup({
+              defaults = {
+                mappings = {
+                    i = {
+                        [ '<C-s>' ] = actions.select_horizontal
+                    }
+                }
+              }
+          })
       end
     }
 
@@ -56,7 +67,7 @@ require('packer').startup(function(use)
                 finder = {
                     keys = {
                         vsplit = 'v',
-                        split = 'o',
+                        split = 's',
                         quit = { "<ESC>", "q" },
                         expand_or_jump = '<cr>',
                     }
@@ -64,7 +75,7 @@ require('packer').startup(function(use)
                 -- For peeking only
                 definition = {
                     vsplit = '<C-c>v',
-                    split = '<C-c>o',
+                    split = '<C-c>s',
                     quit = { "<ESC>", "q" },
                     edit = '<cr>',
                 },
@@ -354,7 +365,7 @@ keymap({"n","v"}, "<leader>ca", "<cmd>Lspsaga code_action<CR>")
 keymap("n", "rn", "<cmd>Lspsaga rename<CR>")
 
 -- Rename all occurrences of the hovered word for the selected files
--- keymap("n", "rn", "<cmd>Lspsaga rename ++project<CR>")
+keymap("n", "rN", "<cmd>Lspsaga rename ++project<CR>")
 
 -- Peek definition
 -- You can edit the file containing the definition in the floating window

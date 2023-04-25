@@ -36,7 +36,10 @@ require('packer').startup(function(use)
               defaults = {
                 mappings = {
                     i = {
-                        [ '<C-s>' ] = actions.select_horizontal
+                        [ '<C-s>' ] = actions.select_horizontal,
+                        ["<A-BS>"] = function()
+          vim.cmd [[normal! bcw]]
+        end,
                     }
                 }
               },
@@ -91,7 +94,8 @@ require('packer').startup(function(use)
                     }
                 },
                 rename = {
-                    quit = "<ESC>"
+                    quit = "<ESC>",
+                    in_select = false,
                 }
             })
         end,
@@ -302,7 +306,7 @@ local capabilities = require("cmp_nvim_lsp").default_capabilities()
 local lspconfig = require('lspconfig')
 
 -- Enable some language servers with the additional completion capabilities offered by nvim-cmp
-local servers = { 'clangd', 'rust_analyzer', 'pyright', 'tsserver'}
+local servers = { 'clangd', 'rust_analyzer', 'pyright', 'tsserver', 'lua_ls'}
 for _, lsp in ipairs(servers) do
   lspconfig[lsp].setup {
     -- on_attach = my_custom_on_attach,

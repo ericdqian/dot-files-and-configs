@@ -55,15 +55,15 @@ require('packer').startup(function(use)
 
 
     -- LSP plugins
-    use('neovim/nvim-lspconfig')  -- Configurations for Nvim LSP
-    use('hrsh7th/nvim-cmp')       -- Autocompletion plugin
+    use('neovim/nvim-lspconfig') -- Configurations for Nvim LSP
+    use('hrsh7th/nvim-cmp')      -- Autocompletion plugin
     use({
         'weilbith/nvim-code-action-menu',
         cmd = 'CodeActionMenu',
     })
-    use('hrsh7th/cmp-nvim-lsp')        -- LSP source for nvim-cmp
-    use('saadparwaiz1/cmp_luasnip')    -- Snippets source for nvim-cmp
-    use('L3MON4D3/LuaSnip')            -- Snippets plugin
+    use('hrsh7th/cmp-nvim-lsp')     -- LSP source for nvim-cmp
+    use('saadparwaiz1/cmp_luasnip') -- Snippets source for nvim-cmp
+    use('L3MON4D3/LuaSnip')         -- Snippets plugin
 
 
     use({
@@ -254,7 +254,7 @@ require('lualine').setup {
 
 require 'nvim-treesitter.configs'.setup {
     -- A list of parser names, or "all" (the four listed parsers should always be installed)
-    ensure_installed = { "javascript", "typescript", "python", "rust", "lua", "vim", "help", "markdown",
+    ensure_installed = { "javascript", "typescript", "python", "rust", "lua", "vim", "markdown",
         "markdown_inline" },
 
     -- Install parsers synchronously (only applied to `ensure_installed`)
@@ -307,7 +307,7 @@ local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 local lspconfig = require('lspconfig')
 
-local custom_attach = function(client, bufnr) 
+local custom_attach = function(client, bufnr)
     -- Do this to prevent lsp from overriding treesitter
     client.server_capabilities.semanticTokensProvider = nil
 end
@@ -337,7 +337,7 @@ cmp.setup {
     },
     mapping = cmp.mapping.preset.insert({
         ['<C-u>'] = cmp.mapping.scroll_docs(-4), -- Up
-        ['<C-d>'] = cmp.mapping.scroll_docs(4), -- Down
+        ['<C-d>'] = cmp.mapping.scroll_docs(4),  -- Down
         -- C-b (back) C-f (forward) for snippet placeholder navigation.
         --['<C-Space>'] = cmp.mapping.complete(),
         ['<CR>'] = cmp.mapping.confirm {

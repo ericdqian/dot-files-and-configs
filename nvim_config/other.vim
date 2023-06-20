@@ -4,6 +4,10 @@ set relativenumber
 
 set mouse=n
 
+" Only show winbar with tabs if there is >1 tab
+set showtabline=1
+
+" Spacing
 autocmd Filetype javascript setlocal ts=2 sts=2 sw=2
 autocmd Filetype typescript setlocal ts=2 sts=2 sw=2
 autocmd Filetype typescriptreact setlocal ts=2 sts=2 sw=2

@@ -28,9 +28,11 @@ require('packer').startup(function(use)
             vim.keymap.set('n', '<leader>z', builtin.find_files, {})
             vim.keymap.set('n', '<leader>a', builtin.live_grep, {})
             vim.keymap.set('n', ';', builtin.buffers, {})
-            -- vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+            vim.keymap.set('n', '<leader>q', builtin.resume, {})
             local telescope = require('telescope')
             local actions = require('telescope.actions')
+            local transform_mod = require('telescope.actions.mt').transform_mod
+
             telescope.setup({
                 defaults = {
                     mappings = {
@@ -38,7 +40,12 @@ require('packer').startup(function(use)
                             ['<C-s>'] = actions.select_horizontal, -- Split horizontally with selection
                             ["<A-BS>"] = function() -- Overwrite alt+backspace in insert mode to do bulk delete
                                 vim.cmd [[normal! bcw]]
-                            end,
+                            -- end,
+                            -- ["<esc>"] = function(prompt_bufnr)
+                            --     local current_picker = require('telescope.actions.state').get_current_buffer(prompt_bufnr)
+                            --     local prompt = current_picker:_get_prompt()
+                            --     if prompt == "" then actions.close() end
+                            end
                         }
                     }
                 },

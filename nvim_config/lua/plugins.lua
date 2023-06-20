@@ -46,7 +46,8 @@ require('packer').startup(function(use)
                 pickers = {
                     buffers = {
                         sort_mru = true,
-                        sort_lastused = true,
+                        -- sort_lastused = true,
+                        ignore_current_buffer = false,
                     }
                 }
             })
@@ -96,6 +97,9 @@ require('packer').startup(function(use)
                 rename = {
                     quit = "<ESC>",
                     in_select = false,
+                },
+                symbol_in_winbar = {
+                    enable = false,
                 }
             })
         end,
@@ -250,6 +254,37 @@ require('lualine').setup {
             winbar = 1000,
         }
     },
+    sections = {
+        lualine_a = { 'mode' },
+        lualine_b = { 'branch', 'diagnostics' },
+        lualine_c = { },
+        lualine_y = { 'progress' },
+        lualine_z = { 'location' }
+    },
+    inactive_sections = {
+        lualine_a = {
+        },
+        lualine_b = {},
+        lualine_c = {},
+        lualine_x = { 'location' },
+        lualine_y = {},
+        lualine_z = {}
+    },
+    winbar = {
+        lualine_a = { { 'filename', path = 1 } },
+        lualine_b = {},
+        lualine_c = {},
+        lualine_y = {},
+        lualine_z = {}
+    },
+    inactive_winbar = {
+        lualine_a = { { 'filename', path = 1 } },
+        lualine_b = {},
+        lualine_c = {},
+        lualine_y = {},
+        lualine_z = {}
+    }
+
 }
 
 require 'nvim-treesitter.configs'.setup {

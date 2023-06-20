@@ -46,7 +46,23 @@ vnoremap , ;
 nnoremap < ,
 vnoremap <expr> < <SID>MapCommaOrUnindent()
 
-" Map to 
+" Map to change inner parens
 onoremap in( :<c-u>normal! f(vi(<cr>
-onoremap ip( :<c-u>normal! f(vi(<cr>
+onoremap ip( :<c-u>normal! F(vi(<cr>
+
+
+" Map ctrl+L to ctrl+P in netrw so window navigation can be used
+augroup netrw_mapping
+  autocmd!
+  autocmd filetype netrw call NetrwMapping()
+augroup END
+
+function! NetrwMapping()
+  " TODO: make sure that that this ctrl+P works properly
+  nnoremap <silent> <buffer> <c-p> :e .
+  nnoremap <silent> <buffer> <c-l> <c-w>l
+endfunction
+
+" Line numbers in netrw
+let g:netrw_bufsettings = 'noma nomod nu nowrap ro nobl'
 

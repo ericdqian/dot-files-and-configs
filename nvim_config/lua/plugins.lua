@@ -16,11 +16,10 @@ local packer_bootstrap = ensure_packer()
 require('packer').startup(function(use)
     use('wbthomason/packer.nvim')
 
-    -- My plugins here
-
     -- Directory / searching plugins
+    -- For directory navigation
     use("tpope/vim-vinegar")
-
+    -- Fuzzy searching
     use {
         'nvim-telescope/telescope.nvim', tag = '0.1.1',
         requires = { { 'nvim-lua/plenary.nvim' } },
@@ -36,8 +35,8 @@ require('packer').startup(function(use)
                 defaults = {
                     mappings = {
                         i = {
-                            ['<C-s>'] = actions.select_horizontal,
-                            ["<A-BS>"] = function()
+                            ['<C-s>'] = actions.select_horizontal, -- Split horizontally with selection
+                            ["<A-BS>"] = function() -- Overwrite alt+backspace in insert mode to do bulk delete
                                 vim.cmd [[normal! bcw]]
                             end,
                         }
@@ -46,8 +45,11 @@ require('packer').startup(function(use)
                 pickers = {
                     buffers = {
                         sort_mru = true,
-                        -- sort_lastused = true,
+                        -- sort_lastused = true, -- This is referring to where the selector is placed
                         ignore_current_buffer = false,
+                    },
+                    find_files = {
+                        sort_mru = true,
                     }
                 }
             })
@@ -56,17 +58,14 @@ require('packer').startup(function(use)
 
 
     -- LSP plugins
-    use('neovim/nvim-lspconfig') -- Configurations for Nvim LSP
-    use('hrsh7th/nvim-cmp')      -- Autocompletion plugin
-    use({
-        'weilbith/nvim-code-action-menu',
-        cmd = 'CodeActionMenu',
-    })
-    use('hrsh7th/cmp-nvim-lsp')     -- LSP source for nvim-cmp
-    use('saadparwaiz1/cmp_luasnip') -- Snippets source for nvim-cmp
+    use('neovim/nvim-lspconfig')    -- Collection of common configurations for Nvim LSP
+    use('hrsh7th/nvim-cmp')         -- Autocompletion plugin
+    use('hrsh7th/cmp-nvim-lsp')     -- LSP source for nvim-cmp (where to get autocompletion suggestions)
     use('L3MON4D3/LuaSnip')         -- Snippets plugin
+    use('saadparwaiz1/cmp_luasnip') -- Snippets source for nvim-cmp (where to get snippets suggestions)
 
 
+    -- Gives diagnostics, pretty popups for goto definition/references/type
     use({
         "glepnir/lspsaga.nvim",
         opt = true,
@@ -124,7 +123,7 @@ require('packer').startup(function(use)
             }
         end
     }
-
+    -- Navigation
     use({
         'ggandor/leap.nvim',
         requires = { 'tpope/vim-repeat', opt = true },
@@ -136,7 +135,6 @@ require('packer').startup(function(use)
             leap.init_highlight(true)
         end,
     })
-
     -- Initialize  this after hop so that "<leader>s" in visual mode does surround
     use({
         "kylechui/nvim-surround",
@@ -146,11 +144,6 @@ require('packer').startup(function(use)
                     visual = "<leader>s",
                 }
             })
-            local surround = require("nvim-surround")
-            --'local' VisualSurround = require('nv'im-surround')'.visual
-            --vim.keymap.set("x", "s", function()
-            --surround.visual_surround({ line_mode = false})
-            --end, { buffer = true})
         end,
     })
     -- For generating docs; sometimes it doesn't work if the lsp isn't up and running
@@ -189,7 +182,10 @@ require('packer').startup(function(use)
 
 
     -- Git plugins
+
+    -- Enables using git commands in vim
     use("tpope/vim-fugitive")
+    -- For showing changes in the lefthand side
     use {
         'lewis6991/gitsigns.nvim',
         config = function()
@@ -198,14 +194,18 @@ require('packer').startup(function(use)
             }
         end
     }
+    -- For opening a file in github - use :OpenInGHFile
+    use "almo7aya/openingh.nvim"
 
     -- Visual plugins
+
     -- Editor 'theme'
     use { 'navarasu/onedark.nvim' }
     -- Editor status line
     use { 'nvim-lualine/lualine.nvim',
         requires = { 'kyazdani42/nvim-web-devicons', opt = true }
     }
+    -- Shows todo comments etc
     use {
         "folke/todo-comments.nvim",
         requires = "nvim-lua/plenary.nvim",
@@ -214,7 +214,7 @@ require('packer').startup(function(use)
             }
         end
     }
-
+    -- For text coloring
     use { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate all' }
 
 
@@ -257,7 +257,7 @@ require('lualine').setup {
     sections = {
         lualine_a = { 'mode' },
         lualine_b = { 'branch', 'diagnostics' },
-        lualine_c = { },
+        lualine_c = {},
         lualine_y = { 'progress' },
         lualine_z = { 'location' }
     },

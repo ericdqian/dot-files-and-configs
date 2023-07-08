@@ -2,7 +2,7 @@ local M = {}
 
 function M.setup()
     local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
-    local null_ls = require('null-ls')
+    local null_ls = require("null-ls")
     null_ls.setup({
         -- you can reuse a shared lspconfig on_attach callback here
         on_attach = function(client, bufnr)
@@ -19,11 +19,10 @@ function M.setup()
             end
         end,
         sources = {
-            null_ls.builtins.formatting.stylua,
+            null_ls.builtins.formatting.stylua, -- brew install stylua
             null_ls.builtins.formatting.prettier, -- https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#prettierd
-            null_ls.builtins.code_actions.eslint_d
-
-        }
+            null_ls.builtins.code_actions.eslint_d,
+        },
     })
 end
 

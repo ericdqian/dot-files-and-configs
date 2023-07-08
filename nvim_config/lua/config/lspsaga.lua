@@ -4,23 +4,23 @@ function M.setup()
     require("lspsaga").setup({
         finder = {
             keys = {
-                vsplit = 'v',
-                split = 's',
+                vsplit = "v",
+                split = "s",
                 quit = { "<ESC>", "q" },
-                expand_or_jump = '<cr>',
-            }
+                expand_or_jump = "<cr>",
+            },
         },
         -- For peeking only
         definition = {
-            vsplit = '<C-c>v',
-            split = '<C-c>s',
+            vsplit = "<C-c>v",
+            split = "<C-c>s",
             quit = { "<ESC>", "q" },
-            edit = '<cr>',
+            edit = "<cr>",
         },
         code_action = {
             keys = {
                 quit = "<ESC>",
-            }
+            },
         },
         rename = {
             quit = "<ESC>",
@@ -28,8 +28,9 @@ function M.setup()
         },
         symbol_in_winbar = {
             enable = false,
-        }
+        },
     })
+
     local keymap = vim.keymap.set
 
     -- LSP finder - Find the symbol's definition
@@ -66,7 +67,6 @@ function M.setup()
 
     -- Go to type definition
     -- keymap("n","gt", "<cmd>Lspsaga goto_type_definition<CR>")
-
 
     -- Show line diagnostics
     -- You can pass argument ++unfocus to

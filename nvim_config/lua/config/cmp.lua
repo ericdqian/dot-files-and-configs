@@ -1,24 +1,24 @@
 local M = {}
 
 function M.setup()
-    local luasnip = require 'luasnip'
-    local cmp = require 'cmp'
-    cmp.setup {
+    local luasnip = require("luasnip")
+    local cmp = require("cmp")
+    cmp.setup({
         snippet = {
             expand = function(args)
                 luasnip.lsp_expand(args.body)
             end,
         },
         mapping = cmp.mapping.preset.insert({
-            ['<C-u>'] = cmp.mapping.scroll_docs(-4), -- Up
-            ['<C-d>'] = cmp.mapping.scroll_docs(4),  -- Down
+            ["<C-u>"] = cmp.mapping.scroll_docs(-4), -- Up
+            ["<C-d>"] = cmp.mapping.scroll_docs(4), -- Down
             -- C-b (back) C-f (forward) for snippet placeholder navigation.
             --['<C-Space>'] = cmp.mapping.complete(),
-            ['<CR>'] = cmp.mapping.confirm {
+            ["<CR>"] = cmp.mapping.confirm({
                 behavior = cmp.ConfirmBehavior.Replace,
                 select = true,
-            },
-            ['<Tab>'] = cmp.mapping(function(fallback)
+            }),
+            ["<Tab>"] = cmp.mapping(function(fallback)
                 if cmp.visible() then
                     cmp.select_next_item()
                 elseif luasnip.expand_or_jumpable() then
@@ -26,8 +26,8 @@ function M.setup()
                 else
                     fallback()
                 end
-            end, { 'i', 's' }),
-            ['<S-Tab>'] = cmp.mapping(function(fallback)
+            end, { "i", "s" }),
+            ["<S-Tab>"] = cmp.mapping(function(fallback)
                 if cmp.visible() then
                     cmp.select_prev_item()
                 elseif luasnip.jumpable(-1) then
@@ -35,13 +35,13 @@ function M.setup()
                 else
                     fallback()
                 end
-            end, { 'i', 's' }),
+            end, { "i", "s" }),
         }),
         sources = {
-            { name = 'nvim_lsp' },
-            { name = 'luasnip' },
+            { name = "nvim_lsp" },
+            { name = "luasnip" },
         },
-    }
+    })
 end
 
 return M

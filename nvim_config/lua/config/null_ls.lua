@@ -19,9 +19,10 @@ function M.setup()
             end
         end,
         sources = {
-            null_ls.builtins.formatting.stylua, -- brew install stylua
-            null_ls.builtins.formatting.prettier, -- https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#prettierd
-            null_ls.builtins.code_actions.eslint_d,
+            null_ls.builtins.formatting.stylua, -- can be installed globally using: brew install stylua
+            null_ls.builtins.code_actions.eslint_d, -- can be installed globally using: npm install -g eslint_d
+            null_ls.builtins.formatting.prettier, -- installed on a per-project basis using: yarn add -D prettier
+            -- can consider upgrading to prettierd: https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#prettierd
         },
     })
 end

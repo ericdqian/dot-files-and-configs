@@ -52,13 +52,10 @@ require("packer").startup(function(use)
         "williamboman/mason.nvim",
         config = function()
             require("config.mason").setup()
-        end
+        end,
     })
 
-    use(
-        "williamboman/mason-lspconfig.nvim",
-        "neovim/nvim-lspconfig"
-    )
+    use("williamboman/mason-lspconfig.nvim", "neovim/nvim-lspconfig")
 
     use({
         "/jose-elias-alvarez/null-ls.nvim",
@@ -66,7 +63,6 @@ require("packer").startup(function(use)
             require("config.null_ls").setup()
         end,
     })
-
 
     -- Gives diagnostics, pretty popups for goto definition/references/type
     use({

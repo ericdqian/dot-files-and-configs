@@ -11,7 +11,13 @@ function M.setup()
     end
 
     -- Enable some language servers with the additional completion capabilities offered by nvim-cmp
-    local servers = { "clangd", "rust_analyzer", "pyright", "tsserver", "lua_ls" }
+    local servers = {
+        "clangd",
+        "rust_analyzer", --brew install rust-analyzer
+        "pyright",
+        "tsserver",
+        "lua_ls", -- brew install lua-language-server
+    }
     for _, lsp in ipairs(servers) do
         lspconfig[lsp].setup({
             on_attach = custom_attach,

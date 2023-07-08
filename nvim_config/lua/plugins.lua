@@ -1,5 +1,7 @@
 --:PackerSync after adding packages or if you want to update them
 
+-- Consider switching to lazy: https://github.com/folke/lazy.nvim
+
 local ensure_packer = function()
     local fn = vim.fn
     local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
@@ -44,7 +46,15 @@ require("packer").startup(function(use)
         config = function()
             require("config.cmp").setup()
         end,
-    }) -- Autocompletion plugin
+    })
+
+    use({
+        "/jose-elias-alvarez/null-ls.nvim",
+        config = function()
+            require("config.null_ls").setup()
+        end,
+    })
+
 
     -- Gives diagnostics, pretty popups for goto definition/references/type
     use({
@@ -62,18 +72,11 @@ require("packer").startup(function(use)
         },
     })
 
-    use({
-        "/jose-elias-alvarez/null-ls.nvim",
-        config = function()
-            require("config.null_ls").setup()
-        end,
-    })
-
     -- Editing plugins
     use({
         "windwp/nvim-autopairs",
         config = function()
-            require("nvim-autopairs").setup({})
+            require("nvim-autopairs").setup()
         end,
     })
     -- Navigation

@@ -42,9 +42,12 @@ require('packer').startup(function(use)
                                 vim.cmd [[normal! bcw]]
                             -- end,
                             -- ["<esc>"] = function(prompt_bufnr)
-                            --     local current_picker = require('telescope.actions.state').get_current_buffer(prompt_bufnr)
+                            --     local telescope_state = require('telescope.actions.state');
+                            --     print("prompt", prompt_bufnr)
+                            --     print("telescope state", telescope_state)
+                            --     local current_picker = telescope_state.get_current_picker(prompt_bufnr)
                             --     local prompt = current_picker:_get_prompt()
-                            --     if prompt == "" then actions.close() end
+                            --     if prompt == "a" then actions.close() end
                             end
                         }
                     }
@@ -207,10 +210,23 @@ require('packer').startup(function(use)
     -- Visual plugins
 
     -- Editor 'theme'
-    use { 'navarasu/onedark.nvim' }
+    use { 'navarasu/onedark.nvim',
+        config = function ()
+            require('onedark').setup {
+                style = 'darker'
+            }
+            vim.cmd("highlight Comment ctermfg=gray")
+            require('onedark').load()
+        end
+
+    }
     -- Editor status line
+    -- Initializing lualine has to come after onedark in order for proper UI to take effect
     use { 'nvim-lualine/lualine.nvim',
-        requires = { 'kyazdani42/nvim-web-devicons', opt = true }
+        requires = { 'kyazdani42/nvim-web-devicons', opt = true },
+        config = function ()
+            require("config.lualine").setup()
+        end
     }
     -- Shows todo comments etc
     use {
@@ -235,64 +251,8 @@ require('packer').startup(function(use)
 end)
 
 
-require('onedark').setup {
-    style = 'darker'
-}
-vim.cmd("highlight Comment ctermfg=gray")
-require('onedark').load()
 
--- Initializing lualine has to come after onedark in order for proper UI to take effect
-require('lualine').setup {
-    options = {
-        icons_enabled = true,
-        theme = 'dracula',
-        component_separators = { left = '', right = '' },
-        section_separators = { left = '', right = '' },
-        disabled_filetypes = {
-            statusline = {},
-            winbar = {},
-        },
-        ignore_focus = {},
-        always_divide_middle = true,
-        globalstatus = false,
-        refresh = {
-            statusline = 1000,
-            tabline = 1000,
-            winbar = 1000,
-        }
-    },
-    sections = {
-        lualine_a = { 'mode' },
-        lualine_b = { 'branch', 'diagnostics' },
-        lualine_c = {},
-        lualine_y = { 'progress' },
-        lualine_z = { 'location' }
-    },
-    inactive_sections = {
-        lualine_a = {
-        },
-        lualine_b = {},
-        lualine_c = {},
-        lualine_x = { 'location' },
-        lualine_y = {},
-        lualine_z = {}
-    },
-    winbar = {
-        lualine_a = { { 'filename', path = 1 } },
-        lualine_b = {},
-        lualine_c = {},
-        lualine_y = {},
-        lualine_z = {}
-    },
-    inactive_winbar = {
-        lualine_a = { { 'filename', path = 1 } },
-        lualine_b = {},
-        lualine_c = {},
-        lualine_y = {},
-        lualine_z = {}
-    }
 
-}
 
 require 'nvim-treesitter.configs'.setup {
     -- A list of parser names, or "all" (the four listed parsers should always be installed)
@@ -322,7 +282,7 @@ require 'nvim-treesitter.configs'.setup {
         --disable = { "c", "rust" },
         -- Or use a function for more flexibility, e.g. to disable slow treesitter highlight for large files
         disable = function(lang, buf)
-            local max_filesize = 100 * 1024 -- 100 KB
+            local max_filesize = 500 * 1024 -- 100 KB
             local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
             if ok and stats and stats.size > max_filesize then
                 return true

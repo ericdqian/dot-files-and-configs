@@ -14,9 +14,9 @@ function M.setup()
     local servers = {
         "clangd",
         "rust_analyzer", --brew install rust-analyzer
-        "pyright",
+        "pyright", -- npm install -g pyright
         "tsserver",
-        "lua_ls", -- brew install lua-language-server
+        "lua_ls",  -- brew install lua-language-server
     }
     for _, lsp in ipairs(servers) do
         lspconfig[lsp].setup({

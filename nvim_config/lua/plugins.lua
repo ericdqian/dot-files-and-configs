@@ -23,11 +23,16 @@ require("packer").startup(function(use)
     use("tpope/vim-vinegar")
     -- Fuzzy searching
     use({
-        "nvim-telescope/telescope.nvim",
-        tag = "0.1.1",
-        requires = { { "nvim-lua/plenary.nvim" } },
+        "junegunn/fzf",
+        run = function()
+            vim.fn["fzf#install"](0)
+        end,
+    })
+
+    use({
+        "junegunn/fzf.vim",
         config = function()
-            require("config.telescope").setup()
+            require("config.fzf").setup()
         end,
     })
 

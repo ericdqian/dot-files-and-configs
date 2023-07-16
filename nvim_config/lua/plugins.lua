@@ -71,7 +71,7 @@ require("packer").startup(function(use)
 
     -- Gives diagnostics, pretty popups for goto definition/references/type
     use({
-        "glepnir/lspsaga.nvim",
+        "eric-qian-d/lspsaga.nvim",
         opt = true,
         branch = "main",
         event = "LspAttach",

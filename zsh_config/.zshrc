@@ -47,3 +47,5 @@ done
 ## Git autocomplete
 autoload -Uz compinit && compinit
 
+source "/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ## brew install zsh-syntax-highlighting
+

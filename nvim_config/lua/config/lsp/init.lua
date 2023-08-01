@@ -12,10 +12,10 @@ function M.setup()
 
 	-- Enable some language servers with the additional completion capabilities offered by nvim-cmp
 	local servers = {
-		"clangd",
+		"clangd", -- brew install llvm
 		"rust_analyzer", --brew install rust-analyzer
-		"pyright", -- npm install -g pyright
-		"tsserver",
+		"pyright", -- yarn install -g pyright
+		"tsserver", -- yarn install -g tsserver
 		"lua_ls", -- brew install lua-language-server
 	}
 	for _, lsp in ipairs(servers) do

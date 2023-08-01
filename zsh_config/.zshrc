@@ -24,6 +24,10 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then \. "$NVM_DIR/nvm.sh"; else echo nvm not instal
 ## Set up nvim
 if [ -f ~/nvim-macos/bin/nvim ]; then PATH="$HOME/nvim-macos/bin:$PATH"; else echo nvim not installed... please follow README instructions to install; fi
 
+## Set up zsh highlighting
+HIGHLIGHTING="/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+if [ -f "$HIGHLIGHTING" ]; then source "$HIGHLIGHTING"; else echo zsh highlighting not installed... please follow README instructions to install; fi
+
 ## Set up miniconda
 __conda_setup="$(~/miniconda/bin/conda 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
@@ -38,7 +42,7 @@ fi
 unset __conda_setup
 
 ## Import aliases
-CONFIG_ZSHRC_PATH=$(readlink -f ~/.zshrc)
+CONFIG_ZSHRC_PATH=$(readlink ~/.zshrc)
 DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
 for filename in ${DOTFILE_CONFIG_PATH}/aliases/*; do
   source $filename
@@ -47,5 +51,6 @@ done
 ## Git autocomplete
 autoload -Uz compinit && compinit
 
-source "/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ## brew install zsh-syntax-highlighting
 
+## Theme
+export BAT_THEME="Dracula"

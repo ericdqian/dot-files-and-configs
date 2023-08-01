@@ -26,20 +26,20 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/powerlevel10k
 ```
 
 
-### Fzf
+### fzf
 
 ```
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
 ```
 
-### Nvm
+### nvm
 
 ```
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
 ```
 
-### Miniconda
+### miniconda
 
 Instructions here download the Mac package; adjust this to your installation
 
@@ -48,3 +48,24 @@ wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O m
 
 bash miniconda.sh -b -p $HOME/miniconda && rm miniconda.sh
 ```
+
+### bat
+```
+brew install bat
+```
+
+### zsh highlighting
+```
+brew install zsh-syntax-highlighting
+```
+
+### ripgrep
+This replaces `grep` and is also used by `fzf` in neovim
+```
+brew install ripgrep
+```
+
+## Additional installations
+
+Check the lsp and null-ls files for neovim. Languages servers and other linters/formatters may be needed
+

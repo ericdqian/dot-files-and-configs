@@ -56,7 +56,7 @@ brew install bat
 
 ### zsh highlighting
 ```
-brew install zsh-syntax-highlighting
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.zsh-syntax-highlighting
 ```
 
 ### ripgrep

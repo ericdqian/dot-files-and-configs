@@ -25,7 +25,7 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then \. "$NVM_DIR/nvm.sh"; else echo nvm not instal
 if [ -f ~/nvim-macos/bin/nvim ]; then PATH="$HOME/nvim-macos/bin:$PATH"; else echo nvim not installed... please follow README instructions to install; fi
 
 ## Set up zsh highlighting
-HIGHLIGHTING="/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+HIGHLIGHTING="$HOME/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 if [ -f "$HIGHLIGHTING" ]; then source "$HIGHLIGHTING"; else echo zsh highlighting not installed... please follow README instructions to install; fi
 
 ## Set up miniconda

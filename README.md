@@ -65,6 +65,14 @@ This replaces `grep` and is also used by `fzf` in neovim
 brew install ripgrep
 ```
 
+### Kubernetes
+Follow the instructions here depending on device type: https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/
+
+### k9s
+```
+brew install derailed/k9s/k9s
+```
+
 ## Additional installations
 
 Check the lsp and null-ls files for neovim. Languages servers and other linters/formatters may be needed

@@ -1,2 +1,2 @@
 alias ks="k9s"
-alias kc="kubectl"
+alias k="kubectl"

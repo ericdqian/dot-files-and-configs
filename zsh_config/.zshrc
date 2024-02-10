@@ -54,3 +54,11 @@ autoload -Uz compinit && compinit
 
 ## Theme
 export BAT_THEME="Dracula"
+
+# pnpm
+export PNPM_HOME="/Users/ericqian/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end

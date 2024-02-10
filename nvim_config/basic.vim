@@ -47,7 +47,11 @@ nnoremap <SPACE> <Nop>
 let mapleader = " "
 
 " Fast saving
-nmap <leader>w :w!<cr>
+if exists('g:vscode')
+    nmap <leader>w :Write<cr>
+else
+    nmap <leader>w :w!<cr>
+endif
 
 " :W sudo saves the file
 " (useful for handling the permission-denied error)

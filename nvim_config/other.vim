@@ -71,3 +71,7 @@ endfunction
 " Line numbers in netrw
 let g:netrw_bufsettings = 'noma nomod nu nowrap ro nobl'
 
+nnoremap <A-h> <C-w><
+nnoremap <A-l> <C-w>>
+nnoremap <A-j> <C-w>-
+nnoremap <A-k> <C-w>+

@@ -1,0 +1,24 @@
+{
+    "window.zoomLevel": 1,
+    "terminal.integrated.inheritEnv": false,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "typescript.tsdk": "./client/node_modules/typescript/lib",
+    "go.toolsManagement.autoUpdate": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true
+    },
+    "eslint.validate": [
+      "javascript"
+    ],
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+    "python.defaultInterpreterPath": "/usr/local/bin/python3.10",
+    "extensions.experimental.affinity": {
+      "asvetliakov.vscode-neovim": 1
+    },
+    // "vscode-neovim.neovimClean": true,
+    "vscode-neovim.neovimExecutablePaths.darwin": "/Users/ericqian/nvim-macos/bin/nvim",
+    "vscode-neovim.neovimInitVimPaths.darwin": "/Users/ericqian/dot-files-and-configs/nvim_config/init.vim",
+}

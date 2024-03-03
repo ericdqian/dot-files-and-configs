@@ -72,11 +72,15 @@ config.keys = {
 		mods = "SUPER|CTRL",
 		action = wezterm.action.AdjustPaneSize({ "Up", 5 }),
 	},
-
 	{
 		key = "l",
 		mods = "SUPER|CTRL",
 		action = wezterm.action.AdjustPaneSize({ "Right", 5 }),
+	},
+	{
+		key = "\\",
+		mods = "SUPER|CTRL",
+		action = wezterm.action.AdjustPaneSize({ "Right", 100 }),
 	},
 }
 

@@ -14,6 +14,7 @@ autocmd Filetype typescriptreact setlocal ts=2 sts=2 sw=2
 autocmd Filetype html setlocal ts=2 sts=2 sw=2
 autocmd Filetype swift setlocal ts=2 sts=2 sw=2
 autocmd Filetype swift setlocal ts=4 sts=4 sw=4
+autocmd FileType terraform setlocal shiftwidth=2 tabstop=2
 
 " Allows for opt+backspace to delete a word
 inoremap <A-BS> <C-w>

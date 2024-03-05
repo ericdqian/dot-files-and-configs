@@ -20,6 +20,8 @@ function M.setup()
 		"rust_analyzer", --brew install rust-analyzer
 		"pyright", -- yarn install -g pyright
 		"lua_ls", -- brew install lua-language-server
+		"tflint",
+		-- "terraformls",
 	}
 	for _, lsp in ipairs(servers) do
 		lspconfig[lsp].setup({

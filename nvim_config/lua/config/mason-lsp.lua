@@ -7,8 +7,10 @@ function M.setup()
 			"rust_analyzer", --brew install rust-analyzer
 			"tsserver", -- yarn global add tsserver
 			"clangd",
-            "pyright",
-            "bashls"
+			"pyright",
+			"bashls",
+			"terraformls",
+			"tflint",
 		},
 	})
 end

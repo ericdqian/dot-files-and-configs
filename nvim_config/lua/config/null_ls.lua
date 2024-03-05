@@ -26,6 +26,7 @@ function M.setup()
 			null_ls.builtins.code_actions.eslint, --  installed on a per project basis
 			null_ls.builtins.diagnostics.flake8, --  installed on a per project basis
 			null_ls.builtins.formatting.black, -- installed on a per project basis
+			null_ls.builtins.formatting.terraform_fmt,
 		},
 	})
 end

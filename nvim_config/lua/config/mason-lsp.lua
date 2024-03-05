@@ -8,7 +8,7 @@ function M.setup()
 			"tsserver", -- yarn global add tsserver
 			"clangd",
 			"pyright",
-			"bashls",
+			-- "bashls",
 			"terraformls",
 			"tflint",
 		},

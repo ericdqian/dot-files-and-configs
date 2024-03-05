@@ -3,7 +3,7 @@
   {
     "key": "g d",
     "command": "editor.action.revealDefinition",
-    "when": "editorHasDefinitionProvider && editorTextFocus && !isInEmbeddedEditor"
+    "when": "editorHasDefinitionProvider && editorTextFocus && !isInEmbeddedEditor && neovim.mode != insert"
   },
   {
     "key": "f12",
@@ -13,7 +13,7 @@
   {
     "key": "g d",
     "command": "editor.action.revealDefinition",
-    "when": "editorHasDefinitionProvider && editorTextFocus && isWeb && !isInEmbeddedEditor"
+    "when": "editorHasDefinitionProvider && editorTextFocus && isWeb && !isInEmbeddedEditor && neovim.mode != insert"
   },
   {
     "key": "cmd+f12",
@@ -23,17 +23,34 @@
   {
     "key": "g r",
     "command": "editor.action.goToReferences",
-    "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor && neovim.mode != insert"
   },
   {
     "key": "shift+f12",
     "command": "-editor.action.goToReferences",
-    "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor"
+    "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor && neovim.mode != insert'"
+  },
+  { 
+    "key": "-",           
+    "command": "workbench.view.explorer",
+    "when": "viewContainer.workbench.view.explorer.enabled && neovim.mode != insert && !filesExplorerFocus" 
+  },
+  // https://stackoverflow.com/questions/49611435/visual-studio-code-keybindings-running-two-or-more-commands-with-one-shortcut
+  {
+    "key": "enter",
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "explorer.openAndPassFocus",
+        "workbench.action.toggleSidebarVisibility",
+      ]
+    },
+    "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert"
   },
   {
     "key": "] g",
     "command": "editor.action.marker.next",
-    "when": "editorFocus"
+    "when": "editorFocus && neovim.mode != insert"
   },
   {
     "key": "alt+f8",
@@ -43,7 +60,7 @@
   {
     "key": "[ g",
     "command": "editor.action.marker.prev",
-    "when": "editorFocus"
+    "when": "editorFocus && neovim.mode != insert"
   },
   {
     "key": "shift+alt+f8",
@@ -52,7 +69,8 @@
   },
   {
     "key": ";",
-    "command": "workbench.action.quickOpen"
+    "command": "workbench.action.quickOpen",
+    "when": "neovim.mode != insert"
   },
   {
     "key": "cmd+p",
@@ -86,11 +104,16 @@
   {
     "key": "d",
     "command": "workbench.files.action.createFolderFromExplorer",
-    "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus"
+    "when": "viewContainer.workbench.view.explorer.enabled && explorerViewletVisible && filesExplorerFocus"
   },
   {
     "key": "d",
     "command": "-deleteFile",
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
+  },
+  {
+    "key": "shift+d",
+    "command": "deleteFile",
     "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
   },
   {

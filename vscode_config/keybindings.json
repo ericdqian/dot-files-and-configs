@@ -48,6 +48,11 @@
     "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert"
   },
   {
+    "key": "enter",                
+    "command": "list.toggleExpand",
+    "when": "listFocus && explorerResourceIsFolder && !inputFocus && viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert" 
+  },
+  {
     "key": "] g",
     "command": "editor.action.marker.next",
     "when": "editorFocus && neovim.mode != insert"

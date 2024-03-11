@@ -3,17 +3,18 @@
     "terminal.integrated.inheritEnv": false,
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
-    "typescript.tsdk": "./client/node_modules/typescript/lib",
-    "go.toolsManagement.autoUpdate": true,
+    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true
+      "source.fixAll.eslint": "explicit"
     },
-    "eslint.validate": [
-      "javascript"
-    ],
     "[typescriptreact]": {
       "editor.defaultFormatter": "vscode.typescript-language-features"
     },
+    "typescript.tsdk": "./client/node_modules/typescript/lib",
+    "eslint.validate": [
+      "javascript"
+    ],
+    "go.toolsManagement.autoUpdate": true,
     "python.defaultInterpreterPath": "/usr/local/bin/python3.10",
     "extensions.experimental.affinity": {
       "asvetliakov.vscode-neovim": 1
@@ -21,4 +22,5 @@
     // "vscode-neovim.neovimClean": true,
     "vscode-neovim.neovimExecutablePaths.darwin": "/Users/ericqian/nvim-macos/bin/nvim",
     "vscode-neovim.neovimInitVimPaths.darwin": "/Users/ericqian/dot-files-and-configs/nvim_config/init.vim",
+    "jupyter.askForKernelRestart": false,
 }

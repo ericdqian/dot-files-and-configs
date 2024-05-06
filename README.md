@@ -1,5 +1,11 @@
 # dot-files-and-configs
 
+## How this works
+
+`zsh_config/device_specific_zsh_config` is symlinked to the system's `~/.zshrc`. This way, any new installations that modify the `.zshrc` are localized. `zsh_config/device_specific_zsh_config` is gitignored, and only the line sourcing `~/.general_zsh_config` should be kept. 
+
+`zsh_config/general_zsh_config` is symlinked to the system's `~/.general_zsh_config` and sourced from `~/.zsh_config/device_specific_zsh_config`.
+
 ## Terminal
 
 ### Kitty

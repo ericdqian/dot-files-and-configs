@@ -34,7 +34,7 @@ if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
     if [ -f ~/miniconda/etc/profile.d/conda.sh ]; then
-        . ~/miniconda/etc/profile.d/conda.sh
+# . ~/miniconda/etc/profile.d/conda.sh  # commented out by conda initialize
     else
         export PATH="$HOME/miniconda/bin:$PATH"
     fi
@@ -55,10 +55,3 @@ autoload -Uz compinit && compinit
 ## Theme
 export BAT_THEME="Dracula"
 
-# pnpm
-export PNPM_HOME="/Users/ericqian/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end

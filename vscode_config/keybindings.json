@@ -1,5 +1,6 @@
 // Place your key bindings in this file to override the defaultsauto[]
 [
+  // Code navigation
   {
     "key": "g d",
     "command": "editor.action.revealDefinition",
@@ -30,28 +31,6 @@
     "command": "-editor.action.goToReferences",
     "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor && neovim.mode != insert'"
   },
-  { 
-    "key": "-",           
-    "command": "workbench.view.explorer",
-    "when": "viewContainer.workbench.view.explorer.enabled && neovim.mode != insert && !filesExplorerFocus" 
-  },
-  // https://stackoverflow.com/questions/49611435/visual-studio-code-keybindings-running-two-or-more-commands-with-one-shortcut
-  {
-    "key": "enter",
-    "command": "runCommands",
-    "args": {
-      "commands": [
-        "explorer.openAndPassFocus",
-        "workbench.action.toggleSidebarVisibility",
-      ]
-    },
-    "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert"
-  },
-  {
-    "key": "enter",                
-    "command": "list.toggleExpand",
-    "when": "listFocus && explorerResourceIsFolder && !inputFocus && viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert" 
-  },
   {
     "key": "] g",
     "command": "editor.action.marker.next",
@@ -72,6 +51,79 @@
     "command": "-editor.action.marker.prev",
     "when": "editorFocus"
   },
+  // {
+  //   "key": "space a",
+  //   "command": "workbench.action.findInFiles"
+  // },
+  // // Doesn't give precedence to other neovim commands
+  // {
+  //   "command": "leap.findForward",
+  //   "key": "s",
+  //   "when": "editorTextFocus && neovim.mode != insert",
+  // },
+  // {
+  //   "command": "leap.findBackward",
+  //   "key": "shift+S",
+  //   "when": "editorTextFocus && neovim.mode != insert",
+  // },
+  // Necessary to mimic ctrl+d and ctrl+u
+  {
+    "key": "ctrl+d",
+    "command": "extension.multiCommand.execute",
+    "args": {
+      "sequence": [
+        {
+          "command": "vscode-neovim.send",
+          "args": "<C-d>"
+        },
+        {
+          "command": "vscode-neovim.send",
+          "args": "zz"
+        }
+      ]
+    },
+    "when": "editorTextFocus && neovim.ctrlKeysNormal && neovim.init && neovim.mode != 'insert'"
+  },
+  {
+    "key": "ctrl+u",
+    "command": "extension.multiCommand.execute",
+    "args": {
+      "sequence": [
+        {
+          "command": "vscode-neovim.send",
+          "args": "<C-u>"
+        },
+        {
+          "command": "vscode-neovim.send",
+          "args": "zz"
+        }
+      ]
+    },
+    "when": "editorTextFocus && neovim.ctrlKeysNormal && neovim.init && neovim.mode != 'insert'"
+  },
+  // File navigation
+  {
+    "key": "-",
+    "command": "workbench.view.explorer",
+    "when": "viewContainer.workbench.view.explorer.enabled && neovim.mode != insert && !filesExplorerFocus"
+  },
+  // https://stackoverflow.com/questions/49611435/visual-studio-code-keybindings-running-two-or-more-commands-with-one-shortcut
+  {
+    "key": "enter",
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "explorer.openAndPassFocus",
+        "workbench.action.toggleSidebarVisibility",
+      ]
+    },
+    "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert"
+  },
+  {
+    "key": "enter",
+    "command": "list.toggleExpand",
+    "when": "listFocus && explorerResourceIsFolder && !inputFocus && viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert"
+  },
   {
     "key": ";",
     "command": "workbench.action.quickOpen",
@@ -80,26 +132,6 @@
   {
     "key": "cmd+p",
     "command": "-workbench.action.quickOpen"
-  },
-  {
-    "key": "escape",
-    "command": "workbench.action.toggleSidebarVisibility",
-    "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus"
-  },
-  {
-    "key": "escape",
-    "command": "workbench.action.toggleSidebarVisibility",
-    "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus"
-  },
-  {
-    "command": "leap.findForward",
-    "key": "s",
-    "when": "editorTextFocus && neovim.mode != insert",
-  },
-  {
-    "command": "leap.findBackward",
-    "key": "shift+S",
-    "when": "editorTextFocus && neovim.mode != insert",
   },
   {
     "key": "shift+5",
@@ -121,38 +153,85 @@
     "command": "deleteFile",
     "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
   },
+  // ------- Pane nagivation
   {
-    "key": "ctrl+d",
-      "command": "extension.multiCommand.execute",
-      "args": {
-        "sequence": [
-        {
-          "command": "vscode-neovim.send",
-          "args": "<C-d>"
-        },
-        {
-          "command": "vscode-neovim.send",
-          "args": "zz"
-        }
-        ]
-      },
-      "when": "editorTextFocus && neovim.ctrlKeysNormal && neovim.init && neovim.mode != 'insert'"
+    "key": "shift+cmd+l",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "sideBarVisible && sideBarFocus"
   },
   {
-    "key": "ctrl+u",
-    "command": "extension.multiCommand.execute",
-    "args": {
-      "sequence": [
-      {
-        "command": "vscode-neovim.send",
-        "args": "<C-u>"
-      },
-      {
-        "command": "vscode-neovim.send",
-        "args": "zz"
-      }
-      ]
-    },
-    "when": "editorTextFocus && neovim.ctrlKeysNormal && neovim.init && neovim.mode != 'insert'"
-  }
+    "key": "ctrl+l",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "sideBarVisible && sideBarFocus"
+  },
+  {
+    "key": "cmd+shift+h",
+    "command": "workbench.action.focusSideBar",
+    "when": "editorFocus && sideBarVisible"
+  },
+  {
+    "key": "shift+cmd+h",
+    "command": "workbench.action.focusSideBar",
+    "when": "panelFocus && sideBarVisible"
+  },
+  // // For some reason unassigning shift+cmd+h causes the above shift+cmd+h to not work anymore
+  // {
+  //   "key": "shift+cmd+h",
+  //   "command": "-workbench.action.replaceInFiles"
+  // },
+  {
+    "key": "shift+cmd+k",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "panelFocus"
+  },
+  {
+    "key": "shift+cmd+j",
+    "command": "workbench.action.focusPanel",
+    "when": "editorFocus"
+  },
+  // ------- General sidebar utilities
+  {
+    "key": "escape",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "sideBarVisible && sideBarFocus && !focus"
+  },
+  // Keybinding to cancel editing a file name or creating a file in File Explorer
+  {
+    "key": "escape",
+    "command": "list.cancel",
+    "when": "filesExplorerFocus && inputFocus"
+  },
+  // Keybinding to close the sidebar when not editing/creating files
+  {
+    "key": "escape",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "sideBarVisible && !inputFocus && sideBarFocus"
+  },
+  // ------- Panel utilities
+  {
+    "key": "ctrl+k",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "panelFocus"
+  },
+  {
+    "key": "cmd+shift+[",
+    "command": "workbench.action.previousPanelView",
+    "when": "panelFocus"
+  },
+  {
+    "key": "cmd+shift+]",
+    "command": "workbench.action.nextPanelView",
+    "when": "panelFocus"
+  },
+  // ------- Sidebar
+  {
+    "key": "cmd+shift+[",
+    "command": "workbench.action.previousSideBarView",
+    "when": "sideBarFocus && sideBarVisible"
+  },
+  {
+    "key": "cmd+shift+]",
+    "command": "workbench.action.nextSideBarView",
+    "when": "sideBarFocus && sideBarVisible"
+  },
 ]

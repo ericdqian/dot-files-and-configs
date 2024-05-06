@@ -2,7 +2,7 @@ CUR_DIR=$(pwd)
 echo Symlinking configs at $CUR_DIR
 ln -s ${CUR_DIR}/zsh_config/device_specific_zsh_config ~/.zshrc
 ln -s ${CUR_DIR}/zsh_config/general_zsh_config ~/.general_zsh_config
-mkdir -p ~/.config/nvim
+# TODO: backup and overwrite ~/.config/nvim if it already exists so the symlink is created properly instead of making nvim_config inside of ~/.config/nvim
 ln -s ${CUR_DIR}/nvim_config ~/.config/nvim
 mkdir -p ~/.config/kitty
 ln -s ${CUR_DIR}/kitty_config/kitty.conf ~/.config/kitty/kitty.conf

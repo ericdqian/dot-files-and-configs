@@ -8,3 +8,6 @@ mkdir -p ~/.config/kitty
 ln -s ${CUR_DIR}/kitty_config/kitty.conf ~/.config/kitty/kitty.conf
 mkdir -p ~/.config/wezterm
 ln -s ${CUR_DIR}/wezterm_config/.wezterm.lua ~/.config/wezterm/wezterm.lua
+
+# Ignore future updates to zsh_config/device_specific_zsh_config
+git update-index --assume-unchanged ./zsh_config/device_specific_zsh_config

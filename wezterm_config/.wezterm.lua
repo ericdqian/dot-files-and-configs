@@ -28,6 +28,9 @@ config.inactive_pane_hsb = {
     brightness = 0.5,
 }
 
+config.scrollback_lines = 20000
+config.enable_scroll_bar = true
+
 config.keys = {
     -- Clears the scrollback and viewport, and then sends CTRL-L to ask the
     -- shell to redraw its prompt
@@ -100,6 +103,11 @@ config.keys = {
         key = "\\",
         mods = "SUPER|CTRL",
         action = wezterm.action.AdjustPaneSize({ "Right", 100 }),
+    },
+    {
+        key = "r",
+        mods = "CMD|SHIFT",
+        action = wezterm.action.ReloadConfiguration,
     },
 }
 

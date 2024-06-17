@@ -3,9 +3,6 @@
 # zsh
 sudo apt install zsh
 
-# Oh-my-zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
 # gcc
 sudo apt install build-essential
 
@@ -38,3 +35,10 @@ echo "source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> 
 # ripgrep
 sudo apt-get install ripgrep
 
+# Oh-my-zsh
+# Keep oh-my-zsh last since if it runs zsh (controlled by RUNZSH), then it will stop the rest of the installation in this script
+if [[ "$SHELL" == */zsh ]]; then
+    export RUNZSH="no"
+
+export KEEP_ZSHRC="yes"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"

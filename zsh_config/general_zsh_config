@@ -55,3 +55,11 @@ autoload -Uz compinit && compinit
 ## Theme
 export BAT_THEME="Dracula"
 
+
+# Copy the current command line to the clipboard
+function copy-and-run-command() {
+    echo $BUFFER | pbcopy
+}
+# Create the widget
+zle -N copy-and-run-command
+bindkey '^o' copy-and-run-command

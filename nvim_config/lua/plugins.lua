@@ -23,13 +23,14 @@ require("lazy").setup({
 		build = function()
 			vim.fn["fzf#install"](0)
 		end,
+		cond = not vim.g.vscode,
 	},
-
 	{
 		"junegunn/fzf.vim",
 		config = function()
 			require("config.fzf").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	-- For local plugin dev
 	{
@@ -37,6 +38,7 @@ require("lazy").setup({
 		config = function()
 			require("config.neodev").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 
 	-- LSP plugins
@@ -45,6 +47,7 @@ require("lazy").setup({
 		config = function()
 			require("config.mason").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	{
 		"williamboman/mason-lspconfig.nvim",
@@ -54,12 +57,14 @@ require("lazy").setup({
 		config = function()
 			require("config.mason-lsp").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	{
 		"neovim/nvim-lspconfig",
 		config = function()
 			require("config.lsp.init").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	{
 		"jay-babu/mason-null-ls.nvim",
@@ -70,6 +75,7 @@ require("lazy").setup({
 		config = function()
 			require("config.mason-null")
 		end,
+		cond = not vim.g.vscode,
 	},
 	{
 		"L3MON4D3/LuaSnip",
@@ -77,23 +83,34 @@ require("lazy").setup({
 		version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
 		-- install jsregexp (optional!).
 		build = "make install_jsregexp",
+		cond = not vim.g.vscode,
 	},
-	"saadparwaiz1/cmp_luasnip",
-	"hrsh7th/cmp-nvim-lsp",
+	{
+		"saadparwaiz1/cmp_luasnip",
+		cond = not vim.g.vscode,
+	},
+	{
+		"hrsh7th/cmp-nvim-lsp",
+		cond = not vim.g.vscode,
+	},
 	{
 		"hrsh7th/nvim-cmp",
 		config = function()
 			require("config.cmp").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
+	{
 
-	"neovim/nvim-lspconfig",
-
+		"neovim/nvim-lspconfig",
+		cond = not vim.g.vscode,
+	},
 	{
 		"/jose-elias-alvarez/null-ls.nvim",
 		config = function()
 			require("config.null_ls").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 
 	-- Gives diagnostics, pretty popups for goto definition/references/type
@@ -110,6 +127,7 @@ require("lazy").setup({
 			--Please make sure you install markdown and markdown_inline parser
 			{ "nvim-treesitter/nvim-treesitter" },
 		},
+		cond = not vim.g.vscode,
 	},
 
 	-- Editing plugins
@@ -118,12 +136,14 @@ require("lazy").setup({
 		config = function()
 			require("nvim-autopairs").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	{
 		"windwp/nvim-ts-autotag",
 		config = function()
 			require("nvim-ts-autotag").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	-- Navigation
 	{
@@ -164,12 +184,15 @@ require("lazy").setup({
 				},
 			})
 		end,
+		cond = not vim.g.vscode,
 	},
 
 	-- Git plugins
 
 	-- Enables using git commands in vim
-	"tpope/vim-fugitive",
+	{
+		"tpope/vim-fugitive",
+	},
 	-- For showing changes in the lefthand side
 	{
 		"lewis6991/gitsigns.nvim",
@@ -178,18 +201,21 @@ require("lazy").setup({
 				current_line_blame = true,
 			})
 		end,
+		cond = not vim.g.vscode,
 	},
 	-- For opening a file in github - use :OpenInGHFile
-	"almo7aya/openingh.nvim",
+	{
+		"almo7aya/openingh.nvim",
+	},
 
 	-- Visual plugins
-
 	-- Editor 'theme'
 	{
 		"navarasu/onedark.nvim",
 		config = function()
 			require("config.onedark").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	-- Editor status line
 	-- Initializing lualine has to come after onedark in order for proper UI to take effect
@@ -199,6 +225,7 @@ require("lazy").setup({
 		config = function()
 			require("config.lualine").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	-- Shows todo comments etc
 	{
@@ -207,6 +234,7 @@ require("lazy").setup({
 		config = function()
 			require("todo-comments").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 	-- For text coloring
 	{
@@ -215,5 +243,6 @@ require("lazy").setup({
 		config = function()
 			require("config.treesitter").setup()
 		end,
+		cond = not vim.g.vscode,
 	},
 })

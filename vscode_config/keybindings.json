@@ -1,41 +1,5 @@
 // Place your key bindings in this file to override the defaultsauto[]
 [
-  // Code navigation
-  {
-    "key": "f12",
-    "command": "-editor.action.revealDefinition",
-    "when": "editorHasDefinitionProvider && editorTextFocus && !isInEmbeddedEditor"
-  },
-  {
-    "key": "cmd+f12",
-    "command": "-editor.action.revealDefinition",
-    "when": "editorHasDefinitionProvider && editorTextFocus && isWeb && !isInEmbeddedEditor"
-  },
-  {
-    "key": "shift+f12",
-    "command": "-editor.action.goToReferences",
-    "when": "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor && neovim.mode != insert'"
-  },
-  {
-    "key": "] g",
-    "command": "editor.action.marker.next",
-    "when": "editorFocus && neovim.mode != insert"
-  },
-  {
-    "key": "alt+f8",
-    "command": "-editor.action.marker.next",
-    "when": "editorFocus"
-  },
-  {
-    "key": "[ g",
-    "command": "editor.action.marker.prev",
-    "when": "editorFocus && neovim.mode != insert"
-  },
-  {
-    "key": "shift+alt+f8",
-    "command": "-editor.action.marker.prev",
-    "when": "editorFocus"
-  },
   // Necessary to mimic ctrl+d and ctrl+u
   {
     "key": "ctrl+d",
@@ -188,4 +152,3 @@
     "when": "sideBarFocus && sideBarVisible"
   },
 ]
-

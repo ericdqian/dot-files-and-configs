@@ -145,6 +145,9 @@ require("lazy").setup({
 		end,
 		cond = not vim.g.vscode,
 	},
+	{
+		"github/copilot.vim",
+	},
 	-- Navigation
 	{
 		"ggandor/leap.nvim",

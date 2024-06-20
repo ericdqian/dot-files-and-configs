@@ -67,17 +67,6 @@ require("lazy").setup({
 		cond = not vim.g.vscode,
 	},
 	{
-		"jay-babu/mason-null-ls.nvim",
-		event = { "BufReadPre", "BufNewFile" },
-		dependencies = {
-			"williamboman/mason.nvim",
-		},
-		config = function()
-			require("config.mason-null")
-		end,
-		cond = not vim.g.vscode,
-	},
-	{
 		"L3MON4D3/LuaSnip",
 		-- follow latest release.
 		version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
@@ -109,6 +98,17 @@ require("lazy").setup({
 		"/jose-elias-alvarez/null-ls.nvim",
 		config = function()
 			require("config.null_ls").setup()
+		end,
+		cond = not vim.g.vscode,
+	},
+	{
+		"jay-babu/mason-null-ls.nvim", -- Use null-ls as the SSOT for plugins
+		event = { "BufReadPre", "BufNewFile" },
+		dependencies = {
+			"williamboman/mason.nvim",
+		},
+		config = function()
+			require("config.mason-null").setup()
 		end,
 		cond = not vim.g.vscode,
 	},
@@ -248,4 +248,8 @@ require("lazy").setup({
 		end,
 		cond = not vim.g.vscode,
 	},
+	-- -- Custom plugin
+	-- {
+	-- 	dir = "~/simple-custom-nvim-plugin",
+	-- },
 })

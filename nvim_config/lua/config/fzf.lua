@@ -4,7 +4,7 @@ local M = {}
 -- brew install bat
 function M.setup()
 	vim.cmd([[
-        let g:fzf_layout = { 'window': { 'width': 0.9, 'height': 0.9 } }
+        let g:fzf_layout = { 'window': { 'width': 0.95, 'height': 0.95 } }
         function! RipgrepFzf(query, fullscreen)
           let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
           let initial_command = printf(command_fmt, shellescape(a:query))

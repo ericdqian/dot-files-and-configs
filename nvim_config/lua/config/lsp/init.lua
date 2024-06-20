@@ -16,11 +16,11 @@ function M.setup()
 
 	-- Enable some language servers with the additional completion capabilities offered by nvim-cmp
 	local servers = {
-		"clangd", -- brew install llvm
-		"rust_analyzer", --brew install rust-analyzer
-		"pyright", -- yarn install -g pyright
-		"lua_ls", -- brew install lua-language-server
+		"clangd", -- brew install llvm if not using Mason
+		"rust_analyzer", --brew install rust-analyzer if not using Mason
+		"lua_ls", -- brew install lua-language-server if not using Mason
 		"tflint",
+		"bashls",
 		-- "terraformls",
 	}
 	for _, lsp in ipairs(servers) do
@@ -29,6 +29,16 @@ function M.setup()
 			capabilities = capabilities,
 		})
 	end
+
+	lspconfig.pyright.setup({
+		on_attach = custom_attach,
+		capabilities = capabilities,
+		settings = {
+			python = {
+				pythonPath = vim.fn.exepath("python"), -- Forces pyright to use the same python as the activated venv instead of potentially `python3`
+			},
+		},
+	})
 
 	--[[ yarn install -g tsserver
 	tsserver initializationOptions:

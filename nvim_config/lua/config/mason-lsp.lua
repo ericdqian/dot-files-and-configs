@@ -8,7 +8,7 @@ function M.setup()
 			"tsserver", -- yarn global add tsserver
 			"clangd",
 			"pyright",
-			-- "bashls",
+			"bashls", -- you may need to run `sudo nvim` in order to install this properly
 			"terraformls",
 			"tflint",
 		},

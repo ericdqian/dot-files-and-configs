@@ -1,12 +1,23 @@
 ### NOTE: RUN THIS AFTER `setup.sh`
 
+sudo apt update
+
+# gcc
+sudo apt install build-essential
+
+# required for Mason to install stuff
+sudo apt install npm
+sudo apt install unzip
+
+# requierd for copilot
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+nvm install 20
+
+
 mkdir -p ~/.local/bin
 
 # zsh
 sudo apt install zsh
-
-# gcc
-sudo apt install build-essential
 
 # Neovim
 pushd ~/

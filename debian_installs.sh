@@ -1,5 +1,7 @@
 ### NOTE: RUN THIS AFTER `setup.sh`
 
+mkdir -p ~/.local/bin
+
 # zsh
 sudo apt install zsh
 
@@ -18,19 +20,19 @@ grep -qxF 'export PATH="$PATH:/opt/nvim-linux64/bin"' ~/.zshrc || echo 'export P
 # Powerlink
 git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/powerlevel10k
 
+# TODO: link .p10k
+
 # FZF
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
+~/.fzf/install --no-update-rc --completion --key-bindings
 
 # bat
 sudo apt install bat
 # https://github.com/sharkdp/bat/issues/982
-mkdir -p ~/.local/bin
 ln -s /usr/bin/batcat ~/.local/bin/bat
 
 # zsh highlighting
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git /usr/share/zsh-syntax-highlighting
-echo "source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/zsh-syntax-highlighting
 
 # ripgrep
 sudo apt-get install ripgrep

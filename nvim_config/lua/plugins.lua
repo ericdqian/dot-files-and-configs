@@ -95,7 +95,7 @@ require("lazy").setup({
 		cond = not vim.g.vscode,
 	},
 	{
-		"/jose-elias-alvarez/null-ls.nvim",
+		"jose-elias-alvarez/null-ls.nvim",
 		config = function()
 			require("config.null_ls").setup()
 		end,

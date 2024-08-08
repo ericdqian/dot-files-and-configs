@@ -1,3 +1,15 @@
+--[[
+
+There is a custom .null_ls.nvim file in the project root that specifies the paths to the config files so that we can infer which formatters and diagonstic packages to use.
+
+The format should look like this:
+
+{
+    "python": "python/pyproject.toml"
+}
+
+]]
+
 local M = {}
 
 local config_file_name = ".null_ls.nvim"
@@ -29,7 +41,9 @@ local function should_mount_python_source(source_name)
 		return false
 	end
 	local python_config_file_raw_content = python_config_file:read("*a")
-	return python_config_file_raw_content:find(source_name) ~= nil
+
+	local pattern = "tool." .. source_name
+	return python_config_file_raw_content:find(pattern) ~= nil
 end
 
 function M.setup()

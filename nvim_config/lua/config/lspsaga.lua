@@ -26,8 +26,8 @@ function M.setup()
 			quit = "<ESC>",
 			in_select = false,
 		},
-		symbol_in_winbar = {
-			enable = false,
+		lightbulb = {
+			enable = false, -- TODO: reenable when we find a way to prevent it from shifting the horizontal buffer in a file with no changes.
 		},
 	})
 

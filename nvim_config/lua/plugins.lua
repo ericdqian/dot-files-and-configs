@@ -115,7 +115,7 @@ require("lazy").setup({
 
 	-- Gives diagnostics, pretty popups for goto definition/references/type
 	{
-		"eric-qian-d/lspsaga.nvim",
+		"nvimdev/lspsaga.nvim",
 		lazy = true,
 		branch = "main",
 		event = "LspAttach",

@@ -209,6 +209,9 @@ require("lazy").setup({
 	-- For opening a file in github - use :OpenInGHFile
 	{
 		"almo7aya/openingh.nvim",
+		config = function()
+			vim.api.nvim_set_keymap("n", "<leader>gh", "<cmd>OpenInGHFileLines<CR>", { noremap = true, silent = true })
+		end,
 	},
 
 	-- Visual plugins

@@ -50,6 +50,13 @@ function M.setup()
 			additional_vim_regex_highlighting = false,
 		},
 	})
+
+	vim.api.nvim_create_user_command("Ti", function(opts)
+		vim.cmd("TSInstall " .. opts.args)
+	end, { nargs = "+" })
+	vim.api.nvim_create_user_command("Tu", function(opts)
+		vim.cmd("TSUninstall " .. opts.args)
+	end, { nargs = "+" })
 end
 
 return M

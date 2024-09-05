@@ -76,3 +76,8 @@ nnoremap <A-h> <C-w><
 nnoremap <A-l> <C-w>>
 nnoremap <A-j> <C-w>-
 nnoremap <A-k> <C-w>+
+
+nnoremap <leader>h :history<CR>
+nnoremap <leader>m :messages<CR>
+
+

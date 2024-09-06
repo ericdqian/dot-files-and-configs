@@ -70,7 +70,7 @@ function M.setup()
 	https://github.com/typescript-language-server/typescript-language-server/blob/master/docs/configuration.md/#workspacedidchangeconfiguration
 	tsserver workspace/didChangeconfiguration:
 	https://github.com/typescript-language-server/typescript-language-server/blob/master/docs/configuration.md#workspacedidchangeconfiguration ]]
-	lspconfig.tsserver.setup({
+	lspconfig.ts_ls.setup({
 		init_options = {
 			preferences = {
 				importModuleSpecifierPreference = "non-relative",

@@ -66,17 +66,16 @@ function M.setup()
 		end,
 		sources = {
 			null_ls.builtins.formatting.stylua, --  brew install stylua
-			null_ls.builtins.formatting.rustfmt, --  rustup component add rustfmt
+			require("none-ls.formatting.rustfmt"), --  rustup component add rustfmt
 			null_ls.builtins.formatting.prettier, -- installed on a per-project basis using: yarn add -D prettier
-			-- can consider upgrading to prettierd: https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#prettierd
-			null_ls.builtins.code_actions.eslint, --  installed on a per project basis
-			null_ls.builtins.diagnostics.flake8.with({
+			require("none-ls.diagnostics.eslint"), --  installed on a per project basis
+			require("none-ls.diagnostics.flake8").with({
 				filetypes = { "python" },
 				condition = function()
 					return should_mount_python_source("flake8")
 				end,
 			}),
-			null_ls.builtins.formatting.ruff.with({
+			require("none-ls.diagnostics.ruff").with({
 				filetypes = { "python" },
 				condition = function()
 					return should_mount_python_source("ruff")

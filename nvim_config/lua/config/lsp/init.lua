@@ -21,7 +21,7 @@ function M.setup()
 		"lua_ls",
 		"tflint",
 		"bashls",
-		-- "terraformls",
+		"terraformls",
 	}
 	for _, lsp in ipairs(servers) do
 		lspconfig[lsp].setup({

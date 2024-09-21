@@ -1,0 +1,31 @@
+source ~/.general_zsh_config
+export PATH="$PATH:/opt/nvim-macos-arm64/bin"
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/Users/ericqian/mambaforge/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/Users/ericqian/mambaforge/etc/profile.d/conda.sh" ]; then
+        . "/Users/ericqian/mambaforge/etc/profile.d/conda.sh"
+    else
+        export PATH="/Users/ericqian/mambaforge/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+
+if [ -f "/Users/ericqian/mambaforge/etc/profile.d/mamba.sh" ]; then
+    . "/Users/ericqian/mambaforge/etc/profile.d/mamba.sh"
+fi
+# <<< conda initialize <<<
+
+export DELPHINA_ROOT="/Users/ericqian/delphina-beta"
+export PATH="$PATH:$DELPHINA_ROOT/devops/scripts/cloud_mgmt"
+
+
+eval "$(/Users/ericqian/.local/bin/mise activate zsh)"
+
+
+eval "$(direnv hook zsh)"

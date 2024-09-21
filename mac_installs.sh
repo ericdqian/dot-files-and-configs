@@ -1,4 +1,5 @@
 ### NOTE: RUN THIS AFTER `setup.sh`
+## TODO: separate out intel vs arm installs. At the very least, nvim and hombrew install to different places.
 
 mkdir -p ~/.local/bin
 

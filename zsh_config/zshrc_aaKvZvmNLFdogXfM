@@ -1,0 +1,5 @@
+source ~/.general_zsh_config
+
+
+export PATH="$PATH:/opt/nvim-macos-x86_64/bin"
+eval "$(/usr/local/bin/brew shellenv)"

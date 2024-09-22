@@ -12,6 +12,7 @@ else
     UNIQUE_SUFFIX=$(dd if=/dev/urandom bs=16 count=1 2>/dev/null | base64 | tr -dc 'A-Za-z0-9' | head -c 16)
     echo "Creating new zshrc file with suffix $UNIQUE_SUFFIX"
     cp ${CUR_DIR}/zsh_config/device_specific_zsh_config ${CUR_DIR}/zsh_config/zshrc_${UNIQUE_SUFFIX}
+    ln -s ${CUR_DIR}/zsh_config/zshrc_${UNIQUE_SUFFIX} ~/.zshrc
 fi
 # TODO: backup and overwrite ~/.config/nvim if it already exists so the symlink is created properly instead of making nvim_config inside of ~/.config/nvim
 mkdir -p ~/.config

@@ -7,7 +7,7 @@ mkdir -p ~/.local/bin
 if ! command -v brew &> /dev/null; then
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    grep -qxF 'eval "$(/usr/local/bin/brew)"' ~/.zshrc || echo 'eval "$(/usr/local/bin/brew)"' >> ~/.zshrc
+    grep -qxF 'eval "$(/usr/local/bin/brew shellenv)"' ~/.zshrc || echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zshrc
 else
     echo "Homebrew is already installed."
 fi

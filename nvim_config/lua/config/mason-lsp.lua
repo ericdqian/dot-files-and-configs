@@ -11,6 +11,7 @@ function M.setup()
 			"bashls", -- you may need to run `sudo nvim` in order to install this properly
 			"terraformls",
 			"tflint",
+			"eslint",
 		},
 	})
 end

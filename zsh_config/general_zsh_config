@@ -48,3 +48,11 @@ function copy-and-run-command() {
 # Create the widget
 zle -N copy-and-run-command
 bindkey '^o' copy-and-run-command
+
+# Random string generator
+gen_rand_str() {
+    local length=${1:-12}
+    LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()' </dev/random | head -c "$length"
+    echo
+}
+

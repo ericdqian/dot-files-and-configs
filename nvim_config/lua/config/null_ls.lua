@@ -71,7 +71,7 @@ function M.setup()
         sources = {
             null_ls.builtins.formatting.stylua, --  brew install stylua
             require("none-ls.formatting.rustfmt"), --  rustup component add rustfmt
-            null_ls.builtins.formatting.prettier, -- installed on a per-project basis using: yarn add -D prettier
+            -- null_ls.builtins.formatting.prettier, -- installed on a per-project basis using: yarn add -D prettier
             -- require("none-ls.diagnostics.eslint"), --  installed on a per project basis
             require("none-ls.diagnostics.flake8").with({
                 filetypes = { "python" },

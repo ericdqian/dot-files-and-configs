@@ -1,0 +1,13 @@
+# Project configuration
+column_width = 100
+indent_type = "Spaces"
+indent_width = 4
+line_endings = "Unix"
+
+# Quote style
+quote_style = "AutoPreferDouble"  # Options: AutoPreferSingle, AutoPreferDouble, ForceSingle, ForceDouble
+
+# Table formatting
+call_parentheses = "Always"       # Options: Always, NoSingleString
+
+

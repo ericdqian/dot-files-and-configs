@@ -21,11 +21,15 @@ local function get_python_path()
         return DEFAULT_PYTHON
     end
     if config_content["python"] == nil then
-        print("Warning: no Python section in project's .nvimrc config. Check .nvimrc in the project root")
+        print(
+            "Warning: no Python section in project's .nvimrc config. Check .nvimrc in the project root"
+        )
         return DEFAULT_PYTHON
     end
     if config_content["python"]["interpreter_path"] == nil then
-        print("Warning: no interpreter_path in project's .nvimrc config. Check .nvimrc in the project root")
+        print(
+            "Warning: no interpreter_path in project's .nvimrc config. Check .nvimrc in the project root"
+        )
         return DEFAULT_PYTHON
     end
     local full_interpreter_path = root_path .. "/" .. config_content["python"]["interpreter_path"]
@@ -49,7 +53,7 @@ function M.setup()
 
     -- Enable some language servers with the additional completion capabilities offered by nvim-cmp
     local servers = {
-        "clangd",        -- brew install llvm if not using Mason
+        "clangd", -- brew install llvm if not using Mason
         "rust_analyzer", --brew install rust-analyzer if not using Mason
         "lua_ls",
         "tflint",
@@ -131,7 +135,7 @@ function M.setup()
     })
 
     vim.diagnostic.get(0, { update_in_insert = true }) -- Update diagnostics even while in insert mode
-    vim.diagnostic.get(0, { virtual_text = false })    -- Don't show diagnostics with virtual text - real talk though: though what is virtual text?
+    vim.diagnostic.get(0, { virtual_text = false }) -- Don't show diagnostics with virtual text - real talk though: though what is virtual text?
 end
 
 return M

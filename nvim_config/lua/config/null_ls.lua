@@ -31,14 +31,20 @@ local function should_mount_python_source(source_name)
         return false
     end
     if config_content["python"] == nil then
-        print("Warning: no Python section in project's .nvimrc config. Check .nvimrc in the project root")
+        print(
+            "Warning: no Python section in project's .nvimrc config. Check .nvimrc in the project root"
+        )
         return false
     end
     if config_content["python"]["pyproject_toml_path"] == nil then
-        print("Warning: no pyproject_toml_path in project's .nvimrc config. Check .nvimrc in the project root")
+        print(
+            "Warning: no pyproject_toml_path in project's .nvimrc config. Check .nvimrc in the project root"
+        )
         return false
     end
-    local python_config_file_path = root_path .. "/" .. config_content["python"]["pyproject_toml_path"]
+    local python_config_file_path = root_path
+        .. "/"
+        .. config_content["python"]["pyproject_toml_path"]
 
     local python_config_file = io.open(python_config_file_path, "r")
     if python_config_file == nil then

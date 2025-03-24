@@ -49,7 +49,7 @@ function M.setup()
 
     -- Enable some language servers with the additional completion capabilities offered by nvim-cmp
     local servers = {
-        "clangd",  -- brew install llvm if not using Mason
+        "clangd",        -- brew install llvm if not using Mason
         "rust_analyzer", --brew install rust-analyzer if not using Mason
         "lua_ls",
         "tflint",
@@ -87,25 +87,25 @@ function M.setup()
             },
         },
     })
-	local eslint_attach = function(client, bufnr)
-		client.server_capabilities.semanticTokensProvider = nil
-		client.server_capabilities.document_formatting = true
-		if client.resolved_capabilities.document_formatting then
-			local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				pattern = "*",
-				callback = function()
-					vim.lsp.buf.formatting_sync()
-				end,
-				group = au_lsp,
-			})
-		end
-	end
+    local eslint_attach = function(client, bufnr)
+        client.server_capabilities.semanticTokensProvider = nil
+        client.server_capabilities.document_formatting = true
+        if client.server_capabilities.document_formatting then
+            local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
+            vim.api.nvim_create_autocmd("BufWritePre", {
+                pattern = "*",
+                callback = function()
+                    vim.cmd("EslintFixAll")
+                end,
+                group = au_lsp,
+            })
+        end
+    end
 
-	lspconfig.eslint.setup({
-		on_attach = eslint_attach,
-		capabilities = capabilities,
-	})
+    lspconfig.eslint.setup({
+        on_attach = eslint_attach,
+        capabilities = capabilities,
+    })
 
     lspconfig.pyright.setup({
         on_attach = custom_attach,
@@ -131,7 +131,7 @@ function M.setup()
     })
 
     vim.diagnostic.get(0, { update_in_insert = true }) -- Update diagnostics even while in insert mode
-    vim.diagnostic.get(0, { virtual_text = false }) -- Don't show diagnostics with virtual text - real talk though: though what is virtual text?
+    vim.diagnostic.get(0, { virtual_text = false })    -- Don't show diagnostics with virtual text - real talk though: though what is virtual text?
 end
 
 return M

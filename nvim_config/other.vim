@@ -80,4 +80,4 @@ nnoremap <A-k> <C-w>+
 nnoremap <leader>h :history<CR>
 nnoremap <leader>m :messages<CR>
 
-
+nnoremap <leader>q :q<CR>

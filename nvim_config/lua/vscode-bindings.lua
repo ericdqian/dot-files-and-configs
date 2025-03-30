@@ -62,6 +62,13 @@ vim.api.nvim_set_keymap(
     { noremap = true, silent = true }
 )
 
+vim.api.nvim_set_keymap(
+    "n",
+    "<leader>q",
+    ":lua require('vscode-neovim').action('workbench.action.closeEditorsInGroup')<CR>",
+    { noremap = true, silent = true }
+)
+
 local comment_shortcuts = { "<leader>gb", "<leader>gl" }
 
 function visual_comment_selected_lines()

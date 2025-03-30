@@ -48,7 +48,7 @@ let mapleader = " "
 
 " Fast saving
 if exists('g:vscode')
-    nmap <leader>w :Write<cr>
+    nmap <leader>w :write<cr>
 else
     nmap <leader>w :w!<cr>
 endif

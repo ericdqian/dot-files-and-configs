@@ -40,3 +40,5 @@ fi
 #
 # # Ignore future updates to zsh_config/device_specific_zsh_config
 # git update-index --assume-unchanged ./zsh_config/device_specific_zsh_config
+
+git config --global core.editor "nvim"

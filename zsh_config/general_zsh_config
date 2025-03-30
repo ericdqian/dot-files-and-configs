@@ -56,3 +56,7 @@ gen_rand_str() {
     echo
 }
 
+
+# free up cmd+M for window navigation
+bindkey '^M' clear-screen
+

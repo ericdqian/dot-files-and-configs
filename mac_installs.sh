@@ -85,4 +85,6 @@ else
     echo "Oh-my-zsh is already installed."
 fi
 
+defaults write -g ApplePressAndHoldEnabled -bool false
+
 echo "Script completed. Please restart your terminal or run 'source ~/.zshrc' to apply changes."

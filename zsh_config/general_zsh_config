@@ -57,6 +57,6 @@ gen_rand_str() {
 }
 
 
-# free up cmd+M for window navigation
-bindkey '^M' clear-screen
+# # free up cmd+k for window navigation
+# bindkey '^i' clear-screen
 

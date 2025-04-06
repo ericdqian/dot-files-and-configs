@@ -16,7 +16,10 @@ vim.g.mapleader = " "
 require("lazy").setup({
     -- Directory / searching plugins
     -- For directory navigation
-    "tpope/vim-vinegar",
+    {
+        "tpope/vim-vinegar",
+        cond = not vim.g.vscode,
+    },
     -- Fuzzy searching
     {
         "junegunn/fzf",
@@ -150,6 +153,7 @@ require("lazy").setup({
     },
     {
         "github/copilot.vim",
+        cond = not vim.g.vscode,
     },
     -- Navigation
     {
@@ -198,6 +202,7 @@ require("lazy").setup({
     -- Enables using git commands in vim
     {
         "tpope/vim-fugitive",
+        cond = not vim.g.vscode,
     },
     -- For showing changes in the lefthand side
     {

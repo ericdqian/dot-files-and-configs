@@ -1,40 +1,5 @@
 // Place your key bindings in this file to override the defaultsauto[]
 [
-  // Necessary to mimic ctrl+d and ctrl+u
-  {
-    "key": "ctrl+d",
-    "command": "extension.multiCommand.execute",
-    "args": {
-      "sequence": [
-        {
-          "command": "vscode-neovim.send",
-          "args": "<C-d>"
-        },
-        {
-          "command": "vscode-neovim.send",
-          "args": "zz"
-        }
-      ]
-    },
-    "when": "editorTextFocus && neovim.ctrlKeysNormal && neovim.init && neovim.mode != 'insert'"
-  },
-  {
-    "key": "ctrl+u",
-    "command": "extension.multiCommand.execute",
-    "args": {
-      "sequence": [
-        {
-          "command": "vscode-neovim.send",
-          "args": "<C-u>"
-        },
-        {
-          "command": "vscode-neovim.send",
-          "args": "zz"
-        }
-      ]
-    },
-    "when": "editorTextFocus && neovim.ctrlKeysNormal && neovim.init && neovim.mode != 'insert'"
-  },
   // File navigation
   // https://stackoverflow.com/questions/49611435/visual-studio-code-keybindings-running-two-or-more-commands-with-one-shortcut
   {
@@ -43,7 +8,7 @@
     "args": {
       "commands": [
         "explorer.openAndPassFocus",
-        "workbench.action.toggleSidebarVisibility",
+        "workbench.action.toggleSidebarVisibility"
       ]
     },
     "when": "viewContainer.workbench.view.explorer.enabled && filesExplorerFocus && neovim.mode != insert"
@@ -80,21 +45,42 @@
   {
     "key": "shift+d",
     "command": "deleteFile",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourcV yeReadonly && !inputFocus"
   },
   // ------- Pane nagivation
+  {
+    "key": "escape",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "searchViewletFocus && !inSearchEditor"
+  },
+  {
+    "key": "shift+cmd+l",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "searchViewletFocus"
+  },
   {
     "key": "shift+cmd+l",
     "command": "workbench.action.focusActiveEditorGroup",
     "when": "sideBarVisible && sideBarFocus"
   },
   {
+    "key": "shift+cmd+l",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "filesExplorerFocus"
+  },
+  {
+    "key": "shift+cmd+l",
+    "command": "aichat.newchataction",
+    "when": "editorFocus"
+  },
+  {
     "key": "ctrl+l",
     "command": "workbench.action.focusActiveEditorGroup",
     "when": "sideBarVisible && sideBarFocus"
   },
+  { "key": "shift+cmd+h", "command": "-workbench.action.replaceInFiles" },
   {
-    "key": "cmd+shift+h",
+    "key": "shift+cmd+h",
     "command": "workbench.action.focusSideBar",
     "when": "editorFocus && sideBarVisible"
   },
@@ -103,6 +89,18 @@
     "command": "workbench.action.focusSideBar",
     "when": "panelFocus && sideBarVisible"
   },
+  // doesn't work in typing mode for whatever reason
+  {
+    "key": "shift+cmd+h",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "view =~ /^workbench.panel.aichat.view/ || composerFocused"
+  },
+  // Currently breaks cursor
+  // {
+  //   "key": "shift+cmd+l",
+  //   "command": "composer.openComposer",
+  //   "when": "editorFocus"
+  // },
   // // For some reason unassigning shift+cmd+h causes the above shift+cmd+h to not work anymore
   // {
   //   "key": "shift+cmd+h",
@@ -124,12 +122,26 @@
     "command": "workbench.action.toggleSidebarVisibility",
     "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
   },
-  // ------- Panel utilities
+  // ------- Editor nav
+  { "key": "shift+cmd+]", "command": "-workbench.action.nextEditor" },
+  {
+    "key": "shift+cmd+]",
+    "command": "workbench.action.nextEditor",
+    "when": "editorFocus"
+  },
+  { "key": "shift+cmd+[", "command": "-workbench.action.previousEditor" },
+  {
+    "key": "shift+cmd+[",
+    "command": "workbench.action.previousEditor",
+    "when": "editorFocus"
+  },
+  // ------- Panel utilities (bottom)
   {
     "key": "ctrl+k",
     "command": "workbench.action.focusActiveEditorGroup",
     "when": "panelFocus"
   },
+
   {
     "key": "cmd+shift+[",
     "command": "workbench.action.previousPanelView",
@@ -151,4 +163,39 @@
     "command": "workbench.action.nextSideBarView",
     "when": "sideBarFocus && sideBarVisible"
   },
+
+  // -------- Actions in top bar
+  { "key": "shift+cmd+p", "command": "-workbench.action.showCommands" },
+  { "key": "shift+cmd+b", "command": "workbench.action.showCommands" },
+
+  // ------- Cursor
+  { "key": "cmd+p", "command": "aichat.newchataction" },
+  { "key": "cmd+l", "command": "-aichat.newchataction" },
+  { "key": "shift+cmd+l", "command": "-aichat.insertselectionintochat" },
+  {
+    "key": "shift+cmd+p",
+    "command": "aichat.insertselectionintochat",
+    "when": "editorFocus"
+  },
+  {
+    "key": "shift+cmd+p",
+    "command": "composer.openAddContextMenu",
+    "when": "composerFocused"
+  },
+
+  {
+    "key": "shift+cmd+l",
+    "command": "-selectAllSearchEditorMatches",
+    "when": "inSearchEditor"
+  },
+  {
+    "key": "shift+cmd+l",
+    "command": "-editor.action.selectHighlights",
+    "when": "editorFocus"
+  },
+  {
+    "key": "shift+cmd+l",
+    "command": "-addCursorsAtSearchResults",
+    "when": "fileMatchOrMatchFocus && searchViewletVisible"
+  }
 ]

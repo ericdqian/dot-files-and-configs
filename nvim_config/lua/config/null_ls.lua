@@ -14,19 +14,27 @@ local M = {}
 
 local config_file_name = ".nvimrc"
 
-local function should_mount_python_source(source_name)
+local function read_nvimrc_config()
     local null_ls_utils = require("null-ls.utils")
     local root_path = null_ls_utils.root_pattern(config_file_name)(vim.api.nvim_buf_get_name(0))
     if root_path == nil then
-        return false
+        return nil, "Root path not found"
     end
     local config_path = root_path .. "/" .. config_file_name
     local config_file = io.open(config_path, "r")
     if config_file == nil then
-        return false
+        return nil, "Config file not found"
     end
     local raw_config_content = config_file:read("*a")
     local config_content = vim.fn.json_decode(raw_config_content)
+    if config_content == nil then
+        return nil, "Failed to decode JSON"
+    end
+    return config_content, nil
+end
+
+local function should_mount_python_source(source_name)
+    local config_content, err = read_nvimrc_config()
     if config_content == nil then
         return false
     end
@@ -54,6 +62,38 @@ local function should_mount_python_source(source_name)
 
     local pattern = "tool." .. source_name
     return python_config_file_raw_content:find(pattern) ~= nil
+end
+
+local function should_mount_typescript_source(source_name)
+    local config_content, err = read_nvimrc_config()
+    if config_content == nil then
+        print("Error: " .. err)
+        return false
+    end
+    if config_content["typescript"] == nil then
+        print(
+            "Warning: no TypeScript section in project's .nvimrc config. Check .nvimrc in the project root"
+        )
+        return false
+    end
+    if config_content["typescript"]["prettier_path"] == nil then
+        print(
+            "Warning: no prettier_path in project's .nvimrc config. Check .nvimrc in the project root"
+        )
+        return false
+    end
+    local typescript_config_file_path = root_path
+        .. "/"
+        .. config_content["typescript"]["prettier_path"]
+
+    local typescript_config_file = io.open(typescript_config_file_path, "r")
+    if typescript_config_file == nil then
+        return false
+    end
+    local typescript_config_file_raw_content = typescript_config_file:read("*a")
+
+    local pattern = "tool." .. source_name
+    return typescript_config_file_raw_content:find(pattern) ~= nil
 end
 
 function M.setup()

@@ -5,7 +5,12 @@ There is a custom .null_ls.nvim file in the project root that specifies the path
 The format should look like this:
 
 {
-    "python": "python/pyproject.toml"
+    "python": {
+        "pyproject_toml_path": "python/pyproject.toml"
+    },
+    "typescript": {
+        "prettier_path": "typescript/.prettierrc.json"
+    }
 }
 
 ]]

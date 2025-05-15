@@ -151,6 +151,14 @@ else
     echo "pnpm is already installed."
 fi
 
+if ! command -v spoof &> /dev/null; then
+    echo "Installing spoof..."
+    pnpm install -g spoof
+else
+    echo "pnpm is already installed."
+fi
+
+
 # Oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
     echo "Installing Oh-my-zsh..."

@@ -5,15 +5,15 @@ mkdir -p ~/.local/bin
 # Detect CPU architecture and install accordingly
 if [[ $(uname -m) == "arm64" ]]; then
     echo "Detected Apple Silicon (ARM) architecture"
-    
+
     # Install homebrew if not already installed
     if ! command -v brew &> /dev/null; then
         echo "Installing Homebrew for ARM..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        grep -qxF 'eval "$(/opt/homebrew/bin/brew shellenv)"' ~/.zshrc || echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
     else
         echo "Homebrew is already installed."
     fi
+    grep -qxF 'eval "$(/opt/homebrew/bin/brew shellenv)"' ~/.zshrc || echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
 
     # Neovim for ARM
     if [ ! -d "/opt/nvim-macos-arm64" ]; then
@@ -24,21 +24,21 @@ if [[ $(uname -m) == "arm64" ]]; then
         sudo tar xzf nvim-macos-arm64.tar.gz -C /opt
         rm nvim-macos-arm64.tar.gz
         popd
-        grep -qxF 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' ~/.zshrc || echo 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' >> ~/.zshrc
     else
         echo "Neovim is already installed."
     fi
+    grep -qxF 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' ~/.zshrc || echo 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' >> ~/.zshrc
 else
     echo "Detected Intel architecture"
-    
+
     # Install homebrew if not already installed
     if ! command -v brew &> /dev/null; then
         echo "Installing Homebrew for Intel..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        grep -qxF 'eval "$(/usr/local/bin/brew shellenv)"' ~/.zshrc || echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zshrc
     else
         echo "Homebrew is already installed."
     fi
+    grep -qxF 'eval "$(/usr/local/bin/brew shellenv)"' ~/.zshrc || echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zshrc
 
     # Neovim for Intel
     if [ ! -d "/opt/nvim-macos-x86_64" ]; then
@@ -49,10 +49,10 @@ else
         sudo tar xzf nvim-macos-x86_64.tar.gz -C /opt
         rm nvim-macos-x86_64.tar.gz
         popd
-        grep -qxF 'export PATH="$PATH:/opt/nvim-macos-x86_64/bin"' ~/.zshrc || echo 'export PATH="$PATH:/opt/nvim-macos-x86_64/bin"' >> ~/.zshrc
     else
         echo "Neovim is already installed."
     fi
+    grep -qxF 'export PATH="$PATH:/opt/nvim-macos-x86_64/bin"' ~/.zshrc || echo 'export PATH="$PATH:/opt/nvim-macos-x86_64/bin"' >> ~/.zshrc
 fi
 
 # Powerlink

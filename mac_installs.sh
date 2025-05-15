@@ -106,10 +106,55 @@ else
     echo "k9s is already installed."
 fi
 
+# rsync
+if ! command -v rsync &> /dev/null; then
+    echo "Installing rsync..."
+    brew install rsync
+else
+    echo "rsync is already installed."
+fi
+
+# wget
+if ! command -v wget &> /dev/null; then
+    echo "Installing wget..."
+    brew install wget
+else
+    echo "wget is already installed."
+fi
+
+# uv
+if ! command -v uv &> /dev/null; then
+    echo "Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+else
+    echo "uv is already installed."
+fi
+source $HOME/.local/bin/env
+
+
+# fnm
+if ! command -v fnm &> /dev/null; then
+    echo "Installing fnm..."
+    # this uses homebrew anyways????
+    curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell
+else
+    echo "fnm is already installed."
+fi
+grep -qxF 'eval "$(fnm env --use-on-cd shell zsh)"' ~/.zshrc || echo 'eval "$(fnm env --use-on-cd shell zsh)"' >> ~/.zshrc
+eval "$(fnm env --use-on-cd shell zsh)"
+
+# pnpm
+if ! command -v pnpm &> /dev/null; then
+    echo "Installing pnpm..."
+    brew install pnpm
+else
+    echo "pnpm is already installed."
+fi
+
 # Oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
     echo "Installing Oh-my-zsh..."
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --keep-zshrc
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --keep-zshrc --unattended
 else
     echo "Oh-my-zsh is already installed."
 fi

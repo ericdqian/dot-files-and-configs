@@ -1,0 +1,4 @@
+source ~/.general_zsh_config
+eval "$(/opt/homebrew/bin/brew shellenv)"
+export PATH="$PATH:/opt/nvim-macos-arm64/bin"
+eval "$(fnm env --use-on-cd --shell zsh)"

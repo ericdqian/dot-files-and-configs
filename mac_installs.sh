@@ -129,7 +129,6 @@ if ! command -v uv &> /dev/null; then
 else
     echo "uv is already installed."
 fi
-source $HOME/.local/bin/env
 
 
 # fnm
@@ -140,7 +139,7 @@ if ! command -v fnm &> /dev/null; then
 else
     echo "fnm is already installed."
 fi
-grep -qxF 'eval "$(fnm env --use-on-cd shell zsh)"' ~/.zshrc || echo 'eval "$(fnm env --use-on-cd shell zsh)"' >> ~/.zshrc
+grep -qxF 'eval "$(fnm env --use-on-cd shell zsh)"' ~/.zshrc || echo 'eval "$(fnm env --use-on-cd --shell zsh)"' >> ~/.zshrc
 eval "$(fnm env --use-on-cd shell zsh)"
 
 # pnpm

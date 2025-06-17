@@ -42,3 +42,16 @@ fi
 # git update-index --assume-unchanged ./zsh_config/device_specific_zsh_config
 
 git config --global core.editor "nvim"
+git config --global push.autoSetupRemote true
+
+# Prompt name and email to use for git if not already set
+if [[ -z $(git config --global user.name) ]]; then
+    echo "Enter your name for git: "
+    read NAME
+    git config --global user.name $NAME
+fi
+if [[ -z $(git config --global user.email) ]]; then
+    echo "Enter your email for git: "
+    read EMAIL
+    git config --global user.email $EMAIL
+fi

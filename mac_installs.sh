@@ -10,6 +10,7 @@ if [[ $(uname -m) == "arm64" ]]; then
     if ! command -v brew &> /dev/null; then
         echo "Installing Homebrew for ARM..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        eval "$(/opt/homebrew/bin/brew shellenv)"
     else
         echo "Homebrew is already installed."
     fi
@@ -35,6 +36,7 @@ else
     if ! command -v brew &> /dev/null; then
         echo "Installing Homebrew for Intel..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        eval "$(/usr/local/bin/brew shellenv)"
     else
         echo "Homebrew is already installed."
     fi

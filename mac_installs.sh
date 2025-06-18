@@ -29,6 +29,8 @@ if [[ $(uname -m) == "arm64" ]]; then
         echo "Neovim is already installed."
     fi
     grep -qxF 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' ~/.zshrc || echo 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' >> ~/.zshrc
+
+    brew install battery # This only works for apple silicon
 else
     echo "Detected Intel architecture"
 

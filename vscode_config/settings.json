@@ -11,15 +11,17 @@
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "typescript.tsdk": "./client/node_modules/typescript/lib",
-  "eslint.validate": ["javascript"],
+  "eslint.validate": [
+    "javascript"
+  ],
   "go.toolsManagement.autoUpdate": true,
   "python.defaultInterpreterPath": "/usr/local/bin/python3.10",
   "extensions.experimental.affinity": {
     "asvetliakov.vscode-neovim": 1
   },
   // "vscode-neovim.neovimClean": true,
-  "vscode-neovim.neovimExecutablePaths.darwin": "/opt/nvim-macos-x86_64/bin/nvim",
-  // "vscode-neovim.neovimExecutablePaths.darwin": "/opt/nvim-macos-arm64/bin/nvim",
+  // "vscode-neovim.neovimExecutablePaths.darwin": "/opt/nvim-macos-x86_64/bin/nvim",
+  "vscode-neovim.neovimExecutablePaths.darwin": "/opt/nvim-macos-arm64/bin/nvim",
   "vscode-neovim.neovimInitVimPaths.darwin": "/Users/ericqian/dot-files-and-configs/nvim_config/init.vim",
   "jupyter.askForKernelRestart": false
 }

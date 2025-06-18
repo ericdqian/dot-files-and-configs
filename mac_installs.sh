@@ -141,8 +141,8 @@ if ! command -v fnm &> /dev/null; then
 else
     echo "fnm is already installed."
 fi
-grep -qxF 'eval "$(fnm env --use-on-cd shell zsh)"' ~/.zshrc || echo 'eval "$(fnm env --use-on-cd --shell zsh)"' >> ~/.zshrc
-eval "$(fnm env --use-on-cd shell zsh)"
+grep -qxF 'eval "$(fnm env --use-on-cd --shell zsh)"' ~/.zshrc || echo 'eval "$(fnm env --use-on-cd --shell zsh)"' >> ~/.zshrc
+eval "$(fnm env --use-on-cd --shell zsh)"
 
 # pnpm
 if ! command -v pnpm &> /dev/null; then
@@ -156,7 +156,7 @@ if ! command -v spoof &> /dev/null; then
     echo "Installing spoof..."
     pnpm install -g spoof
 else
-    echo "pnpm is already installed."
+    echo "spoof is already installed."
 fi
 
 
@@ -169,5 +169,20 @@ else
 fi
 
 defaults write -g ApplePressAndHoldEnabled -bool false
+
+# Symlink vscode_config/keybindings.json and vscode_config/settings.json to cursor and vscode if they are installed and not already linked
+CURSOR_DIR="$HOME/Library/Application Support/Cursor/User"
+VSCODE_DIR="$HOME/Library/Application Support/Code/User"
+
+CUR_DIR=$(pwd)
+
+for dir in "$CURSOR_DIR" "$VSCODE_DIR"; do
+    if [ -d "$dir" ]; then
+        echo "Symlinking vscode_config/keybindings.json and vscode_config/settings.json to $dir..."
+        ln -sf $CUR_DIR/vscode_config/keybindings.json "$dir/keybindings.json"
+        ln -sf $CUR_DIR/vscode_config/settings.json "$dir/settings.json"
+    fi
+done
+
 
 echo "Script completed. Please restart your terminal or run 'source ~/.zshrc' to apply changes."

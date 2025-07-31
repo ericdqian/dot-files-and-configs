@@ -45,7 +45,7 @@
   {
     "key": "shift+d",
     "command": "deleteFile",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourcV yeReadonly && !inputFocus"
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
   },
   // ------- Pane nagivation
   {

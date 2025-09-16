@@ -7,6 +7,13 @@ vim.api.nvim_set_keymap(
 
 vim.api.nvim_set_keymap(
     "n",
+    "gt",
+    ":lua require('vscode-neovim').action('editor.action.goToTypeDefinition')<CR>",
+    { noremap = true, silent = true }
+)
+
+vim.api.nvim_set_keymap(
+    "n",
     "<leader>rn",
     ":lua require('vscode-neovim').action('editor.action.rename')<CR>",
     { noremap = true, silent = true }

@@ -63,3 +63,28 @@ gen_rand_str() {
 # # free up cmd+k for window navigation
 # bindkey '^i' clear-screen
 
+cwt() {
+  local wt
+  wt="$(git worktree list | fzf | awk '{print $1}')" || return
+  [[ -n "$wt" ]] && cursor "$wt"
+}
+
+dwt() {
+  local wt
+  wt="$(
+    git worktree list |
+      awk '{path=$1; branch=$3; gsub(/[\[\]]/, "", branch); print path "\t" branch}' |
+      fzf --delimiter=$'\t' --with-nth=1,2 \
+          --prompt='delete worktree > ' \
+          --height=40% --reverse |
+      cut -f1
+  )" || return
+
+  [[ -n "$wt" ]] || return
+
+  printf 'Delete worktree %s? [y/N] ' "$wt"
+  read -r confirm
+  [[ "$confirm" =~ ^[Yy]$ ]] || return
+
+  git worktree remove "$wt"
+}

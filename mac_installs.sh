@@ -161,6 +161,12 @@ else
     echo "spoof is already installed."
 fi
 
+if ! command -v yt-dlp &> /dev/null; then
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o ~/.local/bin/yt-dlp
+    chmod a+rx ~/.local/bin/yt-dlp  # Make executable
+else
+    echo "yt-dlp is already installed"
+fi
 
 # Oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then

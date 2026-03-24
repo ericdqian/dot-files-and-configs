@@ -71,6 +71,12 @@ cwt() {
 
 dwt() {
   local wt
+  local remove_args=()
+
+  if [[ "$1" == "--force" ]]; then
+    remove_args+=(--force)
+  fi
+
   wt="$(
     git worktree list |
       awk '{path=$1; branch=$3; gsub(/[\[\]]/, "", branch); print path "\t" branch}' |
@@ -82,9 +88,11 @@ dwt() {
 
   [[ -n "$wt" ]] || return
 
-  printf 'Delete worktree %s? [y/N] ' "$wt"
+  printf 'Delete worktree %s%s? [y/N] ' \
+    "$wt" \
+    "${remove_args:+ (force)}"
   read -r confirm
   [[ "$confirm" =~ ^[Yy]$ ]] || return
 
-  git worktree remove "$wt"
+  git worktree remove "${remove_args[@]}" "$wt"
 }

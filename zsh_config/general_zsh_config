@@ -65,8 +65,18 @@ gen_rand_str() {
 
 cwt() {
   local wt
+  local -a workspace_files
+  local open_target
+
   wt="$(git worktree list | fzf | awk '{print $1}')" || return
-  [[ -n "$wt" ]] && cursor "$wt"
+  [[ -n "$wt" ]] || return
+
+  workspace_files=(
+    "$wt"/*.code-workspace(N)
+  )
+
+  open_target="${workspace_files[1]:-$wt}"
+  cursor "$open_target"
 }
 
 dwt() {

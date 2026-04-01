@@ -182,6 +182,8 @@
   { "key": "cmd+p", "command": "aichat.newchataction" },
   { "key": "cmd+l", "command": "-aichat.newchataction" },
   { "key": "shift+cmd+l", "command": "-aichat.insertselectionintochat" },
+  { "key": "shift+cmd+j", "command": "-aiSettings.action.openhidden", "when": "!isSettingsPaneOpen" },
+  { "key": "shift+cmd+j", "command": "-aiSettings.action.open", "when": "!isSettingsPaneOpen" },
   {
     "key": "shift+cmd+p",
     "command": "aichat.insertselectionintochat",

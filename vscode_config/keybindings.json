@@ -141,6 +141,16 @@
     "command": "workbench.action.focusActiveEditorGroup",
     "when": "panelFocus"
   },
+  {
+    "key": "ctrl+h",
+    "command": "workbench.action.terminal.focusPreviousPane",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+l",
+    "command": "workbench.action.terminal.focusNextPane",
+    "when": "terminalFocus"
+  },
 
   {
     "key": "cmd+shift+[",

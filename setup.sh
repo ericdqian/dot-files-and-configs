@@ -1,5 +1,19 @@
 CUR_DIR=$(pwd)
 echo Symlinking configs at $CUR_DIR
+
+link_file() {
+    SOURCE=$1
+    TARGET=$2
+    DESCRIPTION=$3
+
+    if [[ -L $TARGET && $(readlink "$TARGET") == "$SOURCE" ]]; then
+        echo "Not creating new $DESCRIPTION because $TARGET is already symlinked"
+    else
+        echo "Linking $DESCRIPTION"
+        ln -sf "$SOURCE" "$TARGET"
+    fi
+}
+
 if [[ -L ~/.general_zsh_config ]]; then
     echo "Not creating new general zsh config because ~/.general_zsh_config is already symlinked"
 else
@@ -37,6 +51,9 @@ else
     echo "Linking wezterm config"
     ln -s ${CUR_DIR}/wezterm_config/.wezterm.lua ~/.config/wezterm/wezterm.lua
 fi
+mkdir -p ~/.codex ~/.claude
+link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
+link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"
 #
 # # Ignore future updates to zsh_config/device_specific_zsh_config
 # git update-index --assume-unchanged ./zsh_config/device_specific_zsh_config

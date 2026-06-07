@@ -1,7 +1,5 @@
 Make frequent commmits for what would be considered atomic units of work.
 
-When GitHub CLI is needed but unavailable, install it with `brew install gh`.
-
 Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /prepare-pr skill
 
 When the user asks you to revise something you already did, or gives guidance that sounds like a reusable principle, ask whether they would like that feedback persisted into an `AGENTS.md` file for future agents.

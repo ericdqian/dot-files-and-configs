@@ -30,7 +30,6 @@ if [[ $(uname -m) == "arm64" ]]; then
     fi
     grep -qxF 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' ~/.zshrc || echo 'export PATH="$PATH:/opt/nvim-macos-arm64/bin"' >> ~/.zshrc
 
-    brew install battery # This only works for apple silicon
 else
     echo "Detected Intel architecture"
 
@@ -132,6 +131,18 @@ if ! command -v wget &> /dev/null; then
     brew install wget
 else
     echo "wget is already installed."
+fi
+
+# Rust/cargo
+if ! command -v cargo &> /dev/null && [ ! -x "$HOME/.cargo/bin/cargo" ]; then
+    echo "Installing cargo with rustup..."
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+else
+    echo "cargo is already installed."
+fi
+if [ -f "$HOME/.cargo/env" ]; then
+    grep -qxF '. "$HOME/.cargo/env"' ~/.zshrc || echo '. "$HOME/.cargo/env"' >> ~/.zshrc
+    . "$HOME/.cargo/env"
 fi
 
 # uv

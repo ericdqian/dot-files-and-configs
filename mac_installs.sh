@@ -86,6 +86,14 @@ else
     echo "bat is already installed."
 fi
 
+# GitHub CLI
+if ! command -v gh &> /dev/null; then
+    echo "Installing GitHub CLI..."
+    brew install gh
+else
+    echo "GitHub CLI is already installed."
+fi
+
 # zsh highlighting
 if [ ! -d ~/zsh-syntax-highlighting ]; then
     echo "Installing zsh-syntax-highlighting..."

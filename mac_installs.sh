@@ -134,6 +134,18 @@ else
     echo "wget is already installed."
 fi
 
+# Rust/cargo
+if ! command -v cargo &> /dev/null && [ ! -x "$HOME/.cargo/bin/cargo" ]; then
+    echo "Installing cargo with rustup..."
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+else
+    echo "cargo is already installed."
+fi
+if [ -f "$HOME/.cargo/env" ]; then
+    grep -qxF '. "$HOME/.cargo/env"' ~/.zshrc || echo '. "$HOME/.cargo/env"' >> ~/.zshrc
+    . "$HOME/.cargo/env"
+fi
+
 # uv
 if ! command -v uv &> /dev/null; then
     echo "Installing uv..."

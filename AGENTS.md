@@ -6,6 +6,11 @@ Opened PR branches should use the format `eq/<type>/<description>`, such as `eq/
 
 When the user asks you to revise something you already did, or gives guidance that sounds like a reusable principle, ask whether they would like that feedback persisted into an `AGENTS.md` file for future agents.
 
-Declare functions and methods in reading order: place top-level functions first, and put their helper functions immediately after the top-level function that uses them. For example, if `A` and `B` are top-level functions and `a`, `b`, `c`, and `d` are helpers, prefer `A`, `a`, `b`, `B`, `c`, `d`.
+Function and method ordering:
+- Order code for the reader's path through the file.
+- Put each top-level function or method before the helpers that serve it.
+- Put those helpers immediately after that top-level function or method.
+- Then move on to the next top-level function or method and its helpers.
+- For example, if top-level function `A` uses helpers `a` and `b`, and top-level function `B` uses helpers `c` and `d`, prefer this order: `A`, `a`, `b`, `B`, `c`, `d`.
 
 Scope `AGENTS.md` files to the directory where the guidance applies. Generic agent behavior and cross-repo preferences belong in this root `AGENTS.md`, which is symlinked into the global agent locations. Repo-specific instructions should live in that repo's `AGENTS.md`, and directory- or subsystem-specific instructions should live in the deepest relevant directory so only the right files inherit them. If a repo-specific rule reveals a broader reusable principle, that generalized principle may be added to this root `AGENTS.md` while the concrete repo-specific rule stays in the relevant repo or directory. Do not duplicate narrow instructions in broader files unless the broader file needs to point agents to where the narrower guidance lives.

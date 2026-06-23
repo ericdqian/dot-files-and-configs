@@ -6,6 +6,8 @@ Opened PR branches should use the format `eq/<type>/<description>`, such as `eq/
 
 When the user asks you to revise something you already did, or gives guidance that sounds like a reusable principle, ask whether they would like that feedback persisted into an `AGENTS.md` file for future agents.
 
+Before running `tofu apply`, `terraform apply`, or any equivalent command that mutates managed infrastructure, show the user the relevant code/config diff and wait for explicit approval to apply. Do not treat plan approval, implementation approval, or a successful validation as approval to apply infrastructure changes.
+
 Function and method ordering:
 - Order code for the reader's path through the file.
 - Put each top-level function or method before the helpers that serve it.

@@ -168,11 +168,8 @@ require("lazy").setup({
     {
         "kylechui/nvim-surround",
         config = function()
-            require("nvim-surround").setup({
-                keymaps = {
-                    visual = "<leader>s",
-                },
-            })
+            require("nvim-surround").setup({})
+            vim.keymap.set("x", "<leader>s", "<Plug>(nvim-surround-visual)", { remap = true })
         end,
     },
 
@@ -258,6 +255,7 @@ require("lazy").setup({
     -- For text coloring
     {
         "nvim-treesitter/nvim-treesitter",
+        branch = "master",
         build = ":TSUpdate all",
         config = function()
             require("config.treesitter").setup()

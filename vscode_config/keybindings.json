@@ -71,7 +71,7 @@
   {
     "key": "shift+cmd+l",
     "command": "aichat.newchataction",
-    "when": "editorFocus"
+    "when": "editorFocus && auxiliaryBarVisible"
   },
   {
     "key": "ctrl+l",

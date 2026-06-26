@@ -6,6 +6,8 @@ Opened PR branches should use the format `eq/<type>/<description>`, such as `eq/
 
 When the user asks you to revise something you already did, or gives guidance that sounds like a reusable principle, ask whether they would like that feedback persisted into an `AGENTS.md` file for future agents.
 
+Before running `tofu apply`, `terraform apply`, or any equivalent command that mutates managed infrastructure, show the user the relevant code/config diff and wait for explicit approval to apply. Do not treat plan approval, implementation approval, or a successful validation as approval to apply infrastructure changes.
+
 Function and method ordering:
 - Order code for the reader's path through the file.
 - Put each top-level function or method before the helpers that serve it.
@@ -17,5 +19,7 @@ Function and method ordering:
 Functions and methods should be pure by default. Do not give a function side effects unless there is a very good reason, and make any necessary side effect obvious from the function name and call site. Avoid helpers whose return value is ignored because they are being used only to throw, mutate, write, enqueue, log, cache, or perform IO. If a side effect is intentional, call out why that side effect belongs there in a short nearby comment.
 
 Do not mutate input parameters, including objects, arrays, maps, or sets passed by callers. Prefer returning new values and keeping data flow lean and functional. If input mutation is necessary for performance, an external API contract, transaction semantics, or another strong reason, call out why the mutation is acceptable near the mutation site and keep it narrowly scoped.
+
+Only define a named TypeScript type when it is used more than once. For one-off input or output shapes, inline the type at the function, method, or variable boundary instead of naming it.
 
 Scope `AGENTS.md` files to the directory where the guidance applies. Generic agent behavior and cross-repo preferences belong in this root `AGENTS.md`, which is symlinked into the global agent locations. Repo-specific instructions should live in that repo's `AGENTS.md`, and directory- or subsystem-specific instructions should live in the deepest relevant directory so only the right files inherit them. If a repo-specific rule reveals a broader reusable principle, that generalized principle may be added to this root `AGENTS.md` while the concrete repo-specific rule stays in the relevant repo or directory. Do not duplicate narrow instructions in broader files unless the broader file needs to point agents to where the narrower guidance lives.

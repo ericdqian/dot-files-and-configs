@@ -109,6 +109,14 @@ else
     echo "ripgrep is already installed."
 fi
 
+# tree-sitter CLI
+if ! command -v tree-sitter &> /dev/null; then
+    echo "Installing tree-sitter CLI..."
+    brew install tree-sitter-cli
+else
+    echo "tree-sitter CLI is already installed."
+fi
+
 # k9s
 if ! command -v k9s &> /dev/null; then
     echo "Installing k9s..."

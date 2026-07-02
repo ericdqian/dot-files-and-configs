@@ -255,8 +255,8 @@ require("lazy").setup({
     -- For text coloring
     {
         "nvim-treesitter/nvim-treesitter",
-        branch = "master",
-        build = ":TSUpdate all",
+        branch = "main",
+        build = ":TSUpdate",
         config = function()
             require("config.treesitter").setup()
         end,

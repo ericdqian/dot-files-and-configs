@@ -1,6 +1,10 @@
 local M = {}
 
+local install_lsp_position_compat
+
 function M.setup()
+    install_lsp_position_compat()
+
     require("lspsaga").setup({
         finder = {
             keys = {
@@ -129,6 +133,20 @@ function M.setup()
 
     -- Floating terminal
     keymap({ "n", "t" }, "<A-d>", "<cmd>Lspsaga term_toggle<CR>")
+end
+
+function install_lsp_position_compat()
+    if vim.lsp.util._get_line_byte_from_position ~= nil then
+        return
+    end
+    if vim.pos == nil or vim.pos.lsp == nil then
+        return
+    end
+
+    -- lspsaga still calls this removed private helper on current Neovim nightlies.
+    vim.lsp.util._get_line_byte_from_position = function(bufnr, position, offset_encoding)
+        return vim.pos.lsp(bufnr, position, offset_encoding or "utf-16").col
+    end
 end
 
 return M

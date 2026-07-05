@@ -108,6 +108,14 @@ else
     echo "ripgrep is already installed."
 fi
 
+# tree-sitter CLI
+if ! command -v tree-sitter &> /dev/null; then
+    echo "Installing tree-sitter CLI..."
+    sudo apt install tree-sitter-cli -y
+else
+    echo "tree-sitter CLI is already installed."
+fi
+
 # Oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
     echo "Installing Oh-my-zsh..."

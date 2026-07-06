@@ -6,6 +6,10 @@
 
 `zsh_config/general_zsh_config` is symlinked to the system's `~/.general_zsh_config` and sourced from `~/.zsh_config/device_specific_zsh_config`.
 
+`AGENTS.md` is symlinked into `~/.codex/AGENTS.md` and `~/.claude/CLAUDE.md`.
+
+Global agent skills live in `dot-agents/skills`. `setup.sh` symlinks that directory to `~/.agents/skills` for Codex and `~/.claude/skills` for Claude Code. For example, `address-pr-feedback` is available as `$address-pr-feedback` in Codex and `/address-pr-feedback` in Claude Code.
+
 ## A note on dependencies
 
 Mason will require a few things like unzip, npm, and pip to be available in order to properly install the language servers. If you see any issues with the installation, make sure that the above are available in your path.

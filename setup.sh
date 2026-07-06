@@ -8,9 +8,11 @@ link_file() {
 
     if [[ -L $TARGET && $(readlink "$TARGET") == "$SOURCE" ]]; then
         echo "Not creating new $DESCRIPTION because $TARGET is already symlinked"
+    elif [[ -e $TARGET || -L $TARGET ]]; then
+        echo "Not linking $DESCRIPTION because $TARGET already exists and is not the expected symlink"
     else
         echo "Linking $DESCRIPTION"
-        ln -sf "$SOURCE" "$TARGET"
+        ln -s "$SOURCE" "$TARGET"
     fi
 }
 
@@ -54,6 +56,9 @@ fi
 mkdir -p ~/.codex ~/.claude
 link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"
+mkdir -p ~/.agents
+link_file "${CUR_DIR}/dot-agents/skills" ~/.agents/skills "global agent skills"
+link_file "${CUR_DIR}/dot-agents/skills" ~/.claude/skills "Claude skills"
 #
 # # Ignore future updates to zsh_config/device_specific_zsh_config
 # git update-index --assume-unchanged ./zsh_config/device_specific_zsh_config

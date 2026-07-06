@@ -45,8 +45,8 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
 
 7. **Reply on the PR**
    - Prefix every PR comment made by the coding agent with the correct marker:
-     - Use `[coding codex]` when the agent is Codex.
-     - Use `[coding claude]` when the agent is Claude Code.
+     - Use `[coding codex COMMIT_HASH]` when the agent is Codex, replacing `COMMIT_HASH` with the relevant fix commit hash.
+     - Use `[coding claude COMMIT_HASH]` when the agent is Claude Code, replacing `COMMIT_HASH` with the relevant fix commit hash.
    - For implemented feedback, briefly state what changed and include the commit or pushed branch context when useful.
    - For feedback judged too much or invalid, explain the reason respectfully and invite the reviewer to clarify if they disagree.
    - For edge cases, state that the item needs human confirmation and summarize the decision needed.

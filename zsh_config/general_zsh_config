@@ -38,8 +38,10 @@ export EDITOR="nvim"
 export VISUAL="$EDITOR"
 
 ## Import aliases
-CONFIG_ZSHRC_PATH=$(readlink ~/.zshrc)
-DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
+if [[ -z "${DOTFILE_CONFIG_PATH:-}" ]]; then
+  CONFIG_ZSHRC_PATH=$(readlink ~/.zshrc)
+  DOTFILE_CONFIG_PATH=$(dirname "$CONFIG_ZSHRC_PATH")
+fi
 for filename in ${DOTFILE_CONFIG_PATH}/aliases/*; do
   source $filename
 done

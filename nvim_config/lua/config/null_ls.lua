@@ -34,8 +34,13 @@ function M.setup()
                     group = augroup,
                     buffer = bufnr,
                     callback = function()
-                        vim.lsp.buf.format({ bufnr = bufnr })
-                        -- vim.lsp.buf.formatting_sync()
+                        -- Keep this save hook scoped to the null-ls client that registered it.
+                        vim.lsp.buf.format({
+                            bufnr = bufnr,
+                            filter = function(format_client)
+                                return format_client.id == client.id
+                            end,
+                        })
                     end,
                 })
             end

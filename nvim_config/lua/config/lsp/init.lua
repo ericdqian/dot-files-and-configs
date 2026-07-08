@@ -101,6 +101,7 @@ function M.setup()
     vim.lsp.config("ts_ls", {
         on_attach = function(client, bufnr)
             custom_attach(client, bufnr)
+            -- Prettier via null-ls owns TypeScript formatting.
             client.server_capabilities.documentFormattingProvider = false
             client.server_capabilities.documentRangeFormattingProvider = false
         end,

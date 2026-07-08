@@ -23,7 +23,8 @@ trap cleanup EXIT
   printf 'print -r -- %q\n' "Loaded worktree zsh config from: $WORKTREE_ROOT"
   print -r -- 'print -r -- "EDITOR=$EDITOR VISUAL=$VISUAL"'
   print -r -- 'print -r -- "main keymap: $(bindkey -lL main)"'
-  print -r -- 'print -r -- "Type a command, press Esc, then try h/l/b/w/0/$/x/i. Run exit when done."'
+  print -r -- 'print -r -- "Ctrl-V binding: $(bindkey '"'"'^V'"'"')"'
+  print -r -- 'print -r -- "Type a command, press Ctrl-V, edit it in nvim, then :wq to return. Run exit when done."'
   print -r -- ''
 } > "$TEST_ZDOTDIR/.zshrc"
 

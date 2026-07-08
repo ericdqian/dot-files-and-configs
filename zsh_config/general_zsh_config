@@ -49,8 +49,11 @@ done
 ## Git autocomplete
 autoload -Uz compinit && compinit
 
-# Use vi-style shell navigation instead of zsh's default emacs keymap.
-bindkey -v
+## Shell navigation
+bindkey -e
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey '^V' edit-command-line
 
 # Copy the current command line to the clipboard
 function copy-and-run-command() {

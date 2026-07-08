@@ -33,6 +33,10 @@ PATH="$HOME/.local/bin:$PATH"
 ## Bat Theme
 export BAT_THEME="Dracula"
 
+## Shell editing
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
+
 ## Import aliases
 CONFIG_ZSHRC_PATH=$(readlink ~/.zshrc)
 DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
@@ -43,6 +47,8 @@ done
 ## Git autocomplete
 autoload -Uz compinit && compinit
 
+# Use vi-style shell navigation instead of zsh's default emacs keymap.
+bindkey -v
 
 # Copy the current command line to the clipboard
 function copy-and-run-command() {

@@ -32,34 +32,24 @@ config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
 config.keys = {
-    -- Clears the scrollback and viewport, and then sends CTRL-L to ask the
-    -- shell to redraw its prompt
-    {
-        key = "k",
-        mods = "SUPER",
-        action = act.Multiple({
-            act.ClearScrollback("ScrollbackAndViewport"),
-            act.SendKey({ key = "L", mods = "CTRL" }),
-        }),
-    },
     {
         key = "l",
-        mods = "SUPER|SHIFT",
+        mods = "SUPER",
         action = wezterm.action.ActivatePaneDirection("Right"),
     },
     {
         key = "h",
-        mods = "SUPER|SHIFT",
+        mods = "SUPER",
         action = wezterm.action.ActivatePaneDirection("Left"),
     },
     {
         key = "j",
-        mods = "SUPER|SHIFT",
+        mods = "SUPER",
         action = wezterm.action.ActivatePaneDirection("Down"),
     },
     {
         key = "k",
-        mods = "SUPER|SHIFT",
+        mods = "SUPER",
         action = wezterm.action.ActivatePaneDirection("Up"),
     },
     -- note: the standard wezterm convention for splits is opposite that of vim

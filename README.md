@@ -16,6 +16,10 @@ Mason will require a few things like unzip, npm, and pip to be available in orde
 
 ## Terminal
 
+### Karabiner-Elements
+
+`mac_installs.sh` installs Karabiner-Elements, and `setup.sh` symlinks this repository's Option-F/B word-navigation rule into Karabiner's complex-modification assets. After the initial installation, grant Karabiner the macOS permissions it requests, then enable **Option-F/B move forward/backward by word** from **Complex Modifications**. It maps Option-F to Option-Right Arrow and Option-B to Option-Left Arrow, so native apps, Chrome, and terminals receive their normal word-navigation input.
+
 ### Kitty
 
 ```

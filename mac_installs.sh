@@ -85,6 +85,14 @@ else
     echo "bat is already installed."
 fi
 
+# Karabiner-Elements
+if [ ! -d "/Applications/Karabiner-Elements.app" ]; then
+    echo "Installing Karabiner-Elements..."
+    brew install --cask karabiner-elements
+else
+    echo "Karabiner-Elements is already installed."
+fi
+
 # GitHub CLI
 if ! command -v gh &> /dev/null; then
     echo "Installing GitHub CLI..."

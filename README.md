@@ -20,6 +20,25 @@ Mason will require a few things like unzip, npm, and pip to be available in orde
 
 `mac_installs.sh` installs Karabiner-Elements, and `setup.sh` symlinks this repository's Option-F/B word-navigation rule into Karabiner's complex-modification assets. After the initial installation, grant Karabiner the macOS permissions it requests, then enable **Option-F/B move forward/backward by word** from **Complex Modifications**. It maps Option-F to Option-Right Arrow and Option-B to Option-Left Arrow, so native apps, Chrome, and terminals receive their normal word-navigation input.
 
+If Karabiner cannot connect to `karabiner_console_user_server`, or macOS has not recognized a permission change:
+
+1. In **System Settings → General → Login Items & Extensions**, turn **Karabiner-Elements Non-Privileged Agents v2** off, wait a few seconds, then turn it on again.
+2. Quit and reopen Karabiner-Elements. You can also restart it from the menu bar or Settings, or run:
+
+   ```sh
+   launchctl kickstart -k gui/$(id -u)/org.pqrs.service.agent.karabiner_console_user_server
+   ```
+
+3. If the Accessibility entry is missing, open **System Settings → Privacy & Security → Accessibility**, click **+**, press **Command-Shift-G**, and add:
+
+   ```text
+   /Library/Application Support/org.pqrs/Karabiner-Elements/Karabiner-Core-Service.app
+   ```
+
+4. Restart the Mac if Karabiner still cannot connect or macOS still does not recognize the permissions after the agent and app restart.
+
+See Karabiner's [restart instructions](https://karabiner-elements.pqrs.org/docs/manual/operation/restart/) and [required macOS settings](https://karabiner-elements.pqrs.org/docs/manual/misc/required-macos-settings/) for more detail.
+
 ### Kitty
 
 ```

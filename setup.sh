@@ -53,6 +53,8 @@ else
     echo "Linking wezterm config"
     ln -s ${CUR_DIR}/wezterm_config/.wezterm.lua ~/.config/wezterm/wezterm.lua
 fi
+mkdir -p ~/.config/karabiner/assets/complex_modifications
+link_file "${CUR_DIR}/karabiner_config/option_word_navigation.json" ~/.config/karabiner/assets/complex_modifications/option_word_navigation.json "Karabiner Option-F/B word navigation rule"
 mkdir -p ~/.codex ~/.claude
 link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"

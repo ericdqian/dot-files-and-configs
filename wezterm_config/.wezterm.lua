@@ -32,6 +32,18 @@ config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
 config.keys = {
+    -- Karabiner maps Option-B/F to Option-Left/Right globally. Translate those
+    -- arrows into the Meta-B/F sequences that shell line editors use for words.
+    {
+        key = "LeftArrow",
+        mods = "OPT",
+        action = act.SendKey({ key = "b", mods = "ALT" }),
+    },
+    {
+        key = "RightArrow",
+        mods = "OPT",
+        action = act.SendKey({ key = "f", mods = "ALT" }),
+    },
     {
         key = "l",
         mods = "SUPER",

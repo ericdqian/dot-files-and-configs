@@ -58,6 +58,7 @@ link_file "${CUR_DIR}/karabiner_config/option_word_navigation.json" ~/.config/ka
 mkdir -p ~/.codex ~/.claude
 link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"
+link_file "${CUR_DIR}/claude_config/settings.json" ~/.claude/settings.json "Claude settings"
 mkdir -p ~/.agents
 link_file "${CUR_DIR}/dot-agents/skills" ~/.agents/skills "global agent skills"
 link_file "${CUR_DIR}/dot-agents/skills" ~/.claude/skills "Claude skills"

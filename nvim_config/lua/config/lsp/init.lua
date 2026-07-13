@@ -74,16 +74,17 @@ function M.setup()
     local eslint_attach = function(client, bufnr)
         client.server_capabilities.semanticTokensProvider = nil
         client.server_capabilities.document_formatting = true
-        if client.server_capabilities.document_formatting then
-            local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
-            vim.api.nvim_create_autocmd("BufWritePre", {
-                pattern = "*",
-                callback = function()
-                    vim.cmd("EslintFixAll")
-                end,
-                group = au_lsp,
-            })
-        end
+        -- clear = false: clearing the whole group on each attach would drop
+        -- the autocmds registered for other eslint buffers.
+        local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = false })
+        vim.api.nvim_clear_autocmds({ group = au_lsp, buffer = bufnr })
+        vim.api.nvim_create_autocmd("BufWritePre", {
+            buffer = bufnr,
+            callback = function()
+                vim.cmd("EslintFixAll")
+            end,
+            group = au_lsp,
+        })
     end
 
     vim.lsp.config("eslint", {

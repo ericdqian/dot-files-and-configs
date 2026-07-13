@@ -60,6 +60,7 @@ link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"
 link_file "${CUR_DIR}/claude_config/settings.json" ~/.claude/settings.json "Claude settings"
 link_file "${CUR_DIR}/claude_config/statusline.sh" ~/.claude/statusline.sh "Claude status line script"
+link_file "${CUR_DIR}/codex_config/config.toml" ~/.codex/config.toml "Codex config"
 mkdir -p ~/.agents
 link_file "${CUR_DIR}/dot-agents/skills" ~/.agents/skills "global agent skills"
 link_file "${CUR_DIR}/dot-agents/skills" ~/.claude/skills "Claude skills"

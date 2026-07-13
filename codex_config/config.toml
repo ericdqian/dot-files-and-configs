@@ -1,0 +1,88 @@
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+personality = "pragmatic"
+
+notify = ["/Users/ericqian/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
+service_tier = "priority"
+plan_mode_reasoning_effort = "xhigh"
+approvals_reviewer = "auto_review"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[desktop]
+followUpQueueMode = "queue"
+
+[desktop.open-in-target-preferences]
+global = "cursor"
+
+[desktop.open-in-target-preferences.perPath]
+"/Users/ericqian/corridor/core" = "cursor"
+
+[marketplaces.openai-bundled]
+last_updated = "2026-07-05T00:23:16Z"
+source_type = "local"
+source = "/Users/ericqian/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-07-01T09:11:41Z"
+source_type = "local"
+source = "/Users/ericqian/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[features]
+js_repl = false
+
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl"
+startup_timeout_sec = 120
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/Codex.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/Codex.app/Contents/Resources/cua_node/bin/node"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/ericqian/.codex"
+CODEX_HOME = "/Users/ericqian/.codex"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "60e4902788f207f88fd09344dfeafe07769488bdb2924bbb12b322c3b9d2b999"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.623.101652"
+CODEX_CLI_PATH = "/Applications/Codex.app/Contents/Resources/codex"
+
+[projects."/Users/ericqian/travelsplanning"]
+trust_level = "trusted"
+
+[projects."/Users/ericqian/dot-files-and-configs"]
+trust_level = "trusted"
+
+[projects."/Users/ericqian/vpn"]
+trust_level = "trusted"
+
+[projects."/Users/ericqian/worktree-manager"]
+trust_level = "trusted"
+
+[projects."/Users/ericqian"]
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 3
+"gpt-5.6-sol" = 1

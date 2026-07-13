@@ -33,9 +33,15 @@ PATH="$HOME/.local/bin:$PATH"
 ## Bat Theme
 export BAT_THEME="Dracula"
 
+## Shell editing
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
+
 ## Import aliases
-CONFIG_ZSHRC_PATH=$(readlink ~/.zshrc)
-DOTFILE_CONFIG_PATH=$(dirname $CONFIG_ZSHRC_PATH)
+if [[ -z "${DOTFILE_CONFIG_PATH:-}" ]]; then
+  CONFIG_ZSHRC_PATH=$(readlink ~/.zshrc)
+  DOTFILE_CONFIG_PATH=$(dirname "$CONFIG_ZSHRC_PATH")
+fi
 for filename in ${DOTFILE_CONFIG_PATH}/aliases/*; do
   source $filename
 done
@@ -43,6 +49,11 @@ done
 ## Git autocomplete
 autoload -Uz compinit && compinit
 
+## Shell navigation
+bindkey -e
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey '^V' edit-command-line
 
 # Copy the current command line to the clipboard
 function copy-and-run-command() {

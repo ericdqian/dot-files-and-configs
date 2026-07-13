@@ -42,6 +42,22 @@ if [ -f "$HOME/.cargo/env" ]; then
     . "$HOME/.cargo/env"
 fi
 
+# Codex CLI
+if ! command -v codex &> /dev/null; then
+    echo "Installing Codex CLI..."
+    curl -fsSL https://chatgpt.com/codex/install.sh | sh
+else
+    echo "Codex CLI is already installed."
+fi
+
+# Claude Code CLI
+if ! command -v claude &> /dev/null; then
+    echo "Installing Claude Code CLI..."
+    curl -fsSL https://claude.ai/install.sh | bash
+else
+    echo "Claude Code CLI is already installed."
+fi
+
 # zsh
 if ! command -v zsh &> /dev/null; then
     echo "Installing zsh..."

@@ -88,46 +88,46 @@ config.keys = {
     {
         key = "l",
         mods = "SUPER|CTRL",
-        action = send_tmux_pane_navigation("l"),
-    },
-    {
-        key = "h",
-        mods = "SUPER|CTRL",
-        action = send_tmux_pane_navigation("h"),
-    },
-    {
-        key = "j",
-        mods = "SUPER|CTRL",
-        action = send_tmux_pane_navigation("j"),
-    },
-    {
-        key = "k",
-        mods = "SUPER|CTRL",
-        action = send_tmux_pane_navigation("k"),
-    },
-    {
-        key = "l",
-        mods = "OPT|SHIFT",
         action = wezterm.action.AdjustPaneSize({ "Right", 5 }),
     },
     {
         key = "h",
-        mods = "OPT|SHIFT",
+        mods = "SUPER|CTRL",
         action = wezterm.action.AdjustPaneSize({ "Left", 5 }),
     },
     {
         key = "j",
-        mods = "OPT|SHIFT",
+        mods = "SUPER|CTRL",
         action = wezterm.action.AdjustPaneSize({ "Down", 5 }),
     },
     {
         key = "k",
-        mods = "OPT|SHIFT",
+        mods = "SUPER|CTRL",
         action = wezterm.action.AdjustPaneSize({ "Up", 5 }),
     },
     {
-        key = "\\",
+        key = "l",
         mods = "OPT|SHIFT",
+        action = send_tmux_pane_navigation("l"),
+    },
+    {
+        key = "h",
+        mods = "OPT|SHIFT",
+        action = send_tmux_pane_navigation("h"),
+    },
+    {
+        key = "j",
+        mods = "OPT|SHIFT",
+        action = send_tmux_pane_navigation("j"),
+    },
+    {
+        key = "k",
+        mods = "OPT|SHIFT",
+        action = send_tmux_pane_navigation("k"),
+    },
+    {
+        key = "\\",
+        mods = "SUPER|CTRL",
         action = wezterm.action.AdjustPaneSize({ "Right", 100 }),
     },
     {

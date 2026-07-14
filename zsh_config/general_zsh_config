@@ -65,7 +65,7 @@ gen_rand_str() {
 
 ## Worktree manager
 if (( $+commands[wt] )); then
-  eval "$(command wt shell-init)"
+  eval "$(command wt shell-init 2>/dev/null)"
 fi
 
 cwt() {

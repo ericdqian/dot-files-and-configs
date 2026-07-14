@@ -108,22 +108,22 @@ config.keys = {
     {
         key = "l",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("l"),
+        action = send_tmux_pane_navigation("RightArrow"),
     },
     {
         key = "h",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("h"),
+        action = send_tmux_pane_navigation("LeftArrow"),
     },
     {
         key = "j",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("j"),
+        action = send_tmux_pane_navigation("DownArrow"),
     },
     {
         key = "k",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("k"),
+        action = send_tmux_pane_navigation("UpArrow"),
     },
     {
         key = "\\",

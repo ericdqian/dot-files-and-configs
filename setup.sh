@@ -60,6 +60,18 @@ link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"
 link_file "${CUR_DIR}/claude_config/settings.json" ~/.claude/settings.json "Claude settings"
 link_file "${CUR_DIR}/claude_config/statusline.sh" ~/.claude/statusline.sh "Claude status line script"
+# Codex shared config lives at the system level (/etc/codex/config.toml) so it
+# layers underneath ~/.codex/config.toml, which stays a real, local-only file
+# holding machine-specific paths and app-managed state. See AGENTS.md.
+sudo mkdir -p /etc/codex
+if [[ -L /etc/codex/config.toml && $(readlink /etc/codex/config.toml) == "${CUR_DIR}/codex_config/config.toml" ]]; then
+    echo "Not creating new Codex shared config because /etc/codex/config.toml is already symlinked"
+elif [[ -e /etc/codex/config.toml || -L /etc/codex/config.toml ]]; then
+    echo "Not linking Codex shared config because /etc/codex/config.toml already exists and is not the expected symlink"
+else
+    echo "Linking Codex shared config (requires sudo)"
+    sudo ln -s "${CUR_DIR}/codex_config/config.toml" /etc/codex/config.toml
+fi
 mkdir -p ~/.agents
 link_file "${CUR_DIR}/dot-agents/skills" ~/.agents/skills "global agent skills"
 link_file "${CUR_DIR}/dot-agents/skills" ~/.claude/skills "Claude skills"

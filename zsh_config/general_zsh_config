@@ -63,6 +63,11 @@ gen_rand_str() {
 # # free up cmd+k for window navigation
 # bindkey '^i' clear-screen
 
+## Worktree manager
+if (( $+commands[wt] )); then
+  eval "$(command wt shell-init)"
+fi
+
 cwt() {
   local wt
 

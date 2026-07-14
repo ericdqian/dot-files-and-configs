@@ -2,6 +2,10 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  },
   "model": "opus[1m]",
   "enabledPlugins": {
     "github@claude-plugins-official": true

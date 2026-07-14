@@ -53,6 +53,7 @@ else
     echo "Linking wezterm config"
     ln -s ${CUR_DIR}/wezterm_config/.wezterm.lua ~/.config/wezterm/wezterm.lua
 fi
+link_file "${CUR_DIR}/tmux_config/.tmux.conf" ~/.tmux.conf "tmux config"
 mkdir -p ~/.config/karabiner/assets/complex_modifications
 link_file "${CUR_DIR}/karabiner_config/option_word_navigation.json" ~/.config/karabiner/assets/complex_modifications/option_word_navigation.json "Karabiner Option-F/B word navigation rule"
 mkdir -p ~/.codex ~/.claude

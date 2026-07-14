@@ -31,9 +31,8 @@ config.inactive_pane_hsb = {
 config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
--- Send tmux's default prefix before its pane-navigation key so this shortcut
--- affects panes inside tmux rather than WezTerm panes.
-local function send_tmux_pane_navigation(key)
+-- Send tmux's default prefix before a key so WezTerm shortcuts affect tmux.
+local function send_tmux_prefix_key(key)
     return act.Multiple({
         act.SendKey({ key = "b", mods = "CTRL" }),
         act.SendKey({ key = key, mods = "NONE" }),
@@ -108,22 +107,27 @@ config.keys = {
     {
         key = "l",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("RightArrow"),
+        action = send_tmux_prefix_key("RightArrow"),
     },
     {
         key = "h",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("LeftArrow"),
+        action = send_tmux_prefix_key("LeftArrow"),
     },
     {
         key = "j",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("DownArrow"),
+        action = send_tmux_prefix_key("DownArrow"),
     },
     {
         key = "k",
         mods = "OPT|SHIFT",
-        action = send_tmux_pane_navigation("UpArrow"),
+        action = send_tmux_prefix_key("UpArrow"),
+    },
+    {
+        key = "o",
+        mods = "SUPER",
+        action = send_tmux_prefix_key("o"),
     },
     {
         key = "\\",

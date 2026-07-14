@@ -64,9 +64,17 @@ gen_rand_str() {
 # bindkey '^i' clear-screen
 
 ## Worktree manager
-if (( $+commands[wt] )); then
-  eval "$(command wt shell-init 2>/dev/null)"
-fi
+autoload -Uz add-zsh-hook
+
+_load_worktree_manager_shell_integration() {
+  add-zsh-hook -d precmd _load_worktree_manager_shell_integration
+
+  if (( $+commands[worktree-manager] )); then
+    eval "$(command worktree-manager shell-init 2>/dev/null)"
+  fi
+}
+
+add-zsh-hook -Uz precmd _load_worktree_manager_shell_integration
 
 cwt() {
   local wt

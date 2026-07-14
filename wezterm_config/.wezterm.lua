@@ -31,6 +31,15 @@ config.inactive_pane_hsb = {
 config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
+-- Send tmux's default prefix before its pane-navigation key so this shortcut
+-- affects panes inside tmux rather than WezTerm panes.
+local function send_tmux_pane_navigation(key)
+    return act.Multiple({
+        act.SendKey({ key = "b", mods = "CTRL" }),
+        act.SendKey({ key = key, mods = "NONE" }),
+    })
+end
+
 config.keys = {
     -- Karabiner maps Option-B/F to Option-Left/Right globally. Translate those
     -- arrows into the Meta-B/F sequences that shell line editors use for words.
@@ -79,31 +88,46 @@ config.keys = {
     {
         key = "l",
         mods = "SUPER|CTRL",
-        action = wezterm.action.AdjustPaneSize({ "Right", 5 }),
+        action = send_tmux_pane_navigation("l"),
     },
     {
         key = "h",
         mods = "SUPER|CTRL",
-        action = wezterm.action.AdjustPaneSize({ "Left", 5 }),
+        action = send_tmux_pane_navigation("h"),
     },
     {
         key = "j",
         mods = "SUPER|CTRL",
-        action = wezterm.action.AdjustPaneSize({ "Down", 5 }),
+        action = send_tmux_pane_navigation("j"),
     },
     {
         key = "k",
         mods = "SUPER|CTRL",
-        action = wezterm.action.AdjustPaneSize({ "Up", 5 }),
+        action = send_tmux_pane_navigation("k"),
     },
     {
         key = "l",
-        mods = "SUPER|CTRL",
+        mods = "OPT|SHIFT",
         action = wezterm.action.AdjustPaneSize({ "Right", 5 }),
     },
     {
+        key = "h",
+        mods = "OPT|SHIFT",
+        action = wezterm.action.AdjustPaneSize({ "Left", 5 }),
+    },
+    {
+        key = "j",
+        mods = "OPT|SHIFT",
+        action = wezterm.action.AdjustPaneSize({ "Down", 5 }),
+    },
+    {
+        key = "k",
+        mods = "OPT|SHIFT",
+        action = wezterm.action.AdjustPaneSize({ "Up", 5 }),
+    },
+    {
         key = "\\",
-        mods = "SUPER|CTRL",
+        mods = "OPT|SHIFT",
         action = wezterm.action.AdjustPaneSize({ "Right", 100 }),
     },
     {

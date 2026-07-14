@@ -7,11 +7,8 @@ sandbox_mode = "workspace-write"
 
 [tui]
 # Status line showing the working directory, current git branch, and its open PR.
-status_line = [
-  "current-dir",
-  "git-branch",
-  "pull-request-number",
-]
+status_line = ["current-dir", "git-branch", "pull-request-number", "model-with-reasoning"]
+status_line_use_colors = true
 
 [desktop]
 followUpQueueMode = "queue"

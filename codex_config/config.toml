@@ -5,6 +5,13 @@ approvals_reviewer = "auto_review"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+[sandbox_workspace_write]
+network_access = true
+
+[features.network_proxy]
+enabled = true
+domains = { "**.github.com" = "allow", "**.githubusercontent.com" = "allow" }
+
 [tui]
 # Status line showing the working directory, current git branch, and its open PR.
 status_line = ["current-dir", "git-branch", "pull-request-number", "model-with-reasoning"]

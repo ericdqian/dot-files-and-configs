@@ -5,6 +5,14 @@ approvals_reviewer = "auto_review"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+[tui]
+# Status line showing the working directory and current git branch,
+# mirroring the Claude Code status line.
+status_line = [
+  "current-dir",
+  "git-branch",
+]
+
 [desktop]
 followUpQueueMode = "queue"
 

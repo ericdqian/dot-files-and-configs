@@ -31,6 +31,9 @@ config.inactive_pane_hsb = {
 config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
+-- Cmd-click must bypass tmux mouse reporting before it can open a link.
+config.bypass_mouse_reporting_modifiers = "CMD"
+
 config.mouse_bindings = {
     -- tmux handles ordinary mouse interactions, so reserve Command-click for links.
     {

@@ -31,6 +31,20 @@ config.inactive_pane_hsb = {
 config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
+config.mouse_bindings = {
+    -- tmux handles ordinary mouse interactions, so reserve Command-click for links.
+    {
+        event = { Up = { streak = 1, button = "Left" } },
+        mods = "CMD",
+        action = act.OpenLinkAtMouseCursor,
+    },
+    {
+        event = { Down = { streak = 1, button = "Left" } },
+        mods = "CMD",
+        action = act.Nop,
+    },
+}
+
 -- Send tmux's default prefix before a key so WezTerm shortcuts affect tmux.
 local function send_tmux_prefix_key(key)
     return act.Multiple({

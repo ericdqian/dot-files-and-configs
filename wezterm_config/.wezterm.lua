@@ -31,6 +31,31 @@ config.inactive_pane_hsb = {
 config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 
+-- Cmd-click must bypass tmux mouse reporting before it can open a link.
+config.bypass_mouse_reporting_modifiers = "CMD"
+
+config.mouse_bindings = {
+    -- tmux handles ordinary mouse interactions, so reserve Command-click for links.
+    {
+        event = { Up = { streak = 1, button = "Left" } },
+        mods = "CMD",
+        action = act.OpenLinkAtMouseCursor,
+    },
+    {
+        event = { Down = { streak = 1, button = "Left" } },
+        mods = "CMD",
+        action = act.Nop,
+    },
+}
+
+-- Send tmux's default prefix before a key so WezTerm shortcuts affect tmux.
+local function send_tmux_prefix_key(key)
+    return act.Multiple({
+        act.SendKey({ key = "b", mods = "CTRL" }),
+        act.SendKey({ key = key, mods = "NONE" }),
+    })
+end
+
 config.keys = {
     -- Karabiner maps Option-B/F to Option-Left/Right globally. Translate those
     -- arrows into the Meta-B/F sequences that shell line editors use for words.
@@ -98,8 +123,28 @@ config.keys = {
     },
     {
         key = "l",
-        mods = "SUPER|CTRL",
-        action = wezterm.action.AdjustPaneSize({ "Right", 5 }),
+        mods = "OPT|SHIFT",
+        action = send_tmux_prefix_key("RightArrow"),
+    },
+    {
+        key = "h",
+        mods = "OPT|SHIFT",
+        action = send_tmux_prefix_key("LeftArrow"),
+    },
+    {
+        key = "j",
+        mods = "OPT|SHIFT",
+        action = send_tmux_prefix_key("DownArrow"),
+    },
+    {
+        key = "k",
+        mods = "OPT|SHIFT",
+        action = send_tmux_prefix_key("UpArrow"),
+    },
+    {
+        key = "o",
+        mods = "SUPER",
+        action = send_tmux_prefix_key("o"),
     },
     {
         key = "\\",

@@ -3,6 +3,7 @@ local M = {}
 local parser_names = {
     "javascript",
     "typescript",
+    "tsx",
     "python",
     "rust",
     "lua",

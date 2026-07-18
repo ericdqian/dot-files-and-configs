@@ -31,6 +31,7 @@ config.inactive_pane_hsb = {
 config.scrollback_lines = 20000
 config.enable_scroll_bar = true
 config.window_background_opacity = 0.9
+config.text_background_opacity = 0.65
 config.macos_window_background_blur = 20
 
 -- Cmd-click must bypass tmux mouse reporting before it can open a link.

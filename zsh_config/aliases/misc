@@ -1,2 +1,4 @@
+alias cl="claude"
+alias co="codex"
 alias spoofmac="spoof randomize en0"
 alias t="tmux"

@@ -72,6 +72,13 @@ config.keys = {
         mods = "OPT",
         action = act.SendKey({ key = "f", mods = "ALT" }),
     },
+    -- tmux rename prompts use C-w for backward word deletion and do not
+    -- handle the Meta-Backspace sequence that Option-Backspace normally sends.
+    {
+        key = "Backspace",
+        mods = "OPT",
+        action = act.SendKey({ key = "w", mods = "CTRL" }),
+    },
     {
         key = "l",
         mods = "SUPER",

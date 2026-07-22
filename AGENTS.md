@@ -4,8 +4,6 @@ Before beginning work, create a thorough plan. Ask the user questions to resolve
 
 Once you have enough context for a good task description and are ready to implement, promptly check whether you are running in a tmux window. If so, rename the window once to a short description of the task, approximately three words long. Do not repeatedly rename the window while working on the same task.
 
-After changing tmux configuration, reload the updated configuration in the live tmux server or servers before returning control to the user, then verify that existing sessions remain available. When tmux behavior is controlled by terminal-emulator configuration instead, reload or verify the live terminal configuration as appropriate.
-
 Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /prepare-pr skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.
 
 Opened PR branches should use the format `eq/<type>/<description>`, such as `eq/chore/update-install-scripts`, where `<type>` is `feat`, `bug`, or `chore` depending on the PR's purpose. Use `feat` for features, `bug` for fixes, and `chore` for scripts, maintenance, or other changes that do not add real product functionality.

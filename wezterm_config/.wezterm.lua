@@ -152,12 +152,12 @@ config.keys = {
         action = send_tmux_prefix_key("UpArrow"),
     },
     {
-        key = "[",
+        key = "phys:LeftBracket",
         mods = "OPT|SHIFT",
         action = send_tmux_prefix_key("p"),
     },
     {
-        key = "]",
+        key = "phys:RightBracket",
         mods = "OPT|SHIFT",
         action = send_tmux_prefix_key("n"),
     },

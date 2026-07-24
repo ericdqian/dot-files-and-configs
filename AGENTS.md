@@ -2,7 +2,7 @@ Make frequent commmits for what would be considered atomic units of work.
 
 Before beginning work, create a thorough plan. Ask the user questions to resolve meaningful ambiguity before proceeding, especially when assumptions could change scope, implementation, or user-visible behavior.
 
-Once you have enough context for a good task description and are ready to implement, promptly check whether you are running in a tmux window. If so, rename the window once to a short description of the task, approximately three words long. Do not repeatedly rename the window while working on the same task.
+Once you have enough context for a good task description and are ready to implement, promptly check whether you are running inside tmux. If so, determine the exact current tmux session before renaming it, then rename that session once to a short description of the current or anticipated PR's purpose, approximately three words long. Keep that session name stable throughout the PR; do not rename it for individual tasks or implementation phases. Rename it again only if the PR's overall purpose materially changes.
 
 Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /prepare-pr skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.
 

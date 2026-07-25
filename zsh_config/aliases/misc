@@ -1,4 +1,5 @@
 alias cl="claude"
 alias co="codex"
+alias os="overmind start"
 alias spoofmac="spoof randomize en0"
 alias t="tmux"

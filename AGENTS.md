@@ -2,6 +2,8 @@ Make frequent commmits for what would be considered atomic units of work.
 
 Before beginning work, create a thorough plan. Ask the user questions to resolve meaningful ambiguity before proceeding, especially when assumptions could change scope, implementation, or user-visible behavior.
 
+Skip the plan when the task is unambiguous, the work is short, or the steps to resolve it are uncontroversial. Renaming a symbol, fixing a typo, or updating a branch by fetching main, rebasing, and pushing are examples where you should just do the work and report what you did. Plan when none of those hold, such as when the request has more than one reasonable interpretation, the change spans multiple modules or domains, and the approach itself is a real decision. When in doubt, plan and propose it.
+
 Once you have enough context for a good task description and are ready to implement, promptly check whether you are running inside tmux. If so, determine the exact current tmux window before renaming it, then rename that window once to a short description of the current or anticipated PR's purpose, approximately three words long. Keep that window name stable throughout the PR; do not rename it for individual tasks or implementation phases. Rename it again only if the PR's overall purpose materially changes.
 
 Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /prepare-pr skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.

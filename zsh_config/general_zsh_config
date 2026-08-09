@@ -181,16 +181,20 @@ cnwt() {
 
 dwt() {
   local wt
+  local current_branch
   local remove_args=()
 
   if [[ "$1" == "--force" ]]; then
     remove_args+=(--force)
   fi
 
+  current_branch="$(git branch --show-current)"
+
   wt="$(
     git worktree list |
       awk '{path=$1; branch=$3; gsub(/[\[\]]/, "", branch); print path "\t" branch}' |
       fzf --delimiter=$'\t' --with-nth=1,2 \
+          --query="$current_branch" \
           --prompt='delete worktree > ' \
           --height=40% --reverse |
       cut -f1

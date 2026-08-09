@@ -188,7 +188,12 @@ dwt() {
     remove_args+=(--force)
   fi
 
-  current_branch="$(git branch --show-current)"
+  if ! git rev-parse --git-dir &>/dev/null; then
+    print -u2 -- 'dwt: not inside a Git repository'
+    return 1
+  fi
+
+  current_branch="$(git branch --show-current 2>/dev/null)" || current_branch=""
 
   wt="$(
     git worktree list |

@@ -10,6 +10,12 @@
 
 Global agent skills live in `dot-agents/skills`. `setup.sh` symlinks that directory to `~/.agents/skills` for Codex and `~/.claude/skills` for Claude Code. For example, `address-pr-feedback` is available as `$address-pr-feedback` in Codex and `/address-pr-feedback` in Claude Code.
 
+`agent_notify/` makes a background coding agent noticeable when it finishes or blocks on input. `setup.sh` symlinks it to `~/.agent-notify`, and both agents call `agent_notify.sh` from their lifecycle hooks: Claude Code via the `hooks` block in `claude_config/settings.json`, Codex via `codex_config/hooks.json` symlinked to `~/.codex/hooks.json`. It surfaces three signals:
+
+- **tmux footer** — an orange `!` marks a window whose agent needs input, a green `*` one that finished. The state is a per-window `@agent_state` option, so it disappears with the window rather than needing a state file to clean up.
+- **WezTerm tab** — the same flag, aggregated across every tmux window, because one WezTerm tab shows the whole tmux client. It is delivered by writing OSC 1337 straight to `#{client_tty}`, which deliberately bypasses tmux: tmux's own passthrough drops sequences emitted from a window that is not currently visible, which is exactly the case worth reporting.
+- **macOS Dock** — `AgentAlert.app` bounces when an agent needs input. WezTerm cannot request user attention for its own icon ([wezterm/wezterm#6183](https://github.com/wezterm/wezterm/issues/6183)), so the bounce necessarily comes from a small separate bundle and shows its own Dock item. The bounce is suppressed while the agent's window is already the current one of an attached session and WezTerm is frontmost, so watching an agent work does not bounce at you.
+
 ## A note on dependencies
 
 Mason will require a few things like unzip, npm, and pip to be available in order to properly install the language servers. If you see any issues with the installation, make sure that the above are available in your path.

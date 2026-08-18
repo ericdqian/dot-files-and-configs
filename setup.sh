@@ -61,6 +61,8 @@ link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"
 link_file "${CUR_DIR}/claude_config/settings.json" ~/.claude/settings.json "Claude settings"
 link_file "${CUR_DIR}/claude_config/statusline.sh" ~/.claude/statusline.sh "Claude status line script"
+link_file "${CUR_DIR}/agent_notify" ~/.agent-notify "agent attention notifier"
+link_file "${CUR_DIR}/codex_config/hooks.json" ~/.codex/hooks.json "Codex lifecycle hooks"
 # Codex shared config lives at the system level (/etc/codex/config.toml) so it
 # layers underneath ~/.codex/config.toml, which stays a real, local-only file
 # holding machine-specific paths and app-managed state. See AGENTS.md.

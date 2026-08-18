@@ -1,0 +1,40 @@
+{
+  "description": "Surface agent attention state in the tmux footer, the WezTerm tab, and the macOS Dock.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+        ]
+      }
+    ]
+  }
+}

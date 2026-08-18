@@ -157,7 +157,7 @@ require("lazy").setup({
     },
     -- Navigation
     {
-        "ggandor/leap.nvim",
+        url = "https://codeberg.org/andyg/leap.nvim",
         dependencies = { "tpope/vim-repeat", lazy = true },
         keys = { "s", "S" },
         config = function()

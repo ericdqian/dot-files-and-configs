@@ -1,30 +1,53 @@
 #!/bin/bash
 # Surfaces coding-agent attention state in the tmux footer, the WezTerm tab, and
-# the macOS Dock, so an agent working in a background window is noticeable when
-# it finishes or blocks on input.
+# the macOS Dock, so an agent working in a background window is noticeable when it
+# finishes or blocks on input.
 #
-# Runs as a Claude Code and Codex lifecycle hook; both agents pass their hook
-# payload as JSON on stdin. State lives in a tmux per-window user option rather
-# than a state directory so it is discarded automatically with the window.
+# Runs as a Claude Code and Codex lifecycle hook, reading the agent's hook payload
+# as JSON on stdin; as a tmux hook in --reviewed mode; and as its own background
+# supervisor in --rebounce mode. State lives in a tmux per-window user option
+# rather than a state directory, so it is discarded automatically with the window.
 
 set -uo pipefail
 
-readonly ALERT_APP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/AgentAlert.app"
+readonly SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+readonly ALERT_APP="$(dirname "$SELF")/AgentAlert.app"
 readonly WEZTERM_BUNDLE_ID='com.github.wez.wezterm'
-readonly TMUX_STATE_OPTION='@agent_state'
+readonly STATE_OPTION='@agent_state'
+readonly REBOUNCE_INTERVAL_SECONDS=180
 
 main() {
+  case "${1:-}" in
+    --reviewed) clear_reviewed_marker "${2:-}" ;;
+    --rebounce) rebounce_while_agents_wait ;;
+    *) apply_hook_payload ;;
+  esac
+}
+
+# Applies one Claude Code or Codex hook payload, read as JSON on stdin.
+apply_hook_payload() {
   local state
   state="$(resolve_state "$(cat)")"
+
+  # A finished turn is only worth flagging if it finished out of sight, otherwise
+  # the marker would appear on the window already being read and could not be
+  # cleared by looking at it. A blocked agent is flagged either way, because that
+  # flag stands until the agent is actually answered.
+  if [ "$state" = done ] && is_user_watching "${TMUX_PANE:-}"; then
+    state=working
+  fi
 
   # tmux holds the state, so outside tmux only the Dock bounce is meaningful.
   if [ -n "${TMUX_PANE:-}" ]; then
     store_state "$state"
-    publish_wezterm_tab_marker
+    publish_wezterm_tab_marker "$TMUX_PANE"
   fi
 
   case "$state" in
-    waiting) is_user_watching || request_dock_attention ;;
+    waiting)
+      is_user_watching "${TMUX_PANE:-}" || request_dock_attention
+      start_rebounce_supervisor
+      ;;
     working) cancel_dock_attention ;;
   esac
 }
@@ -32,9 +55,6 @@ main() {
 # Collapses the two agents' hook vocabularies into waiting, done, or working.
 # SessionStart clears as well as the obvious events, so a window that kept a stale
 # marker from a session that died without exiting cleanly resets on reuse.
-# Claude Code reports a blocked agent through Notification, distinguished from
-# its post-turn idle and completion notices by notification_type; Codex reports
-# the same condition as its own PermissionRequest event.
 resolve_state() {
   local event notification_type
   {
@@ -57,38 +77,36 @@ resolve_state() {
 }
 
 # Records the state on the agent's tmux window. tmux resolves the option against
-# whichever window it is drawing, which is what lets one shared status format
-# mark only the windows that are actually pending.
+# whichever window it is drawing, which is what lets one shared status format mark
+# only the windows that are actually pending.
 store_state() {
   local window
   window="$(tmux display-message -p -t "$TMUX_PANE" '#{window_id}' 2>/dev/null)"
   [ -n "$window" ] || return 0
 
   if [ "$1" = working ]; then
-    tmux set-option -wu -t "$window" "$TMUX_STATE_OPTION" 2>/dev/null
+    tmux set-option -wu -t "$window" "$STATE_OPTION" 2>/dev/null
   else
-    tmux set-option -w -t "$window" "$TMUX_STATE_OPTION" "$1" 2>/dev/null
+    tmux set-option -w -t "$window" "$STATE_OPTION" "$1" 2>/dev/null
   fi
   tmux refresh-client -S 2>/dev/null
 }
 
 # WezTerm shows one tab per tmux client, so the tab marker has to aggregate every
-# window rather than describe this one. Writing OSC 1337 straight to the client
-# tty deliberately bypasses tmux: tmux's passthrough drops sequences emitted from
-# a window that is not currently visible, which is exactly this case.
+# window rather than describe one. Writing OSC 1337 straight to the client tty
+# deliberately bypasses tmux: tmux's passthrough drops sequences emitted from a
+# window that is not currently visible, which is exactly the case worth reporting.
 publish_wezterm_tab_marker() {
-  local waiting finished marker tty
-  waiting="$(count_windows_in_state waiting)"
-  finished="$(count_windows_in_state done)"
-  marker="$(format_marker "$waiting" "$finished")"
+  local marker tty
+  marker="$(format_marker "$(count_windows_in_state waiting)" "$(count_windows_in_state done)")"
 
-  tty="$(tmux display-message -p -t "$TMUX_PANE" '#{client_tty}' 2>/dev/null)"
+  tty="$(tmux display-message -p -t "$1" '#{client_tty}' 2>/dev/null)"
   [ -n "$tty" ] && [ -w "$tty" ] || return 0
   printf '\033]1337;SetUserVar=agent_alert=%s\a' "$(printf '%s' "$marker" | base64)" > "$tty"
 }
 
 count_windows_in_state() {
-  tmux list-windows -a -F "#{$TMUX_STATE_OPTION}" 2>/dev/null | grep -c "^$1$"
+  tmux list-windows -a -F "#{$STATE_OPTION}" 2>/dev/null | grep -c "^$1$"
 }
 
 # Waiting outranks done, and a count is only worth showing once more than one
@@ -112,20 +130,25 @@ format_marker() {
   fi
 }
 
-# Treats the agent as already on screen when its tmux window is the current one
-# of an attached session and WezTerm is frontmost, so watching an agent work does
-# not bounce the Dock at you. lsappinfo is used instead of System Events because
-# it reports the frontmost app without needing accessibility permission.
+# Treats the agent as already on screen when its tmux window is the current one of
+# an attached session and WezTerm is frontmost. lsappinfo is used rather than
+# System Events because it reports the frontmost app without needing accessibility
+# permission.
 is_user_watching() {
-  local active attached frontmost
+  local active attached
+  [ -n "$1" ] || return 1
   {
     IFS= read -r active
     IFS= read -r attached
-  } < <(tmux display-message -p -t "$TMUX_PANE" $'#{window_active}\n#{session_attached}' 2>/dev/null)
+  } < <(tmux display-message -p -t "$1" $'#{window_active}\n#{session_attached}' 2>/dev/null)
 
   [ "${active:-0}" = 1 ] || return 1
   [ "${attached:-0}" != 0 ] || return 1
+  frontmost_is_wezterm
+}
 
+frontmost_is_wezterm() {
+  local frontmost
   frontmost="$(lsappinfo info -only bundleid "$(lsappinfo front 2>/dev/null)" 2>/dev/null |
     sed -E 's/.*"([^"]*)"$/\1/')"
   [ "$frontmost" = "$WEZTERM_BUNDLE_ID" ]
@@ -136,6 +159,53 @@ is_user_watching() {
 request_dock_attention() {
   pgrep -f "$ALERT_APP" >/dev/null 2>&1 && return 0
   open -g "$ALERT_APP" 2>/dev/null
+}
+
+# Launched detached through LaunchServices by open -g, so the supervisor outlives
+# the hook that started it. One is enough: it watches every window, not just this
+# one, and exits by itself once nothing is waiting.
+start_rebounce_supervisor() {
+  pgrep -f "$SELF --rebounce" >/dev/null 2>&1 && return 0
+  nohup "$SELF" --rebounce >/dev/null 2>&1 &
+}
+
+# Drops the finished marker from a window that has just been looked at, leaving a
+# waiting marker alone: that agent is still blocked, so the flag is still true and
+# only answering it should clear it. Runs on every tmux focus change, so it costs
+# a single option read in the overwhelmingly common case of nothing to clear.
+clear_reviewed_marker() {
+  local window="$1"
+  [ -n "$window" ] || return 0
+  [ "$(tmux show-options -wqv -t "$window" "$STATE_OPTION" 2>/dev/null)" = done ] || return 0
+
+  tmux set-option -wu -t "$window" "$STATE_OPTION" 2>/dev/null
+  tmux refresh-client -S 2>/dev/null
+  publish_wezterm_tab_marker "$window"
+}
+
+# Keeps nagging while any agent stays blocked, so a first bounce that went unseen
+# is not the only warning. It stays quiet while the blocked window is on screen but
+# keeps running, so walking away resumes the reminders.
+rebounce_while_agents_wait() {
+  while [ "$(count_windows_in_state waiting)" -gt 0 ]; do
+    sleep "$REBOUNCE_INTERVAL_SECONDS"
+    unattended_waiting_exists && request_dock_attention
+  done
+}
+
+unattended_waiting_exists() {
+  local wezterm_front=false active attached state
+  frontmost_is_wezterm && wezterm_front=true
+
+  while IFS=: read -r active attached state; do
+    [ "$state" = waiting ] || continue
+    if [ "$wezterm_front" = true ] && [ "$active" = 1 ] && [ "$attached" != 0 ]; then
+      continue
+    fi
+    return 0
+  done < <(tmux list-windows -a -F "#{window_active}:#{session_attached}:#{$STATE_OPTION}" 2>/dev/null)
+
+  return 1
 }
 
 cancel_dock_attention() {

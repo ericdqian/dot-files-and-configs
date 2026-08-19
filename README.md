@@ -14,7 +14,9 @@ Global agent skills live in `dot-agents/skills`. `setup.sh` symlinks that direct
 
 - **tmux footer** — an orange `!` marks a window whose agent needs input, a green `*` one that finished. The state is a per-window `@agent_state` option, so it disappears with the window rather than needing a state file to clean up.
 - **WezTerm tab** — the same flag, aggregated across every tmux window, because one WezTerm tab shows the whole tmux client. It is delivered by writing OSC 1337 straight to `#{client_tty}`, which deliberately bypasses tmux: tmux's own passthrough drops sequences emitted from a window that is not currently visible, which is exactly the case worth reporting.
-- **macOS Dock** — `AgentAlert.app` bounces when an agent needs input. WezTerm cannot request user attention for its own icon ([wezterm/wezterm#6183](https://github.com/wezterm/wezterm/issues/6183)), so the bounce necessarily comes from a small separate bundle and shows its own Dock item. The bounce is suppressed while the agent's window is already the current one of an attached session and WezTerm is frontmost, so watching an agent work does not bounce at you.
+- **macOS Dock** — `AgentAlert.app` bounces when an agent needs input, and re-bounces every few minutes while it stays blocked, so a first bounce that went unseen is not the only warning. WezTerm cannot request user attention for its own icon ([wezterm/wezterm#6183](https://github.com/wezterm/wezterm/issues/6183)), so the bounce necessarily comes from a small separate bundle and shows its own Dock item.
+
+Markers retire themselves. A finished marker clears as soon as its window is looked at, driven by tmux's `pane-focus-in` hook, which covers both switching to a window and WezTerm regaining focus. A waiting marker is deliberately kept until the agent is actually answered, since that agent is still blocked and the footer would otherwise go quiet about it after a glance. A turn that finishes while its window is already on screen is never marked at all, and the Dock stays quiet while the blocked window is the one being viewed.
 
 ## A note on dependencies
 

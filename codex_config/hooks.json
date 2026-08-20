@@ -4,35 +4,66 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
         ]
       }
     ],
     "PermissionRequest": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
         ]
       }
     ],
     "SessionEnd": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
         ]
       }
     ]

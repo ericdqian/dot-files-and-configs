@@ -2,28 +2,79 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "model": "opus[1m]",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.agent-notify/agent_notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
   },
-  "hooks": {
-    "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }] }
-    ],
-    "UserPromptSubmit": [
-      { "hooks": [{ "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }] }
-    ],
-    "Notification": [
-      { "hooks": [{ "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }] }
-    ],
-    "Stop": [
-      { "hooks": [{ "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }] }
-    ],
-    "SessionEnd": [
-      { "hooks": [{ "type": "command", "command": "~/.agent-notify/agent_notify.sh", "async": true }] }
-    ]
-  },
-  "model": "opus[1m]",
   "enabledPlugins": {
     "github@claude-plugins-official": true
   },
@@ -35,8 +86,11 @@
       }
     }
   },
+  "effortLevel": "xhigh",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true
 }

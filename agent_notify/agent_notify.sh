@@ -26,26 +26,34 @@ main() {
 
 # Applies one Claude Code or Codex hook payload, read as JSON on stdin.
 apply_hook_payload() {
-  local state
+  local state window
   state="$(resolve_state "$(cat)")"
 
   # A finished turn is only worth flagging if it finished out of sight, otherwise
-  # the marker would appear on the window already being read and could not be
-  # cleared by looking at it. A blocked agent is flagged either way, because that
-  # flag stands until the agent is actually answered.
+  # the marker would appear on the window already being read and no later look
+  # could clear it. A blocked agent is flagged either way, because that flag
+  # stands until the agent is actually answered.
   if [ "$state" = done ] && is_user_watching "${TMUX_PANE:-}"; then
     state=working
   fi
 
-  # tmux holds the state, so outside tmux only the Dock bounce is meaningful.
-  if [ -n "${TMUX_PANE:-}" ]; then
-    store_state "$state"
-    publish_wezterm_tab_marker "$TMUX_PANE"
+  # Outside tmux there is no marker to carry the signal, so only the Dock is left.
+  window="$(tmux display-message -p -t "${TMUX_PANE:-}" '#{window_id}' 2>/dev/null)"
+  if [ -z "$window" ]; then
+    [ "$state" = waiting ] && request_dock_attention
+    return 0
   fi
+
+  # PostToolUse fires on every tool call, so a state that has not changed must
+  # cost nothing beyond the single read that proved it unchanged.
+  [ "$(marker_for_state "$state")" != "$(current_marker "$window")" ] || return 0
+
+  store_state "$window" "$state"
+  publish_wezterm_tab_marker "$window"
 
   case "$state" in
     waiting)
-      is_user_watching "${TMUX_PANE:-}" || request_dock_attention
+      is_user_watching "$TMUX_PANE" || request_dock_attention
       start_rebounce_supervisor
       ;;
     working) cancel_dock_attention ;;
@@ -53,6 +61,11 @@ apply_hook_payload() {
 }
 
 # Collapses the two agents' hook vocabularies into waiting, done, or working.
+#
+# PostToolUse is what releases a blocked agent: no hook fires when a permission is
+# approved, and a tool that has run proves the approval happened, so without it a
+# waiting marker would outlive the block and be re-bounced at.
+#
 # SessionStart clears as well as the obvious events, so a window that kept a stale
 # marker from a session that died without exiting cleanly resets on reuse.
 resolve_state() {
@@ -63,7 +76,7 @@ resolve_state() {
   } < <(jq -r '.hook_event_name // "", .notification_type // ""' <<< "$1")
 
   case "$event" in
-    SessionStart | UserPromptSubmit | SessionEnd) printf 'working' ;;
+    SessionStart | UserPromptSubmit | PostToolUse | SessionEnd) printf 'working' ;;
     PermissionRequest) printf 'waiting' ;;
     Stop) printf 'done' ;;
     Notification)
@@ -76,18 +89,47 @@ resolve_state() {
   esac
 }
 
+# Treats the agent as already on screen when its tmux window is the current one of
+# an attached session and WezTerm is frontmost. lsappinfo is used rather than
+# System Events because it reports the frontmost app without needing accessibility
+# permission.
+is_user_watching() {
+  local active attached
+  [ -n "$1" ] || return 1
+  {
+    IFS= read -r active
+    IFS= read -r attached
+  } < <(tmux display-message -p -t "$1" $'#{window_active}\n#{session_attached}' 2>/dev/null)
+
+  [ "${active:-0}" = 1 ] || return 1
+  [ "${attached:-0}" != 0 ] || return 1
+  frontmost_is_wezterm
+}
+
+frontmost_is_wezterm() {
+  local frontmost
+  frontmost="$(lsappinfo info -only bundleid "$(lsappinfo front 2>/dev/null)" 2>/dev/null |
+    sed -E 's/.*"([^"]*)"$/\1/')"
+  [ "$frontmost" = "$WEZTERM_BUNDLE_ID" ]
+}
+
+# Working is the absence of a marker, so it maps to the unset option value.
+marker_for_state() {
+  [ "$1" = working ] || printf '%s' "$1"
+}
+
+current_marker() {
+  tmux show-options -wqv -t "$1" "$STATE_OPTION" 2>/dev/null
+}
+
 # Records the state on the agent's tmux window. tmux resolves the option against
 # whichever window it is drawing, which is what lets one shared status format mark
 # only the windows that are actually pending.
 store_state() {
-  local window
-  window="$(tmux display-message -p -t "$TMUX_PANE" '#{window_id}' 2>/dev/null)"
-  [ -n "$window" ] || return 0
-
-  if [ "$1" = working ]; then
-    tmux set-option -wu -t "$window" "$STATE_OPTION" 2>/dev/null
+  if [ "$2" = working ]; then
+    tmux set-option -wu -t "$1" "$STATE_OPTION" 2>/dev/null
   else
-    tmux set-option -w -t "$window" "$STATE_OPTION" "$1" 2>/dev/null
+    tmux set-option -w -t "$1" "$STATE_OPTION" "$2" 2>/dev/null
   fi
   tmux refresh-client -S 2>/dev/null
 }
@@ -130,30 +172,6 @@ format_marker() {
   fi
 }
 
-# Treats the agent as already on screen when its tmux window is the current one of
-# an attached session and WezTerm is frontmost. lsappinfo is used rather than
-# System Events because it reports the frontmost app without needing accessibility
-# permission.
-is_user_watching() {
-  local active attached
-  [ -n "$1" ] || return 1
-  {
-    IFS= read -r active
-    IFS= read -r attached
-  } < <(tmux display-message -p -t "$1" $'#{window_active}\n#{session_attached}' 2>/dev/null)
-
-  [ "${active:-0}" = 1 ] || return 1
-  [ "${attached:-0}" != 0 ] || return 1
-  frontmost_is_wezterm
-}
-
-frontmost_is_wezterm() {
-  local frontmost
-  frontmost="$(lsappinfo info -only bundleid "$(lsappinfo front 2>/dev/null)" 2>/dev/null |
-    sed -E 's/.*"([^"]*)"$/\1/')"
-  [ "$frontmost" = "$WEZTERM_BUNDLE_ID" ]
-}
-
 # The helper bounces only while it is alive, so a second instance would add
 # nothing and would outlive the first one's timeout.
 request_dock_attention() {
@@ -161,12 +179,16 @@ request_dock_attention() {
   open -g "$ALERT_APP" 2>/dev/null
 }
 
-# Launched detached through LaunchServices by open -g, so the supervisor outlives
-# the hook that started it. One is enough: it watches every window, not just this
-# one, and exits by itself once nothing is waiting.
+# Detached by nohup so the supervisor outlives the hook that started it. One is
+# enough: it watches every window, not just this one, and exits by itself.
 start_rebounce_supervisor() {
   pgrep -f "$SELF --rebounce" >/dev/null 2>&1 && return 0
   nohup "$SELF" --rebounce >/dev/null 2>&1 &
+}
+
+cancel_dock_attention() {
+  pkill -f "$ALERT_APP" 2>/dev/null
+  return 0
 }
 
 # Drops the finished marker from a window that has just been looked at, leaving a
@@ -176,7 +198,7 @@ start_rebounce_supervisor() {
 clear_reviewed_marker() {
   local window="$1"
   [ -n "$window" ] || return 0
-  [ "$(tmux show-options -wqv -t "$window" "$STATE_OPTION" 2>/dev/null)" = done ] || return 0
+  [ "$(current_marker "$window")" = done ] || return 0
 
   tmux set-option -wu -t "$window" "$STATE_OPTION" 2>/dev/null
   tmux refresh-client -S 2>/dev/null
@@ -189,8 +211,30 @@ clear_reviewed_marker() {
 rebounce_while_agents_wait() {
   while [ "$(count_windows_in_state waiting)" -gt 0 ]; do
     sleep "$REBOUNCE_INTERVAL_SECONDS"
+    drop_abandoned_markers
     unattended_waiting_exists && request_dock_attention
   done
+}
+
+# A session killed hard never fires SessionEnd, so its window would keep a marker
+# and be nagged about forever. Rather than matching agent process names, which for
+# Claude Code is its version number, this asks the inverse: a window whose panes
+# have all fallen back to a shell has no agent left to be waiting for.
+drop_abandoned_markers() {
+  local window dropped=false
+  while IFS= read -r window; do
+    window_runs_something "$window" && continue
+    tmux set-option -wu -t "$window" "$STATE_OPTION" 2>/dev/null
+    dropped=true
+  done < <(tmux list-windows -a -F "#{?#{$STATE_OPTION},#{window_id},}" 2>/dev/null | grep .)
+
+  [ "$dropped" = true ] && tmux refresh-client -S 2>/dev/null
+  return 0
+}
+
+window_runs_something() {
+  tmux list-panes -t "$1" -F '#{pane_current_command}' 2>/dev/null |
+    grep -qvE '^-?(zsh|bash|sh|fish|login)$'
 }
 
 unattended_waiting_exists() {
@@ -206,11 +250,6 @@ unattended_waiting_exists() {
   done < <(tmux list-windows -a -F "#{window_active}:#{session_attached}:#{$STATE_OPTION}" 2>/dev/null)
 
   return 1
-}
-
-cancel_dock_attention() {
-  pkill -f "$ALERT_APP" 2>/dev/null
-  return 0
 }
 
 main "$@"

@@ -26,7 +26,7 @@ main() {
 
 # Applies one Claude Code or Codex hook payload, read as JSON on stdin.
 apply_hook_payload() {
-  local state window
+  local state window attached
   state="$(resolve_state "$(cat)")"
 
   # A finished turn is only worth flagging if it finished out of sight, otherwise
@@ -37,9 +37,16 @@ apply_hook_payload() {
     state=working
   fi
 
-  # Outside tmux there is no marker to carry the signal, so only the Dock is left.
-  window="$(tmux display-message -p -t "${TMUX_PANE:-}" '#{window_id}' 2>/dev/null)"
-  if [ -z "$window" ]; then
+  {
+    IFS= read -r window
+    IFS= read -r attached
+  } < <(tmux display-message -p -t "${TMUX_PANE:-}" $'#{window_id}\n#{session_attached}' 2>/dev/null)
+
+  # Outside tmux there is nothing to mark, and a window in a session with no
+  # attached client cannot be seen or reviewed, so a marker there would only
+  # inflate a count nobody can clear. A blocked agent still bounces either way,
+  # because that needs answering wherever it happens to run.
+  if [ -z "$window" ] || [ "${attached:-0}" = 0 ]; then
     [ "$state" = waiting ] && request_dock_attention
     return 0
   fi
@@ -139,15 +146,29 @@ store_state() {
 # deliberately bypasses tmux: tmux's passthrough drops sequences emitted from a
 # window that is not currently visible, which is exactly the case worth reporting.
 publish_wezterm_tab_marker() {
-  local marker tty
-  marker="$(format_marker "$(count_windows_in_state waiting)" "$(count_windows_in_state done)")"
+  local session tty marker
+  {
+    IFS= read -r session
+    IFS= read -r tty
+  } < <(tmux display-message -p -t "$1" $'#{session_name}\n#{client_tty}' 2>/dev/null)
 
-  tty="$(tmux display-message -p -t "$1" '#{client_tty}' 2>/dev/null)"
   [ -n "$tty" ] && [ -w "$tty" ] || return 0
+  marker="$(format_marker \
+    "$(count_session_windows_in_state "$session" waiting)" \
+    "$(count_session_windows_in_state "$session" done)")"
   printf '\033]1337;SetUserVar=agent_alert=%s\a' "$(printf '%s' "$marker" | base64)" > "$tty"
 }
 
-count_windows_in_state() {
+# The tab shows one tmux session, so its marker counts that session alone. A
+# server-wide count would fold in detached sessions the tab never displays, which
+# for a machine running background review agents is most of them.
+count_session_windows_in_state() {
+  tmux list-windows -t "$1" -F "#{$STATE_OPTION}" 2>/dev/null | grep -c "^$2$"
+}
+
+# The Dock, unlike the tab, speaks for the whole machine: an agent blocked in any
+# session still needs answering.
+count_all_windows_in_state() {
   tmux list-windows -a -F "#{$STATE_OPTION}" 2>/dev/null | grep -c "^$1$"
 }
 
@@ -209,7 +230,7 @@ clear_reviewed_marker() {
 # is not the only warning. It stays quiet while the blocked window is on screen but
 # keeps running, so walking away resumes the reminders.
 rebounce_while_agents_wait() {
-  while [ "$(count_windows_in_state waiting)" -gt 0 ]; do
+  while [ "$(count_all_windows_in_state waiting)" -gt 0 ]; do
     sleep "$REBOUNCE_INTERVAL_SECONDS"
     drop_abandoned_markers
     unattended_waiting_exists && request_dock_attention
@@ -221,14 +242,13 @@ rebounce_while_agents_wait() {
 # Claude Code is its version number, this asks the inverse: a window whose panes
 # have all fallen back to a shell has no agent left to be waiting for.
 drop_abandoned_markers() {
-  local window dropped=false
+  local window
   while IFS= read -r window; do
     window_runs_something "$window" && continue
     tmux set-option -wu -t "$window" "$STATE_OPTION" 2>/dev/null
-    dropped=true
+    tmux refresh-client -S 2>/dev/null
+    publish_wezterm_tab_marker "$window"
   done < <(tmux list-windows -a -F "#{?#{$STATE_OPTION},#{window_id},}" 2>/dev/null | grep .)
-
-  [ "$dropped" = true ] && tmux refresh-client -S 2>/dev/null
   return 0
 }
 

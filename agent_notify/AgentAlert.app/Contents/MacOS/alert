@@ -1,0 +1,15 @@
+#!/usr/bin/osascript -l JavaScript
+// Bounces this bundle's Dock icon on behalf of a waiting agent. The bounce comes
+// from a separate helper because WezTerm cannot request user attention for its
+// own icon (wezterm/wezterm#6183), and only a real app bundle gets a Dock icon
+// to bounce in the first place.
+ObjC.import("AppKit");
+
+const app = $.NSApplication.sharedApplication;
+app.setActivationPolicy($.NSApplicationActivationPolicyRegular);
+app.requestUserAttention($.NSCriticalRequest);
+
+// A critical attention request lasts only as long as the requesting process, so
+// the helper idles to keep bouncing and exits to stop. agent_notify.sh cancels an
+// outstanding bounce by killing it when the agent stops waiting.
+$.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(20));

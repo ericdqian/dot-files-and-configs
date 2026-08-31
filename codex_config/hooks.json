@@ -1,8 +1,5 @@
 {
-  "permissions": {
-    "defaultMode": "auto"
-  },
-  "model": "opus[1m]",
+  "description": "Surface agent attention state in the tmux footer, the WezTerm tab, and the macOS Dock.",
   "hooks": {
     "SessionStart": [
       {
@@ -37,7 +34,7 @@
         ]
       }
     ],
-    "Notification": [
+    "PermissionRequest": [
       {
         "hooks": [
           {
@@ -70,27 +67,5 @@
         ]
       }
     ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline.sh"
-  },
-  "enabledPlugins": {
-    "github@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      }
-    }
-  },
-  "effortLevel": "xhigh",
-  "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
-  "skipWorkflowUsageWarning": true,
-  "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  }
 }

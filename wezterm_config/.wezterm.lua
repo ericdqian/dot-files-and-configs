@@ -191,4 +191,31 @@ config.keys = {
     },
 }
 
+-- Mirror the tmux footer's agent flag into the tab title, so a pending agent is
+-- visible while this tab is not the active one. agent_notify.sh sets the
+-- agent_alert user var on the pane running the tmux client; the value aggregates
+-- every tmux window, because they all share this single WezTerm tab.
+wezterm.on("format-tab-title", function(tab)
+    local title = tab.tab_title
+    if not title or #title == 0 then
+        title = tab.active_pane.title
+    end
+
+    local alert = tab.active_pane.user_vars.agent_alert
+    if not alert or #alert == 0 then
+        return string.format(" %s ", title)
+    end
+
+    -- '!' means an agent is blocked on input, '*' that one finished; the colours
+    -- match the tmux status markers.
+    local colour = alert:sub(1, 1) == "!" and "#ffaf00" or "#00d75f"
+    return {
+        { Foreground = { Color = colour } },
+        { Attribute = { Intensity = "Bold" } },
+        { Text = " " .. alert },
+        "ResetAttributes",
+        { Text = " " .. title .. " " },
+    }
+end)
+
 return config

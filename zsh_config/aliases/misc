@@ -1,6 +1,6 @@
 alias cl="claude"
 alias co="codex"
-alias ck='"$HOME/codex/codex-rs/target/debug/codex"'
+alias ck="\"$HOME/codex/codex-rs/target/debug/codex\""
 alias os="overmind start"
 alias spoofmac="spoof randomize en0"
 alias t="tmux"

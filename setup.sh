@@ -56,6 +56,9 @@ fi
 link_file "${CUR_DIR}/tmux_config/.tmux.conf" ~/.tmux.conf "tmux config"
 mkdir -p ~/.config/karabiner/assets/complex_modifications
 link_file "${CUR_DIR}/karabiner_config/option_word_navigation.json" ~/.config/karabiner/assets/complex_modifications/option_word_navigation.json "Karabiner Option-F/B word navigation rule"
+link_file "${CUR_DIR}/karabiner_config/screen_focus.json" ~/.config/karabiner/assets/complex_modifications/screen_focus.json "Karabiner display focus rule"
+mkdir -p ~/.hammerspoon
+link_file "${CUR_DIR}/hammerspoon_config/init.lua" ~/.hammerspoon/init.lua "Hammerspoon display focus config"
 mkdir -p ~/.codex ~/.claude
 link_file "${CUR_DIR}/AGENTS.md" ~/.codex/AGENTS.md "Codex agents config"
 link_file "${CUR_DIR}/AGENTS.md" ~/.claude/CLAUDE.md "Claude agents config"

@@ -51,6 +51,34 @@ If Karabiner cannot connect to `karabiner_console_user_server`, or macOS has not
 
 See Karabiner's [restart instructions](https://karabiner-elements.pqrs.org/docs/manual/operation/restart/) and [required macOS settings](https://karabiner-elements.pqrs.org/docs/manual/misc/required-macos-settings/) for more detail.
 
+### Display focus with Hammerspoon
+
+`mac_installs.sh` installs Hammerspoon with `brew install --cask hammerspoon`.
+`setup.sh` links the Hammerspoon config to `~/.hammerspoon/init.lua` and adds the
+Karabiner display-focus rule to the complex-modification assets. Existing configs
+are preserved; if you already have a Hammerspoon init file, incorporate
+`hammerspoon_config/init.lua` into it instead.
+
+1. Open Hammerspoon and grant it **System Settings → Privacy & Security → Accessibility** permission.
+2. Enable **Launch Hammerspoon at login** in Hammerspoon preferences, and use **Reload Config** after changing the Lua config.
+3. In Karabiner **Complex Modifications**, enable **Command-Shift-K/J focus the display above/below (Hammerspoon)**.
+4. Arrange your displays vertically in macOS **System Settings → Displays → Arrange**.
+
+**Command-Shift-K** focuses the display above; **Command-Shift-J** focuses the
+display below. Each shortcut activates the frontmost standard window on that
+display, so you can immediately use app shortcuts such as Chrome's **Command-L**.
+Windows and the mouse pointer stay in place. With no adjacent display or eligible
+window, focus stays where it is. These shortcuts override app bindings for the
+same key combinations while the rule is enabled.
+
+Karabiner sends F18/F19 to Hammerspoon, so keep those keys free of other bindings.
+Hammerspoon must be running. Window selection uses
+[`hs.window.orderedWindows()`](https://www.hammerspoon.org/docs/hs.window.html#orderedWindows)
+and is limited to visible windows in the current Spaces; it does not switch Spaces
+or restore minimized/hidden windows. Direction follows
+[`hs.screen`](https://www.hammerspoon.org/docs/hs.screen.html#toNorth)'s display
+geometry, excluding displays entirely to the left or right.
+
 ### Kitty
 
 ```

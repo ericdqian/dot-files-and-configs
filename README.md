@@ -67,7 +67,9 @@ are preserved; if you already have a Hammerspoon init file, incorporate
 **Command-Shift-K** focuses the display above; **Command-Shift-J** focuses the
 display below. Each shortcut activates the frontmost standard window on that
 display, so you can immediately use app shortcuts such as Chrome's **Command-L**.
-Windows and the mouse pointer stay in place. With no adjacent display or eligible
+The pointer moves to the destination display's center so macOS Space-navigation
+shortcuts (Command-Shift-H/L in this setup) also target that display. Windows stay
+in place. With no adjacent display or eligible
 window, focus stays where it is. These shortcuts override app bindings for the
 same key combinations while the rule is enabled.
 

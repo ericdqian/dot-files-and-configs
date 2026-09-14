@@ -27,7 +27,7 @@ local function focusScreen(direction)
     end
 end
 
--- Karabiner translates Cmd-Shift-L/J to these otherwise unused function keys.
+-- Karabiner translates Cmd-Shift-K/J to these otherwise unused function keys.
 hs.hotkey.bind({}, "F18", function()
     focusScreen("up")
 end)

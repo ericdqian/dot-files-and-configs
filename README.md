@@ -61,10 +61,10 @@ are preserved; if you already have a Hammerspoon init file, incorporate
 
 1. Open Hammerspoon and grant it **System Settings → Privacy & Security → Accessibility** permission.
 2. Enable **Launch Hammerspoon at login** in Hammerspoon preferences, and use **Reload Config** after changing the Lua config.
-3. In Karabiner **Complex Modifications**, enable **Command-Shift-L/J focus the display above/below (Hammerspoon)**.
+3. In Karabiner **Complex Modifications**, enable **Command-Shift-K/J focus the display above/below (Hammerspoon)**.
 4. Arrange your displays vertically in macOS **System Settings → Displays → Arrange**.
 
-**Command-Shift-L** focuses the display above; **Command-Shift-J** focuses the
+**Command-Shift-K** focuses the display above; **Command-Shift-J** focuses the
 display below. Each shortcut activates the frontmost standard window on that
 display, so you can immediately use app shortcuts such as Chrome's **Command-L**.
 Windows and the mouse pointer stay in place. With no adjacent display or eligible

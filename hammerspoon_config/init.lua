@@ -22,6 +22,9 @@ local function focusScreen(direction)
         local screen = window:screen()
         if window:isStandard() and screen and screen:id() == targetScreen:id() then
             window:focus()
+            -- macOS Space-navigation shortcuts target the display under the pointer.
+            local frame = targetScreen:frame()
+            hs.mouse.absolutePosition({ x = frame.x + frame.w / 2, y = frame.y + frame.h / 2 })
             return
         end
     end

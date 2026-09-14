@@ -1,0 +1,26 @@
+{
+  "title": "Focus vertically adjacent displays",
+  "rules": [
+    {
+      "description": "Command-Shift-L/J focus the display above/below (Hammerspoon)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "l",
+            "modifiers": { "mandatory": ["command", "shift"] }
+          },
+          "to": [{ "key_code": "f18", "repeat": false }]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "j",
+            "modifiers": { "mandatory": ["command", "shift"] }
+          },
+          "to": [{ "key_code": "f19", "repeat": false }]
+        }
+      ]
+    }
+  ]
+}

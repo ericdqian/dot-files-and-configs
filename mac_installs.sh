@@ -93,6 +93,14 @@ else
     echo "Karabiner-Elements is already installed."
 fi
 
+# Hammerspoon
+if [ ! -d "/Applications/Hammerspoon.app" ]; then
+    echo "Installing Hammerspoon..."
+    brew install --cask hammerspoon
+else
+    echo "Hammerspoon is already installed."
+fi
+
 # GitHub CLI
 if ! command -v gh &> /dev/null; then
     echo "Installing GitHub CLI..."

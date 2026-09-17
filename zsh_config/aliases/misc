@@ -1,6 +1,8 @@
 alias cl="claude"
+alias cls="claude --model sonnet --effort high"
 alias et="exit"
 alias co="codex"
+alias cos="codex -m gpt-5.6-luna -c model_reasoning_effort=\"high\""
 alias ck="\"$HOME/codex/codex-rs/target/debug/codex\""
 alias os="overmind start"
 alias spoofmac="spoof randomize en0"

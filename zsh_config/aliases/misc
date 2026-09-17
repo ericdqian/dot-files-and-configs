@@ -1,4 +1,5 @@
 alias cl="claude"
+alias et="exit"
 alias co="codex"
 alias ck="\"$HOME/codex/codex-rs/target/debug/codex\""
 alias os="overmind start"

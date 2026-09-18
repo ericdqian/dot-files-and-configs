@@ -1,6 +1,6 @@
 ---
 name: commit-conventions
-description: Apply this repo's session-tagging conventions when committing and when drafting or refreshing a pull request's title and description. Use when Codex or Claude Code needs to open a new PR or keep an existing one's title/description current, follow the target repo's own PR conventions, and gauge from commit trailers how much license this session has to rewrite a PR that other sessions have also worked on.
+description: Apply this repo's session-tagging conventions when committing and when drafting or refreshing a pull request's title and description. Use when Codex or Claude Code needs to open a new PR or keep an existing one's title/description current, follow the target repo's own PR conventions, and gauge from commit subject-line tags how much license this session has to rewrite a PR that other sessions have also worked on.
 ---
 
 # Commit Conventions
@@ -9,7 +9,7 @@ description: Apply this repo's session-tagging conventions when committing and w
 
 Use this workflow whenever a PR needs to be opened or its title/description brought up to date with the branch's current scope. The title and description should follow whatever PR conventions the target repo actually has, and — when other sessions have also committed to this branch — should be rewritten only as aggressively as this session's actual share of the work justifies.
 
-Multiple sessions — Claude Code and Codex, or multiple instances of the same one — may end up pushing to the same branch. Every commit carries a `[coding $MODEL_NAME $SESSION_ID]` trailer (see root `AGENTS.md`), which is the only place this tag lives — it is never written into a PR title or description. This skill reads those trailers to tell whether it's safe to substantially rewrite the PR, or whether another session is clearly driving it and edits should stay minimal.
+Multiple sessions — Claude Code and Codex, or multiple instances of the same one — may end up pushing to the same branch. Every commit subject line starts with a `[coding $MODEL_NAME $SESSION_ID]` prefix (see root `AGENTS.md`), which is the only place this tag lives — it is never written into a PR title or description. This skill reads those prefixes to tell whether it's safe to substantially rewrite the PR, or whether another session is clearly driving it and edits should stay minimal.
 
 ## Workflow
 
@@ -20,7 +20,7 @@ Multiple sessions — Claude Code and Codex, or multiple instances of the same o
 
 2. **Tally the branch's commits by session**
    - Determine this session's own tag: `MODEL_NAME` is `claude` or `codex`; `SESSION_ID` is `$CLAUDE_CODE_SESSION_ID` in Claude Code, or the equivalent value Codex exposes. Never fabricate one.
-   - Walk the branch's commits since it diverged from the base branch (e.g. `git log <base>..HEAD`) and read each commit's `[coding $MODEL_NAME $SESSION_ID]` trailer.
+   - Walk the branch's commits since it diverged from the base branch (e.g. `git log <base>..HEAD --format=%s`) and read each commit subject's leading `[coding $MODEL_NAME $SESSION_ID]` tag.
    - Tally commits into "this session" vs. "other sessions."
 
 3. **Decide how much latitude to take**
@@ -45,5 +45,5 @@ Multiple sessions — Claude Code and Codex, or multiple instances of the same o
 
 ## Notes
 
-- The `[coding $MODEL_NAME $SESSION_ID]` trailer is a commit-message convention only (root `AGENTS.md`). This skill reads it to calibrate edits; it never copies the tag into a PR's title or body.
+- The `[coding $MODEL_NAME $SESSION_ID]` tag is a commit subject-line convention only (root `AGENTS.md`). This skill reads it to calibrate edits; it never copies the tag into a PR's title or body.
 - This is distinct from the `[coding claude COMMIT_HASH]` / `[coding codex COMMIT_HASH]` prefix used by `address-pr-feedback` on PR *comments* — that one identifies which fix commit a reply is about, and does appear in the comment text itself.

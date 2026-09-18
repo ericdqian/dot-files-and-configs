@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare PR"
+  short_description: "Draft or refresh a PR's title/description"
+  default_prompt: "Use $prepare-pr to draft or refresh this PR's title and description, including the primary-worker tag."

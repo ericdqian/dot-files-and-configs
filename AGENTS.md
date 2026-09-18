@@ -1,5 +1,7 @@
 Make frequent commmits for what would be considered atomic units of work.
 
+Every commit message must include a `[coding $MODEL_NAME $SESSION_ID]` trailer line, e.g. `[coding claude-sonnet-5 eaf85d4d-de26-4a85-b52e-cb262f75f3ff]`, where `$MODEL_NAME` is the specific model driving the session (not just the agent brand) and `$SESSION_ID` is that session's own identifier (`$CLAUDE_CODE_SESSION_ID` in Claude Code, or the equivalent value Codex exposes for its session). This disambiguates authorship when more than one session or model is working on the same branch concurrently, and the `/prepare-pr` skill relies on these trailers to decide which session is a PR's primary worker.
+
 Before beginning work, create a thorough plan. Ask the user questions to resolve meaningful ambiguity before proceeding, especially when assumptions could change scope, implementation, or user-visible behavior.
 
 Skip the plan when the task is unambiguous, the work is short, or the steps to resolve it are uncontroversial. Renaming a symbol, fixing a typo, or updating a branch by fetching main, rebasing, and pushing are examples where you should just do the work and report what you did. Plan when none of those hold, such as when the request has more than one reasonable interpretation, the change spans multiple modules or domains, and the approach itself is a real decision. When in doubt, plan and propose it.

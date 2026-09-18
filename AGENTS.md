@@ -1,6 +1,6 @@
 Make frequent commmits for what would be considered atomic units of work.
 
-Every commit message must include a `[coding $MODEL_NAME $SESSION_ID]` trailer line, e.g. `[coding claude-sonnet-5 eaf85d4d-de26-4a85-b52e-cb262f75f3ff]`, where `$MODEL_NAME` is the specific model driving the session (not just the agent brand) and `$SESSION_ID` is that session's own identifier (`$CLAUDE_CODE_SESSION_ID` in Claude Code, or the equivalent value Codex exposes for its session). This disambiguates authorship when more than one session or model is working on the same branch concurrently, and the `/prepare-pr` skill relies on these trailers to decide which session is a PR's primary worker.
+Every commit message must include a `[coding $MODEL_NAME $SESSION_ID]` trailer line, e.g. `[coding claude eaf85d4d-de26-4a85-b52e-cb262f75f3ff]`, where `$MODEL_NAME` is `claude` or `codex` (whichever agent is driving the session) and `$SESSION_ID` is that session's own identifier (`$CLAUDE_CODE_SESSION_ID` in Claude Code, or the equivalent value Codex exposes for its session). This disambiguates authorship when more than one session is working on the same branch concurrently, and the `/commit-conventions` skill relies on these trailers to decide which session is a PR's primary worker.
 
 Before beginning work, create a thorough plan. Ask the user questions to resolve meaningful ambiguity before proceeding, especially when assumptions could change scope, implementation, or user-visible behavior.
 
@@ -15,7 +15,7 @@ tmux rename-window -t "$tmux_window_id" 'short purpose'
 
 Rename that window once to a short description of the current or anticipated PR's purpose, approximately three words long. Keep that window name stable throughout the PR; do not rename it for individual tasks or implementation phases. Rename it again only if the PR's overall purpose materially changes.
 
-Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /prepare-pr skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.
+Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /commit-conventions skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.
 
 Opened PR branches should use the format `eq/<type>/<description>`, such as `eq/chore/update-install-scripts`, where `<type>` is `feat`, `bug`, or `chore` depending on the PR's purpose. Use `feat` for features, `bug` for fixes, and `chore` for scripts, maintenance, or other changes that do not add real product functionality.
 

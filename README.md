@@ -22,6 +22,24 @@ Only windows in an attached session are marked. A window nobody is attached to c
 
 Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call, so the handler exits after the single option read that proves the state unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
+## Claude session routing
+
+Claude's `SessionStart` hook also runs `agent_notify/register_claude_session.sh`.
+It atomically writes `{sessionId, messagingSocket}` to
+`~/.local/state/coding-agents/claude-sessions/<session-id>.json` with mode 0600.
+Set `CLAUDE_SESSION_REGISTRY_DIR` in both Claude's environment and the review
+manager to override that directory. No messaging token is stored. The manager
+uses commit prefixes such as `[claude SESSION_ID]` to find this local inbox.
+
+Start or resume Claude after updating the hook to register its inbox. A session
+without messaging support records an empty endpoint. Mappings remain after exit
+and are refreshed on resume; the manager treats an absent socket as offline and
+includes the target session ID in each message to reject reused socket paths.
+Claude's normal inbound-message settings still apply. This registration is local
+to the machine and user running the hook and review manager.
+
+Validate the hook with `node --test agent_notify/register_claude_session.test.cjs`.
+
 ## A note on dependencies
 
 Mason will require a few things like unzip, npm, and pip to be available in order to properly install the language servers. If you see any issues with the installation, make sure that the above are available in your path.

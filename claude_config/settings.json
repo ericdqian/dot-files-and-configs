@@ -9,6 +9,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash ~/.agent-notify/register_claude_session.sh"
+          },
+          {
+            "type": "command",
             "command": "~/.agent-notify/agent_notify.sh",
             "async": true
           }

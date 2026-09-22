@@ -1,6 +1,6 @@
 ---
 name: address-pr-feedback
-description: Fetch, triage, and address GitHub pull request review feedback. Use when Codex or Claude Code needs to inspect PR comments or review threads, judge which feedback is valid versus excessive or inappropriate, flag edge cases for a human decision, implement justified fixes, push changes, and reply to PR comments with the required coding-agent prefix.
+description: Fetch, triage, and address GitHub pull request review feedback. Use when Codex or Claude Code needs to inspect PR comments or review threads, judge which feedback is valid versus excessive or inappropriate, flag edge cases for a human decision, implement justified fixes, push changes, reply to PR comments with the required coding-agent prefix, and resolve the threads whose outcome the human decided.
 ---
 
 # Address PR Feedback
@@ -51,6 +51,11 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
    - For feedback judged too much or invalid, explain the reason respectfully and invite the reviewer to clarify if they disagree.
    - For edge cases, state that the item needs human confirmation and summarize the decision needed.
 
+8. **Resolve threads the human decided**
+   - Reviewers resolve only findings they have verified as fixed, and a finding the human accepts, defers, or declines still applies to the code. Unless you resolve those threads, nobody will.
+   - When the human has explicitly decided a thread's outcome (accept the limitation, defer it to a follow-up, or decline it), reply with the decision, then resolve the thread. For inline threads, use the `resolveReviewThread` GraphQL mutation through `gh api graphql`.
+   - Leave threads open when a fix is implemented, so the reviewer can verify and resolve them. Leave them open too when you judged the feedback too much or invalid yourself, or when an edge case still awaits the human's decision.
+
 ## Output Expectations
 
 When handing control back to the user, include:
@@ -59,4 +64,4 @@ When handing control back to the user, include:
 - The valid feedback implemented.
 - Edge or declined items and why they were not implemented.
 - Validation run and any failures or skipped checks.
-- Push status and PR comment status.
+- Push status and PR comment status, including which threads you resolved and which remain open.

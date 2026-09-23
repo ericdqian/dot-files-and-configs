@@ -7,7 +7,6 @@ function M.setup()
     vim.keymap.set({ "x", "o" }, "x", "<Plug>(leap-forward-next-to)")
     vim.keymap.set({ "x", "o" }, "X", "<Plug>(leap-backward-next-to)")
     vim.keymap.set({ "n", "x", "o" }, "gs", "<Plug>(leap-from-window)")
-    leap.opts.safe_labels = ""
     leap.init_hl()
 end
 

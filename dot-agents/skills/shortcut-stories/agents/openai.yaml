@@ -1,4 +1,0 @@
-interface:
-  display_name: "Shortcut Stories"
-  short_description: "Map PRs to precisely named Shortcut stories"
-  default_prompt: "Use $shortcut-stories to map my recent PRs onto Shortcut stories and epics."

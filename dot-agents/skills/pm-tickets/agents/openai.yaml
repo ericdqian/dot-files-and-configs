@@ -1,0 +1,4 @@
+interface:
+  display_name: "PM Tickets"
+  short_description: "Scope and name tracker tickets precisely"
+  default_prompt: "Use $pm-tickets to map my recent PRs onto tickets and epics in our tracker."

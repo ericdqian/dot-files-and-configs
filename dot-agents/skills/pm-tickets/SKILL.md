@@ -15,13 +15,13 @@ Trackers use different words for the same levels. This skill says **ticket** for
 
 Name the artifact or capability being built, not the category of work.
 
-- Good: "Hermes release utilities", "Post execution failures to #eng-alerts", "Log client IPs behind the AWS ALB", "Ping the commit author when main fails the migration lineage check".
-- Too general: "Hermes and agent deploy reliability", "Failure alerting and observability", "Codebase health", "Infra improvements".
+- Good: "Agent release utilities", "Post execution failures to #eng-alerts", "Log client IPs behind the AWS ALB", "Ping the commit author when main fails the migration lineage check".
+- Too general: "Agent deploy reliability", "Failure alerting and observability", "Codebase health", "Infra improvements".
 
 Checks before accepting a name:
 
 1. **Could someone tell from the name alone whether a given PR belongs?** If the name is a quality attribute (reliability, observability, efficiency, cleanup), it is an epic or theme, not a ticket. Narrow it to the specific tool, pipeline, table, flow, or behavior.
-2. **Does the name use the system's own nouns?** Prefer the real names of services, commands, agents, channels, and entities (`cutil`, Hermes, Iris, `#eng-alerts`, census) over generic ones ("tooling", "the agent", "notifications").
+2. **Does the name use the system's own nouns?** Prefer the real names of services, commands, agents, channels, and entities (`cutil`, Iris, `#eng-alerts`, census) over generic ones ("tooling", "the service", "notifications").
 3. **Does the name say what the work is for, not how it works?** Name the result someone sees. The CI job, script, or plumbing that gets you there is the mechanism. Read the PR's motivation, not just its title. For example, a PR titled "run migration lineage check on Buildkite and tag the author in #eng-alerts" exists so that people get pinged when main breaks. The ticket is "Ping the commit author in #eng-alerts when main fails the migration lineage check", not "Run the migration lineage check on Buildkite".
 4. **Is it short?** Aim for 3 to 8 words. Precision comes from specific nouns, not added clauses.
 
@@ -29,7 +29,7 @@ Checks before accepting a name:
 
 These rules apply whether you're grouping finished PRs or splitting planned work.
 
-- **Same artifact means same ticket.** PRs that incrementally build one tool or pipeline belong together. For example, `cutil release`, auto-promote after staging, and the parallel gateway restart with crash-loop detection all belong to "Hermes release utilities".
+- **Same artifact means same ticket.** PRs that incrementally build one tool or pipeline belong together. For example, `cutil release`, auto-promote after staging, and the parallel gateway restart with crash-loop detection all belong to "Agent release utilities".
 - **Separate concerns get separate tickets, even when they're small.** A single PR that ships an independent behavior is its own ticket. Don't pile unrelated one-PR changes into a themed bucket just because they share a flavor. For example, ALB client-IP logging, pinging the author when main fails the lineage check, and execution-failure Slack alerts are three tickets, not one "observability" ticket.
 - **Leave out work that isn't team-facing.** Skip work that only changes a personal agent skill, a doc for one person's workflow, or anything else no teammate would track. Mention what you skipped so the user can override.
 - **Work done by a recurring scheduled task never becomes a ticket.** A cron job or scheduled agent that keeps opening the same kind of PR is standing upkeep, not planned work. That covers a recurring type-inlining sweep, a weekly vulnerability review, and a daily report. Skip those PRs no matter how many there are or what they change. A run of same-shape PR titles across different days is the usual sign. Check the user's scheduled tasks, or ask, before assuming. Building or changing the scheduled task itself counts as ordinary work, but only when it's team-facing.

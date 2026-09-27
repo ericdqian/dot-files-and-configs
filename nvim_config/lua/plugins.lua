@@ -153,6 +153,7 @@ require("lazy").setup({
     },
     {
         "github/copilot.vim",
+        enabled = false,
         cond = not vim.g.vscode,
     },
     -- Navigation

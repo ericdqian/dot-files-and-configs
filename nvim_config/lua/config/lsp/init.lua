@@ -99,6 +99,16 @@ function M.setup()
         },
     })
 
+    -- terraform-ls roots at the enclosing .git and indexes every directory under
+    -- it, which includes each worktree's node_modules in repos like core.
+    vim.lsp.config("terraformls", {
+        init_options = {
+            indexing = {
+                ignoreDirectoryNames = { "node_modules", ".worktrees" },
+            },
+        },
+    })
+
     vim.lsp.config("ts_ls", {
         on_attach = function(client, bufnr)
             custom_attach(client, bufnr)

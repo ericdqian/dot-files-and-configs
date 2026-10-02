@@ -87,6 +87,11 @@ set ruler
 " Height of the command bar
 set cmdheight=1
 
+" Never block on a hit-enter prompt. While nvim waits there it stops running
+" scheduled callbacks, so LSP and file-watcher events queue up without bound
+" (a stuck prompt grew idle sessions to ~6 GB). Long messages stay in :messages.
+set messagesopt=wait:2000,history:500
+
 " A buffer becomes hidden when it is abandoned
 set hid
 

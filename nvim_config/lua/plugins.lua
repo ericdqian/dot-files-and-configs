@@ -150,7 +150,7 @@ require("lazy").setup({
         cond = use_lsp_ui("lspsaga"),
     },
     {
-        url = "git@github.com:ericdqian/nv-navigator.git",
+        url = "https://github.com/ericdqian/nv-navigator.git",
         name = "nv-navigator",
         branch = "main",
         event = "LspAttach",

@@ -13,6 +13,20 @@ vim.opt.rtp:prepend(lazypath)
 
 vim.g.mapleader = " "
 
+local lsp_ui = vim.env.NV_LSP_UI or "lspsaga"
+local supported_lsp_uis = {
+    lspsaga = true,
+    navigator = true,
+}
+
+if not supported_lsp_uis[lsp_ui] then
+    error("NV_LSP_UI must be 'lspsaga' or 'navigator'")
+end
+
+local function use_lsp_ui(name)
+    return not vim.g.vscode and lsp_ui == name
+end
+
 require("lazy").setup({
     -- Directory / searching plugins
     -- For directory navigation
@@ -133,7 +147,24 @@ require("lazy").setup({
             --Please make sure you install markdown and markdown_inline parser
             { "nvim-treesitter/nvim-treesitter" },
         },
-        cond = not vim.g.vscode,
+        cond = use_lsp_ui("lspsaga"),
+    },
+    {
+        url = "git@github.com:ericdqian/nv-navigator.git",
+        name = "nv-navigator",
+        branch = "main",
+        event = "LspAttach",
+        init = function()
+            -- Let Lazy apply the configured keymaps instead of the plugin bootstrap defaults.
+            vim.g.loaded_nv_navigator = 1
+        end,
+        config = function()
+            require("config.nv-navigator").setup()
+        end,
+        dependencies = {
+            { "ibhagwan/fzf-lua" },
+        },
+        cond = use_lsp_ui("navigator"),
     },
 
     -- Editing plugins

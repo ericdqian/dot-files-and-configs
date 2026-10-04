@@ -63,6 +63,9 @@ function M.setup()
                 condition = function()
                     return should_mount_python_source("ruff")
                 end,
+                runtime_condition = function()
+                    return vim.fn.executable("ruff") == 1
+                end,
             }),
             null_ls.builtins.formatting.black.with({
                 filetypes = { "python" },

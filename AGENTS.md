@@ -33,6 +33,11 @@ Function and method ordering:
 
 Functions and methods should be pure by default. Do not give a function side effects unless there is a very good reason, and make any necessary side effect obvious from the function name and call site. Avoid helpers whose return value is ignored because they are being used only to throw, mutate, write, enqueue, log, cache, or perform IO. If a side effect is intentional, call out why that side effect belongs there in a short nearby comment.
 
+Keep simple batching and retry loops beside the requests they control. Do not
+pass request functions or callbacks into a generic window orchestrator just to
+share loop mechanics. Share constants or small pure policy calculations when
+needed, while leaving request order and retry behavior visible at the call site.
+
 Do not mutate input parameters, including objects, arrays, maps, or sets passed by callers. Prefer returning new values and keeping data flow lean and functional. If input mutation is necessary for performance, an external API contract, transaction semantics, or another strong reason, call out why the mutation is acceptable near the mutation site and keep it narrowly scoped.
 
 Only define a named TypeScript type when it is used more than once. For one-off input or output shapes, inline the type at the function, method, or variable boundary instead of naming it.

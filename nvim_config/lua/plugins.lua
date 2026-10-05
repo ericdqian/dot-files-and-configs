@@ -153,6 +153,7 @@ require("lazy").setup({
         url = "https://github.com/ericdqian/nv-navigator.git",
         name = "nv-navigator",
         branch = "main",
+        dev = true,
         event = "LspAttach",
         init = function()
             -- Let Lazy apply the configured keymaps instead of the plugin bootstrap defaults.
@@ -298,4 +299,9 @@ require("lazy").setup({
     -- {
     -- 	dir = "~/simple-custom-nvim-plugin",
     -- },
+}, {
+    dev = {
+        path = "~",
+        fallback = true,
+    },
 })

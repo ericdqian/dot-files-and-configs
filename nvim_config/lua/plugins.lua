@@ -155,6 +155,7 @@ require("lazy").setup({
         branch = "main",
         dev = true,
         event = "LspAttach",
+        cmd = { "NvNavigatorFiles", "NvNavigatorGrep" },
         init = function()
             -- Let Lazy apply the configured keymaps instead of the plugin bootstrap defaults.
             vim.g.loaded_nv_navigator = 1

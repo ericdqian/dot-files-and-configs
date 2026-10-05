@@ -3,6 +3,8 @@ local M = {}
 -- Can use bat to do syntax highlighting
 -- brew install bat
 function M.setup()
+    vim.g.fzf_history_dir = vim.fn.stdpath("data") .. "/fzf-history"
+
     vim.cmd([[
         let g:fzf_layout = { 'window': { 'width': 0.95, 'height': 0.95 } }
         function! RipgrepFzf(query, fullscreen)

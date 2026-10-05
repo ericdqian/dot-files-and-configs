@@ -2,6 +2,18 @@ local M = {}
 
 function M.setup()
     require("nv-navigator").setup({
+        picker = {
+            fzf_opts = {
+                keymap = {
+                    fzf = {
+                        ["ctrl-p"] = "up-match",
+                        ["ctrl-n"] = "down-match",
+                        ["alt-p"] = "prev-history",
+                        ["alt-n"] = "next-history",
+                    },
+                },
+            },
+        },
         keymaps = {
             definition = "gd",
             type_definition = "gt",

@@ -4,6 +4,10 @@ local M = {}
 -- brew install bat
 function M.setup()
     vim.g.fzf_history_dir = vim.fn.stdpath("data") .. "/fzf-history"
+    -- Keep file navigation on Ctrl-P/N while history uses Alt-P/N.
+    vim.g.fzf_vim = {
+        options = "--bind=ctrl-p:up-match,ctrl-n:down-match,alt-p:prev-history,alt-n:next-history",
+    }
 
     vim.cmd([[
         let g:fzf_layout = { 'window': { 'width': 0.95, 'height': 0.95 } }

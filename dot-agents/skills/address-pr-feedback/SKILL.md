@@ -18,12 +18,15 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
 
 2. **Fetch the full feedback context**
    - Fetch PR review comments, issue comments, and unresolved review threads from GitHub before evaluating feedback.
+   - Include feedback on earlier commits and threads marked outdated; neither the commit age nor GitHub's outdated marker means the feedback is no longer relevant.
    - Prefer the GitHub app or available GitHub tools for PR metadata and comments.
    - Use `gh` when thread resolution state, inline context, or a complete review-thread view is not available through the app.
    - Read the surrounding diff and touched files for each inline comment before judging it.
+   - For feedback on earlier commits, read the original comment and diff context, then compare the concern with the current PR code. Address it through the same workflow if it still applies.
 
 3. **Classify each feedback item**
    - **Valid:** The comment identifies a correctness issue, regression risk, maintainability problem, missing test, unclear naming, security concern, or repo-standard violation.
+   - **No longer relevant:** After reading the feedback and checking the current code, the concern has already been addressed or the affected behavior no longer exists. Do not use this classification solely because the comment targets an earlier commit or an outdated diff.
    - **Too much / does not make sense:** The comment asks for unrelated refactors, contradicts project patterns, creates worse coupling, exceeds the PR scope without clear benefit, or is based on a misunderstanding of the code.
    - **Edge / human decision:** The comment involves product behavior, architecture ownership, tradeoffs with no clear winner, large scope expansion, reviewer preference, or anything you are not confident should be accepted.
 
@@ -47,7 +50,9 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
    - Prefix every PR comment made by the coding agent with the correct marker:
      - Use `[coding codex COMMIT_HASH]` when the agent is Codex, replacing `COMMIT_HASH` with the relevant fix commit hash.
      - Use `[coding claude COMMIT_HASH]` when the agent is Claude Code, replacing `COMMIT_HASH` with the relevant fix commit hash.
+     - When no fix commit is needed, use the current PR head commit hash that you evaluated.
    - For implemented feedback, briefly state what changed and include the commit or pushed branch context when useful.
+   - For feedback that is no longer relevant, reply explaining why it no longer applies, citing the change or current code that supports that conclusion. Do not silently skip it.
    - For feedback judged too much or invalid, explain the reason respectfully and invite the reviewer to clarify if they disagree.
    - For edge cases, state that the item needs human confirmation and summarize the decision needed.
 

@@ -39,7 +39,13 @@ filetype indent on
 
 " Set to auto read when a file is changed from the outside
 set autoread
-au FocusGained,BufEnter * checktime
+set updatetime=1000
+augroup ExternalFileChanges
+    autocmd!
+    " tmux focus events are not guaranteed; also check while idle in a buffer.
+    " checktime preserves modified buffers and prompts on conflicting edits.
+    autocmd FocusGained,BufEnter,CursorHold,CursorHoldI,TermLeave * if mode() !~# '\v(c|r|!)' | checktime | endif
+augroup END
 
 " With a map leader it's possible to do extra key combinations
 " like <leader>w saves the current file

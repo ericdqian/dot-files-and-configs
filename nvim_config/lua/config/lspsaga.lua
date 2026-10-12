@@ -1,6 +1,7 @@
 local M = {}
 
 local install_lsp_position_compat
+local install_saga_request_compat
 
 function M.setup()
     install_lsp_position_compat()
@@ -34,6 +35,8 @@ function M.setup()
             enable = false, -- TODO: reenable when we find a way to prevent it from shifting the horizontal buffer in a file with no changes.
         },
     })
+
+    install_saga_request_compat()
 
     local keymap = vim.keymap.set
 
@@ -146,6 +149,57 @@ function install_lsp_position_compat()
     -- lspsaga still calls this removed private helper on current Neovim nightlies.
     vim.lsp.util._get_line_byte_from_position = function(bufnr, position, offset_encoding)
         return vim.pos.lsp(bufnr, position, offset_encoding or "utf-16").col
+    end
+end
+
+function install_saga_request_compat()
+    local definition = require("lspsaga.definition")
+    local definition_request = definition.definition_request
+    -- Patch Saga's singleton methods: upstream sets pending even with no request recipients.
+    definition.definition_request = function(saga_definition, method, handler, args)
+        if #vim.lsp.get_clients({ bufnr = 0, method = method }) == 0 then
+            vim.notify(
+                "[lspsaga] " .. method .. " is not supported in this buffer",
+                vim.log.levels.WARN
+            )
+            return
+        end
+        return definition_request(saga_definition, method, handler, args)
+    end
+
+    local code_action = require("lspsaga.codeaction")
+    local send_request = code_action.send_request
+    -- Supply diagnostics through the public API before Saga reaches its removed API fallback.
+    code_action.send_request = function(saga_action, buffer, options, callback)
+        local request_options = vim.deepcopy(options or {})
+        if request_options.diagnostics or request_options.only then
+            request_options = { options = request_options }
+        end
+        request_options.context = request_options.context or {}
+        if request_options.context.diagnostics == nil then
+            request_options.context.diagnostics =
+                vim.lsp.diagnostic.from(vim.diagnostic.get(buffer, {
+                    lnum = vim.api.nvim_win_get_cursor(0)[1] - 1,
+                }))
+        end
+        return send_request(saga_action, buffer, request_options, callback)
+    end
+
+    local request_code_action = code_action.code_action
+    -- Saga owns this state; clear its lock on synchronous failure so the next action can run.
+    code_action.code_action = function(saga_action, options)
+        if #vim.lsp.get_clients({ bufnr = 0, method = "textDocument/codeAction" }) == 0 then
+            vim.notify(
+                "[lspsaga] code actions are not supported in this buffer",
+                vim.log.levels.WARN
+            )
+            return
+        end
+        local ok, request_error = pcall(request_code_action, saga_action, vim.deepcopy(options))
+        if not ok then
+            saga_action.pending_request = false
+            error(request_error, 0)
+        end
     end
 end
 

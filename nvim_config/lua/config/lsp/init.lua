@@ -64,7 +64,9 @@ function M.setup()
                 runtime = { version = "LuaJIT" },
                 diagnostics = { globals = { "vim" } },
                 workspace = {
-                    library = vim.api.nvim_get_runtime_file("", true),
+                    -- Index Lua APIs, rather than every plugin's entire runtime tree.
+                    library = vim.api.nvim_get_runtime_file("lua", true),
+                    checkThirdParty = false,
                 },
                 telemetry = { enable = false },
             },

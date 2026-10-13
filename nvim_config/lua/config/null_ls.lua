@@ -73,9 +73,7 @@ function M.setup()
                     return should_mount_python_source("black")
                 end,
             }),
-            null_ls.builtins.formatting.terraform_fmt.with({
-                command = "tofu",
-            }),
+            null_ls.builtins.formatting.terraform_fmt,
         },
     })
 end

@@ -60,7 +60,7 @@ fzf with `accept-or-print-query` support (tested with fzf 0.70 and tmux 3.6a).
 Claude and Codex lifecycle hooks record branches observed in their reported
 working directory and any tool `workdir`/`cwd`. Earlier associations stay on
 that pane even after it switches branches. Opening the picker also seeds each
-pane from its current directory. History lives in pane-local tmux options and
+pane once per current directory; hooks capture later branch changes. History lives in pane-local tmux options and
 ends when the pane/server closes; it is not restored by tmux-resurrect. It tracks
 where work happened, rather than proving an agent is still running there.
 

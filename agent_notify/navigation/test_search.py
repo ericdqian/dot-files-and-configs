@@ -20,7 +20,8 @@ class SearchTests(unittest.TestCase):
         def fake_run(command, check=False):
             if command[0] == 'git':
                 return 'git@github.com:owner/repo.git' if 'remote' in command else 'first'
-            stored_options[command[-2]] = json.loads(command[-1])
+            if command[-2] != '@agent_nav_directory':
+                stored_options[command[-2]] = json.loads(command[-1])
             return ''
         with patch.object(search, 'run', side_effect=fake_run):
             for branch in ['first', 'second', 'first']:
@@ -38,7 +39,8 @@ class SearchTests(unittest.TestCase):
         def fake_run(command, check=False):
             if command[0] == 'git':
                 return 'git@github.com:owner/repo.git' if 'remote' in command else 'feature'
-            stored_options[command[-2]] = json.loads(command[-1])
+            if command[-2] != '@agent_nav_directory':
+                stored_options[command[-2]] = json.loads(command[-1])
             return ''
         with patch.object(search, 'run', side_effect=fake_run), \
              patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')):

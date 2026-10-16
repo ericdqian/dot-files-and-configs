@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 
@@ -46,6 +47,8 @@ def observed_directories(payload):
 def record_branch(pane_id, working_directory, reference=''):
     if not pane_id:
         return
+    # Remember non-Git directories too, so shell panes need no repeated Git probes.
+    run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_nav_directory', working_directory], check=True)
     repository = repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
     branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
     if not repository:
@@ -114,23 +117,43 @@ def pick_pane(client_name):
 
 def collect_and_record_pane_rows():
     pane_listing = run(['tmux', 'list-panes', '-a', '-F',
-                        '#{pane_id}\t#{session_name}:#{window_index}.#{pane_index} #{window_name}\t#{pane_current_path}\t#{pane_current_command}'], check=True)
+                        '#{pane_id}\t#{session_name}:#{window_index}.#{pane_index} #{window_name}\t#{pane_current_path}\t#{@agent_nav_directory}\t#{pane_current_command}'], check=True)
     pane_rows = []
+    option_commands = ['tmux']
     for pane_line in pane_listing.splitlines():
-        pane_id, window_label, working_directory, command = pane_line.split('\t', 3)
-        # Seed existing windows from their current directory, even before a hook fires.
-        record_branch(pane_id, working_directory)
-        associations = []
-        for option_line in run(['tmux', 'show-options', '-p', '-t', pane_id]).splitlines():
-            option_name = option_line.split(' ', 1)[0]
-            if option_name.startswith(OPTION_PREFIX):
-                association_json = run(['tmux', 'show-options', '-pv', '-t', pane_id, option_name])
-                try:
-                    associations.append(json.loads(association_json))
-                except json.JSONDecodeError:
-                    continue
+        pane_id, window_label, working_directory, inspected_directory, command = pane_line.split('\t', 4)
         pane_rows.append({'pane': pane_id, 'label': window_label, 'command': command,
-                          'associations': associations})
+                          'directory': working_directory, 'inspected_directory': inspected_directory, 'associations': []})
+        if len(option_commands) > 1:
+            option_commands.append(';')
+        option_commands.extend(['display-message', '-p', '-t', pane_id, 'agent-pane #{pane_id}', ';',
+                                'show-options', '-p', '-t', pane_id])
+    if not pane_rows:
+        return []
+    # One tmux request reads every pane, instead of spawning a client per association.
+    pane_rows_by_id = {row['pane']: row for row in pane_rows}
+    current_pane_id = ''
+    for option_line in run(option_commands).splitlines():
+        if option_line.startswith('agent-pane '):
+            current_pane_id = option_line.split(' ', 1)[1]
+        elif option_line.startswith(OPTION_PREFIX) and not option_line.startswith('@agent_nav_directory '):
+            try:
+                option_name, association_json = shlex.split(option_line)
+                pane_rows_by_id[current_pane_id]['associations'].append(json.loads(association_json))
+            except (ValueError, KeyError):
+                continue
+    for pane_row in pane_rows:
+        if pane_row['directory'] == pane_row['inspected_directory']:
+            continue
+        # Seed each pane directory once; hooks record subsequent branch changes.
+        record_branch(pane_row['pane'], pane_row['directory'])
+        for option_line in run(['tmux', 'show-options', '-p', '-t', pane_row['pane']]).splitlines():
+            if option_line.startswith(OPTION_PREFIX) and not option_line.startswith('@agent_nav_directory '):
+                try:
+                    option_name, association_json = shlex.split(option_line)
+                    pane_row['associations'].append(json.loads(association_json))
+                except ValueError:
+                    continue
     return pane_rows
 
 

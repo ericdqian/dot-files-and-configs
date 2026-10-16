@@ -35,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         record()
         record()
         options = tmux('show-options', '-p', '-t', pane_one)
-        assert options.count('@agent_nav_') == 2, options
+        assert options.count('@agent_nav_') == 3, options  # Two branches plus inspected-directory marker.
         tmux('new-session', '-d', '-s', 'other-session')
         binding = next(line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines() if line.startswith('bind-key o '))
         binding_file = Path(directory, 'binding.conf')

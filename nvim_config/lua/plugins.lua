@@ -230,6 +230,14 @@ require("lazy").setup({
 
     -- Git plugins
 
+    {
+        "ericdqian/nvim-review",
+        branch = "eq/feat/neovim-diff-viewer",
+        dev = true,
+        cmd = { "Review", "ReviewClose", "ReviewRefresh" },
+        cond = not vim.g.vscode,
+    },
+
     -- Enables using git commands in vim
     {
         "tpope/vim-fugitive",

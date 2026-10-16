@@ -21,6 +21,7 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
    - Prefer the GitHub app or available GitHub tools for PR metadata and comments.
    - Use `gh` when thread resolution state, inline context, or a complete review-thread view is not available through the app.
    - Read the surrounding diff and touched files for each inline comment before judging it.
+   - Identify each comment's author using GitHub account metadata and, for coding agents posting through a shared account, an explicit coding-agent marker. Treat uncertain authorship as human. Human feedback still belongs in the context and triage below.
 
 3. **Classify each feedback item**
    - **Valid:** The comment identifies a correctness issue, regression risk, maintainability problem, missing test, unclear naming, security concern, or repo-standard violation.
@@ -44,6 +45,8 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
    - Push the branch after committing.
 
 7. **Reply on the PR**
+   - Never reply to human reviewers' comments. Reply only to comments verified as authored by a bot or coding agent; this restriction applies to inline replies, review responses, and top-level comments that answer or mention the human's feedback.
+   - In mixed-author threads, check both the thread's original comment and the specific comment being answered. Do not reply to a human-authored thread or answer a human follow-up in a bot-authored thread. Report any needed response to the user in chat instead.
    - Prefix every PR comment made by the coding agent with the correct marker:
      - Use `[coding codex COMMIT_HASH]` when the agent is Codex, replacing `COMMIT_HASH` with the relevant fix commit hash.
      - Use `[coding claude COMMIT_HASH]` when the agent is Claude Code, replacing `COMMIT_HASH` with the relevant fix commit hash.
@@ -53,7 +56,7 @@ Use this workflow to respond to GitHub PR feedback with judgment. Do not blindly
 
 8. **Resolve threads the human decided**
    - Reviewers resolve only findings they have verified as fixed, and a finding the human accepts, defers, or declines still applies to the code. Unless you resolve those threads, nobody will.
-   - When the human has explicitly decided a thread's outcome (accept the limitation, defer it to a follow-up, or decline it), reply with the decision, then resolve the thread. For inline threads, use the `resolveReviewThread` GraphQL mutation through `gh api graphql`.
+   - When the human has explicitly decided a thread's outcome (accept the limitation, defer it to a follow-up, or decline it), resolve the thread. Reply with the decision first only when step 7 permits a reply; otherwise report the decision to the user in chat without posting a PR response. For inline threads, use the `resolveReviewThread` GraphQL mutation through `gh api graphql`.
    - Leave threads open when a fix is implemented, so the reviewer can verify and resolve them. Leave them open too when you judged the feedback too much or invalid yourself, or when an edge case still awaits the human's decision.
 
 ## Output Expectations

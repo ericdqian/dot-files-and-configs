@@ -83,6 +83,33 @@ class SearchTests(unittest.TestCase):
                          ['tmux', 'switch-client', '-c', '/dev/ttys123', '-t', '%2'])
         self.assertEqual(commands.call_args_list[1].args[0], ['tmux', 'select-pane', '-t', '%2'])
 
+    def test_feedback_sessions_are_filtered_without_hiding_development_windows(self):
+        pane_listing = '\n'.join([
+            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\t/review\tclaude',
+            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\t/review\tcodex',
+            '%3\tcore\tPR review export\t184.0\t/repo\t/repo\tcodex',
+        ])
+        with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %3']):
+            pane_rows = search.collect_and_record_pane_rows()
+        self.assertEqual([row['pane'] for row in pane_rows], ['%3'])
+        self.assertEqual(pane_rows[0]['title'], 'PR review export')
+        self.assertEqual(pane_rows[0]['location'], 'core:184.0')
+        self.assertFalse(search.is_feedback_session('coding-agents'))
+
+    def test_compact_rows_retain_searchable_history_and_preview_full_details(self):
+        pane_row = {'pane': '%42', 'label': 'core:12.0 Example window', 'title': 'Example window',
+                    'location': 'core:12.0', 'command': '2.1.302', 'directory': '/repo', 'associations': [
+                        {'repository': 'github.com/owner/repo', 'branch': 'old'},
+                        {'repository': 'github.com/owner/repo', 'branch': 'new',
+                         'url': 'https://github.com/owner/repo/pull/7'}]}
+        formatted_row = search.format_row(pane_row)
+        self.assertEqual(formatted_row.count('owner/repo'), 1)
+        self.assertIn('old, new', formatted_row)
+        self.assertIn('claude', formatted_row)
+        self.assertNotIn('https://', formatted_row)
+        self.assertIn('/repo', search.format_details(pane_row))
+        self.assertIn('https://github.com/owner/repo/pull/7', search.format_details(pane_row))
+
     def test_cancel_does_not_switch_and_missing_pr_is_reported(self):
         with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
              patch.object(search, 'choose_row', return_value=''), \

@@ -51,6 +51,11 @@ Mason will require a few things like unzip, npm, and pip to be available in orde
 Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
 panes across all tmux sessions. Type a window name, repository, or branch;
 use Up/Down to choose and Enter to jump directly to the pane. Escape cancels.
+Aligned, color-coded columns show the window, pane location, process, repository,
+and branches with space between rows. The bottom detail panel shows full paths
+and branch/PR associations; Ctrl+/ toggles it. Automated review sessions named
+`claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
+are excluded, while ordinary development windows with review-related names stay visible.
 Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL and press Enter
 to resolve its source repository and branch. Multiple matching panes remain
 available to choose from. URL resolution requires authenticated `gh` access;

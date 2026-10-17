@@ -1,6 +1,9 @@
 import importlib.util
 import json
 import unittest
+import tempfile
+import io
+from contextlib import redirect_stdout
 from unittest.mock import patch
 from pathlib import Path
 
@@ -62,7 +65,7 @@ class SearchTests(unittest.TestCase):
         association = json.loads(commands.call_args.args[0][-1])
         self.assertEqual(association['url'], 'https://github.com/owner/repo/pull/7')
 
-    def test_pr_lookup_offers_all_matching_agents_and_targets_popup_client(self):
+    def test_pick_targets_the_selected_pane_and_popup_client(self):
         pane_rows = [
             {'pane': '%1', 'label': 'one', 'command': 'claude', 'associations': [
                 {'repository': 'github.com/owner/repo', 'branch': 'old'},
@@ -73,12 +76,10 @@ class SearchTests(unittest.TestCase):
                 {'repository': 'github.com/other/repo', 'branch': 'old'}]},
         ]
         with patch.object(search, 'collect_and_record_pane_rows', return_value=pane_rows), \
-             patch.object(search, 'choose_row', side_effect=[
-                 'https://github.com/owner/repo/pull/7', search.format_row(pane_rows[1])]) as chooser, \
-             patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'old')), \
+             patch.object(search, 'choose_row', return_value=search.format_row(pane_rows[1])), \
+             patch.object(search, 'find_destination', return_value=('/dev/ttys123', None)), \
              patch.object(search, 'run', return_value='') as commands:
             search.pick_pane('/dev/ttys123')
-        self.assertEqual(chooser.call_args.args[0], pane_rows[:2])
         self.assertEqual(commands.call_args_list[0].args[0],
                          ['tmux', 'switch-client', '-c', '/dev/ttys123', '-t', '%2'])
         self.assertEqual(commands.call_args_list[1].args[0], ['tmux', 'select-pane', '-t', '%2'])
@@ -110,17 +111,78 @@ class SearchTests(unittest.TestCase):
         self.assertIn('/repo', search.format_details(pane_row))
         self.assertIn('https://github.com/owner/repo/pull/7', search.format_details(pane_row))
 
-    def test_cancel_does_not_switch_and_missing_pr_is_reported(self):
+    def test_pr_query_resolves_results_before_enter_and_restores_text_search(self):
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            preview_path.write_text(json.dumps({'%1': {'pane': '%1', 'associations': [
+                {'repository': 'github.com/owner/repo', 'branch': 'feature'}]}}))
+            Path(directory, 'candidates.txt').write_text('%1\tAuthor pane\n%2\tOther pane')
+            with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
+                 redirect_stdout(io.StringIO()) as output:
+                search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
+            self.assertIn('%1\tAuthor pane', output.getvalue())
+            self.assertIn('PR #7', output.getvalue())
+            with redirect_stdout(io.StringIO()) as output:
+                search.update_query_results(preview_path, 'Other pane')
+            self.assertIn('%2\tOther pane', output.getvalue())
+
+    def test_pr_query_reports_missing_history_and_api_errors_in_picker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            preview_path.write_text('{}')
+            Path(directory, 'candidates.txt').write_text('')
+            with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'absent')), \
+                 redirect_stdout(io.StringIO()) as output:
+                search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
+            self.assertIn('No tmux pane has recorded absent', output.getvalue())
+            with patch.object(search, 'resolve_pr', side_effect=ValueError('not found [404]')), \
+                 redirect_stdout(io.StringIO()) as output:
+                search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
+            self.assertIn('PR lookup failed:', output.getvalue())
+
+    def test_wezterm_destination_uses_existing_client_and_prefers_current_when_possible(self):
+        panes = [{'tty_name': '/dev/one', 'pane_id': 0, 'tab_id': 1},
+                 {'tty_name': '/dev/two', 'pane_id': 2, 'tab_id': 3}]
+        clients = [['/dev/one', 'dotfiles'], ['/dev/two', 'core']]
+        self.assertEqual(search.select_destination('core', clients, panes, '/dev/one'),
+                         ('/dev/two', panes[1]))
+        self.assertEqual(search.select_destination('dotfiles', clients, panes, '/dev/one'),
+                         ('/dev/one', panes[0]))
+        self.assertEqual(search.select_destination('detached', clients, panes, '/dev/one'),
+                         ('/dev/one', panes[0]))
+
+    def test_navigation_focuses_the_destination_wezterm_tab_and_split(self):
+        with patch.object(search, 'find_destination', return_value=(
+                '/dev/destination', {'pane_id': 0, 'tab_id': 7})), \
+             patch.object(search, 'run') as commands:
+            search.navigate_to_pane('%42', '/dev/origin')
+        self.assertEqual([call.args[0] for call in commands.call_args_list], [
+            ['tmux', 'switch-client', '-c', '/dev/destination', '-t', '%42'],
+            ['tmux', 'select-pane', '-t', '%42'],
+            ['wezterm', 'cli', 'activate-tab', '--tab-id', '7'],
+            ['wezterm', 'cli', 'activate-pane', '--pane-id', '0'],
+        ])
+
+    def test_enter_rejects_stale_rows_while_query_results_are_updating(self):
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            with redirect_stdout(io.StringIO()) as output:
+                search.print_accept_action(preview_path, 'feature', '%1')
+            self.assertNotEqual(output.getvalue().strip(), 'accept')
+            search.query_result_path(preview_path, 'feature').write_text('["%2"]')
+            with redirect_stdout(io.StringIO()) as output:
+                search.print_accept_action(preview_path, 'feature', '%1')
+            self.assertNotEqual(output.getvalue().strip(), 'accept')
+            with redirect_stdout(io.StringIO()) as output:
+                search.print_accept_action(preview_path, 'feature', '%2')
+            self.assertEqual(output.getvalue().strip(), 'accept')
+
+    def test_cancel_does_not_switch(self):
         with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
              patch.object(search, 'choose_row', return_value=''), \
              patch.object(search, 'run') as commands:
             search.pick_pane('client')
             commands.assert_not_called()
-        with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
-             patch.object(search, 'choose_row', return_value='https://github.com/owner/repo/pull/7'), \
-             patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')):
-            with self.assertRaisesRegex(ValueError, 'No live pane'):
-                search.pick_pane('client')
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import fcntl
 import json
 import os
 import pty
+import re
 import select
 import struct
 import subprocess
@@ -55,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
                     output += os.read(terminal, 65536)
                     if expected in output:
                         return output
-            raise AssertionError((expected, output[-3000:]))
+            raise AssertionError((expected, re.sub(rb'\x1b\[[0-?]*[ -/]*[@-~]', b'', output).decode(errors='replace')[-5000:]))
         read_until(b'other-ses')
         os.write(terminal, b'\x02o')
         output = read_until(b'Window / branch / PR')
@@ -70,13 +71,14 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
                 break
             if select.select([terminal], [], [], .1)[0]:
                 observed_output += os.read(terminal, 65536)
+            os.write(terminal, b'\r')
         else:
             raise AssertionError(('Picker did not switch', tmux('list-clients', '-F', '#{client_name}:#{session_name}:#{pane_id}'), observed_output[-5000:]))
         # A PR URL has no fuzzy match; Enter must still submit it for resolution.
         gh_directory = directory + '/bin'
         os.mkdir(gh_directory)
         gh_script = Path(gh_directory, 'gh')
-        gh_script.write_text('#!/bin/sh\nprintf \'%s\' \'{"head":{"repo":{"full_name":"owner/repo"},"ref":"first"}}\'\n')
+        gh_script.write_text('#!/bin/sh\ncase "$2" in */999) branch=absent ;; *) branch=first ;; esac\nprintf \'{"head":{"repo":{"full_name":"owner/repo"},"ref":"%s"}}\' "$branch"\n')
         gh_script.chmod(0o755)
         tmux('set-environment', '-g', 'PATH', gh_directory + ':' + os.environ['PATH'])
         tmux('switch-client', '-t', 'other-session')
@@ -84,7 +86,9 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
             os.read(terminal, 65536)
         os.write(terminal, b'\x02o')
         read_until(b'Window / branch / PR')
-        os.write(terminal, b'https://github.com/owner/repo/pull/123\r')
+        os.write(terminal, b'https://github.com/owner/repo/pull/123')
+        read_until(b'PR #123')
+        os.write(terminal, b'\r')
         observed_output = b''
         deadline = time.monotonic() + 8
         while time.monotonic() < deadline:
@@ -92,9 +96,29 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
                 break
             if select.select([terminal], [], [], .1)[0]:
                 observed_output += os.read(terminal, 65536)
+            os.write(terminal, b'\r')
         else:
             raise AssertionError(('PR URL failed', observed_output[-3500:]))
-        print('PASS: history retained, full-size popup opens, branch and PR URL select across sessions')
+        # Missing history stays in the picker, and clearing the URL restores normal search.
+        tmux('switch-client', '-t', 'other-session')
+        while select.select([terminal], [], [], .5)[0]:
+            os.read(terminal, 65536)
+        os.write(terminal, b'\x02o')
+        read_until(b'Window / branch / PR')
+        os.write(terminal, b'https://github.com/owner/repo/pull/999')
+        read_until(b'No tmux pane has recorded absent')
+        os.write(terminal, b'\x15second')
+        read_until(b'Recorded branches / PRs')
+        os.write(terminal, b'\r')
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            if tmux('display-message', '-p', '#{session_name}:#{pane_id}') == f'first-session:{pane_one}':
+                break
+            if select.select([terminal], [], [], .1)[0]:
+                os.read(terminal, 65536)
+        else:
+            raise AssertionError('Text search did not recover after a missing PR association')
+        print('PASS: preview, reviewer filtering, branch/PR lookup, missing-history status, and text-search recovery')
     finally:
         tmux('kill-server')
         if 'terminal' in locals():

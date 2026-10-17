@@ -18,7 +18,7 @@ PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['record', 'link', 'pick', 'preview'])
+    parser.add_argument('action', choices=['record', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -34,9 +34,15 @@ def main():
         if not arguments.pane:
             raise ValueError('Run link inside the agent’s tmux pane, or pass --pane %ID.')
         record_branch(arguments.pane, os.getcwd(), arguments.reference)
+    elif arguments.action == 'accept':
+        print_accept_action(Path(arguments.data), arguments.reference, arguments.pane)
+    elif arguments.action == 'query':
+        update_query_results(Path(arguments.data), arguments.reference)
     elif arguments.action == 'preview':
         pane_rows_by_id = json.loads(Path(arguments.data).read_text())
-        print(format_details(pane_rows_by_id[arguments.reference]))
+        selected_pane = pane_rows_by_id.get(arguments.reference)
+        print(format_details(selected_pane) if selected_pane else
+              Path(arguments.data).with_name('status.txt').read_text())
     else:
         pick_pane(arguments.client)
 
@@ -102,23 +108,44 @@ def pick_pane(client_name):
     selected = choose_row(pane_rows)
     if not selected:
         return
-    if PR_PATTERN.fullmatch(selected):
-        repository, branch = resolve_pr(selected)
-        matching_rows = [row for row in pane_rows if any(
-            association['repository'] == repository and association['branch'] == branch
-            for association in row['associations'])]
-        if not matching_rows:
-            raise ValueError(f'No live pane has recorded {repository} {branch}. Use link to backfill it.')
-        selected = format_row(matching_rows[0]) if len(matching_rows) == 1 else choose_row(matching_rows)
-        if not selected:
-            return
     pane_id = selected.split('\t', 1)[0]
     if not re.fullmatch(r'%\d+', pane_id):
         raise ValueError('No matching pane. Paste a GitHub PR URL, or search an observed branch/window name.')
-    # Target this popup’s client explicitly; another client may be active meanwhile.
-    client_arguments = ['-c', client_name] if client_name else []
+    navigate_to_pane(pane_id, client_name)
+
+
+def navigate_to_pane(pane_id, client_name):
+    destination_client, wezterm_pane = find_destination(pane_id, client_name)
+    client_arguments = ['-c', destination_client] if destination_client else []
     run(['tmux', 'switch-client', *client_arguments, '-t', pane_id], check=True)
     run(['tmux', 'select-pane', '-t', pane_id], check=True)
+    if wezterm_pane:
+        # Focus the existing outer tab and split after selecting its tmux destination.
+        run(['wezterm', 'cli', 'activate-tab', '--tab-id', str(wezterm_pane['tab_id'])])
+        run(['wezterm', 'cli', 'activate-pane', '--pane-id', str(wezterm_pane['pane_id'])])
+
+
+def find_destination(pane_id, current_client):
+    if not shutil.which('wezterm'):
+        return current_client, None
+    try:
+        destination_session = run(['tmux', 'display-message', '-p', '-t', pane_id, '#{session_name}'], check=True)
+        client_listing = run(['tmux', 'list-clients', '-F', '#{client_name}\t#{session_name}'], check=True)
+        wezterm_panes = json.loads(run(['wezterm', 'cli', 'list', '--format', 'json'], check=True))
+        clients = [line.split('\t', 1) for line in client_listing.splitlines()]
+        return select_destination(destination_session, clients, wezterm_panes, current_client)
+    except (ValueError, OSError, subprocess.TimeoutExpired):
+        return current_client, None
+
+
+def select_destination(destination_session, clients, wezterm_panes, current_client):
+    panes_by_tty = {pane.get('tty_name'): pane for pane in wezterm_panes}
+    # Prefer this client when it already displays the session, then another visible client.
+    ordered_clients = sorted(clients, key=lambda client: client[0] != current_client)
+    for client_name, session_name in ordered_clients:
+        if session_name == destination_session and client_name in panes_by_tty:
+            return client_name, panes_by_tty[client_name]
+    return current_client, panes_by_tty.get(current_client)
 
 
 def collect_and_record_pane_rows():
@@ -184,20 +211,73 @@ def choose_row(pane_rows):
     with tempfile.TemporaryDirectory(prefix='agent-search-') as preview_directory:
         preview_path = Path(preview_directory, 'panes.json')
         preview_path.write_text(json.dumps({row['pane']: row for row in pane_rows}))
+        Path(preview_directory, 'candidates.txt').write_text(candidates)
+        query_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
+                                   'query', '--data', str(preview_path), '--']) + ' {q}'
+        Path(preview_directory, 'status.txt').write_text('No matching destination.')
+        query_result_path(preview_path, '').write_text(json.dumps([row['pane'] for row in pane_rows]))
+        accept_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
+                                    'accept', '--data', str(preview_path)]) + ' --pane {1} -- {q}'
         preview_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
                                      'preview', '--data', str(preview_path)]) + ' {1}'
-        picker = subprocess.run(['fzf', '--ansi', '--no-multi', '--layout=reverse',
+        picker = subprocess.run(['fzf', '--disabled', '--no-sort', '--ansi', '--no-multi', '--layout=reverse',
                                  '--delimiter=\t', '--with-nth=2..', '--gap=1', '--highlight-line',
                                  '--color=fg:252,hl:220,fg+:255,bg+:236,hl+:220,pointer:81,prompt:81',
                                  '--prompt=Window / branch / PR > ',
                                  '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+/ details\n'
-                                          'Search a window or branch, or paste a GitHub PR URL and press Enter.\n\n' + column_header,
+                                          'Search a window or branch; paste a PR URL to resolve matching panes.\n\n' + column_header,
                                  '--preview=' + preview_command,
                                  '--preview-window=down,35%,wrap,border-top',
-                                 '--bind=enter:accept-or-print-query,ctrl-/:toggle-preview'],
+                                 '--bind=enter:transform(' + accept_command + '),ctrl-/:toggle-preview',
+                                 '--bind=change:reload(sleep 0.3; exec ' + query_command + ')'],
                                 input=candidates, text=True, stdout=subprocess.PIPE,
                                 env={**os.environ, 'FZF_DEFAULT_OPTS': '', 'FZF_DEFAULT_OPTS_FILE': ''})
     return picker.stdout.strip() if picker.returncode == 0 else ''
+
+
+def update_query_results(preview_path, query):
+    candidate_lines = preview_path.with_name('candidates.txt').read_text().splitlines()
+    pane_rows = list(json.loads(preview_path.read_text()).values())
+    try:
+        if PR_PATTERN.fullmatch(query.strip()):
+            repository, branch = resolve_pr(query.strip())
+            matching_panes = {row['pane'] for row in pane_rows if any(
+                association['repository'] == repository and association['branch'] == branch
+                for association in row['associations'])}
+            pr_number = PR_PATTERN.fullmatch(query.strip()).group(3)
+            result_lines = [line + f'  \033[35mPR #{pr_number}\033[0m' for line in candidate_lines
+                            if line.split('\t', 1)[0] in matching_panes]
+            status = (f'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
+                      'Link older work explicitly, or clear the URL to search windows.')
+        else:
+            # Reuse fzf’s ranking while keeping original ANSI rows for presentation.
+            filtered_lines = run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--filter', query],
+                                 input_text='\n'.join(candidate_lines)).splitlines()
+            candidates_by_pane_id = {line.split('\t', 1)[0]: line for line in candidate_lines}
+            result_lines = [candidates_by_pane_id[line.split('\t', 1)[0]] for line in filtered_lines]
+            status = 'No matching windows or branches. Edit your search or paste a GitHub PR URL.'
+    except (ValueError, OSError, KeyError, subprocess.TimeoutExpired) as error:
+        result_lines = []
+        status = f'PR lookup failed: {error}. Edit the URL to retry, or search a branch name.'
+    # The non-selectable status row and preview explain empty results inside the picker.
+    preview_path.with_name('status.txt').write_text(status)
+    result_path = query_result_path(preview_path, query)
+    temporary_result_path = result_path.with_suffix(f'.{os.getpid()}.tmp')
+    temporary_result_path.write_text(json.dumps([line.split('\t', 1)[0] for line in result_lines]))
+    os.replace(temporary_result_path, result_path)
+    print('\n'.join(result_lines) if result_lines else '!\t' + status.replace('\n', ' '))
+
+
+def query_result_path(preview_path, query):
+    return preview_path.with_name('query-' + hashlib.sha256(query.encode()).hexdigest() + '.json')
+
+
+def print_accept_action(preview_path, query, selected_pane_id):
+    result_path = query_result_path(preview_path, query)
+    if result_path.exists() and selected_pane_id in json.loads(result_path.read_text()):
+        print('accept')
+    else:
+        print('change-header(Search updating or no destination. Wait for results, then press Enter.)')
 
 
 def format_row(pane_row, column_widths=(30, 18, 24)):
@@ -235,8 +315,8 @@ def format_details(pane_row):
     return '\n'.join(detail_lines)
 
 
-def run(command, check=False):
-    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
+def run(command, check=False, input_text=None):
+    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, input=input_text)
     if check and result.returncode:
         raise ValueError(result.stderr.strip() or f'{command[0]} failed')
     return result.stdout.strip()

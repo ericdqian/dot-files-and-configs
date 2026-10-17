@@ -56,11 +56,15 @@ and branches with space between rows. The bottom detail panel shows full paths
 and branch/PR associations; Ctrl+/ toggles it. Automated review sessions named
 `claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
 are excluded, while ordinary development windows with review-related names stay visible.
-Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL and press Enter
-to resolve its source repository and branch. Multiple matching panes remain
-available to choose from. URL resolution requires authenticated `gh` access;
+Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL to resolve its
+source repository and branch automatically. Matching panes appear in the list;
+press Enter to select one. Missing history and API errors appear in the picker,
+and clearing the URL restores ordinary fuzzy search. Multiple matching panes remain
+available to choose from. When the destination session is already displayed
+in WezTerm, selection focuses its existing tab and pane. Otherwise the current
+tmux client switches to the destination. URL resolution requires authenticated `gh` access;
 ordinary window/branch search stays local. The picker requires Python 3.9+ and
-fzf with `accept-or-print-query` support (tested with fzf 0.70 and tmux 3.6a).
+fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
 
 Claude and Codex lifecycle hooks record branches observed in their reported
 working directory and any tool `workdir`/`cwd`. Earlier associations stay on

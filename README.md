@@ -20,7 +20,7 @@ Markers retire themselves. A finished marker clears as soon as its window is loo
 
 Only windows in an attached session are marked. A window nobody is attached to cannot be looked at, so a marker there would sit in a count that nothing can ever clear — on a machine running background review agents in detached sessions, that is most of them. Such an agent still bounces the Dock if it blocks, since that needs answering wherever it runs, though with no marker to track it there is nothing to re-bounce from.
 
-Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call, so the handler exits after the single option read that proves the state unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
+Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call; after recording the observed branch, the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
 ## Claude session routing
 
@@ -45,6 +45,50 @@ Validate the hook with `node --test agent_notify/register_claude_session.test.cj
 Mason will require a few things like unzip, npm, and pip to be available in order to properly install the language servers. If you see any issues with the installation, make sure that the above are available in your path.
 
 ## Terminal
+
+### Agent window search
+
+Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
+panes across all tmux sessions. Type a window name, repository, or branch;
+use Up/Down to choose and Enter to jump directly to the pane. Escape cancels.
+Aligned, color-coded columns show the window, pane location, process, repository,
+and branches with space between rows. The bottom detail panel shows full paths
+and branch/PR associations; Ctrl+/ toggles it. Automated review sessions named
+`claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
+are excluded, while ordinary development windows with review-related names stay visible.
+Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL to resolve its
+source repository and branch automatically. Matching panes appear in the list;
+press Enter to select one. Missing history and API errors appear in the picker,
+and clearing the URL restores ordinary fuzzy search. Multiple matching panes remain
+available to choose from. When the destination session is already displayed
+in WezTerm, selection focuses its existing tab and pane. Otherwise the current
+tmux client switches to the destination. URL resolution requires authenticated `gh` access;
+ordinary window/branch search stays local. The picker requires Python 3.9+ and
+fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
+
+Claude and Codex lifecycle hooks record branches observed in their reported
+working directory and any tool `workdir`/`cwd`. Earlier associations stay on
+that pane even after it switches branches. Opening the picker also seeds each
+pane once per current directory; hooks capture later branch changes. History lives in pane-local tmux options and
+ends when the pane/server closes; it is not restored by tmux-resurrect. It tracks
+where work happened, rather than proving an agent is still running there.
+
+To backfill earlier work, run this from the repository in the agent’s pane:
+
+```sh
+python3 ~/.agent-notify/navigation/search.py link eq/feat/earlier-branch
+python3 ~/.agent-notify/navigation/search.py link https://github.com/OWNER/REPO/pull/123
+```
+
+You can run either command elsewhere with `--pane %ID` to target the agent’s
+pane explicitly. Branch links use the current repository’s `origin` identity;
+PR links resolve their source repository through GitHub. Work performed in a
+different directory only through shell `cd` or `git -C` may need an explicit
+link if the agent hook does not report that directory.
+
+Validate with `python3 -m unittest discover -s agent_notify/navigation -p 'test_*.py'`.
+The terminal integration check, `python3 agent_notify/navigation/integration_test.py`,
+uses a separate tmux server and a stub GitHub response.
 
 ### Karabiner-Elements
 

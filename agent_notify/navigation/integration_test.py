@@ -37,6 +37,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         options = tmux('show-options', '-p', '-t', pane_one)
         assert options.count('@agent_nav_') == 3, options  # Two branches plus inspected-directory marker.
         tmux('new-session', '-d', '-s', 'other-session')
+        tmux('new-session', '-d', '-s', 'claude-pr-123-security', '-c', repository)
         binding = next(line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines() if line.startswith('bind-key o '))
         binding_file = Path(directory, 'binding.conf')
         binding_file.write_text(binding.replace('~/.agent-notify/navigation/search.py', search_script) + '\n')
@@ -58,6 +59,8 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         read_until(b'other-ses')
         os.write(terminal, b'\x02o')
         output = read_until(b'Window / branch / PR')
+        preview_output = read_until(b'Recorded branches / PRs') if b'Recorded branches / PRs' not in output else output
+        assert b'claude-pr-123-security' not in output + preview_output
         assert tmux('display-message', '-p', '#{client_width}x#{client_height}') == '100x40'
         os.write(terminal, b'second\r')
         observed_output = b''

@@ -52,7 +52,7 @@ Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
 panes across all tmux sessions. Type a window name, repository, or branch;
 use Up/Down to choose and Enter to jump directly to the pane. Escape cancels.
 Aligned, color-coded columns show the window, pane location, process, repository,
-and branches with space between rows. The bottom detail panel shows full paths
+ownership, and branches with space between rows. The bottom detail panel shows full paths
 and branch/PR associations; Ctrl+/ toggles it. Automated review sessions named
 `claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
 are excluded, while ordinary development windows with review-related names stay visible.
@@ -69,25 +69,53 @@ and redraws before routing, and routing commands cannot read terminal input. URL
 ordinary window/branch search stays local. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
 
-Claude and Codex lifecycle hooks record branches observed in their reported
-working directory and any tool `workdir`/`cwd`. Earlier associations stay on
-that pane even after it switches branches. Opening the picker also seeds each
-pane once per current directory; hooks capture later branch changes. History lives in pane-local tmux options and
-ends when the pane/server closes; it is not restored by tmux-resurrect. It tracks
-where work happened, rather than proving an agent is still running there.
+The OWNER column distinguishes an explicit `claimed` branch/worktree from an
+`observed` checkout. Hooks and picker seeding only observe directories; they do
+not establish that every pane sharing a checkout owns its current branch. Once a
+pane has explicit claims, incidental branch observations are hidden from its
+navigation history. PR URLs and exact branch searches prefer explicit claims
+over observations. Multiple genuine claims remain selectable, with their full
+worktree paths and optional agent session IDs in the detail panel.
 
-To backfill earlier work, run this from the repository in the agent’s pane:
+For a new task, create a dedicated worktree and claim it for the agent’s pane:
 
 ```sh
-python3 ~/.agent-notify/navigation/search.py link eq/feat/earlier-branch
-python3 ~/.agent-notify/navigation/search.py link https://github.com/OWNER/REPO/pull/123
+python3 ~/.agent-notify/navigation/search.py start eq/feat/example \
+  --checkout ../repo-worktrees/example --base origin/main
 ```
 
-You can run either command elsewhere with `--pane %ID` to target the agent’s
-pane explicitly. Branch links use the current repository’s `origin` identity;
-PR links resolve their source repository through GitHub. Work performed in a
-different directory only through shell `cd` or `git -C` may need an explicit
-link if the agent hook does not report that directory.
+Run from the repository and choose the base according to that repository’s
+instructions. `start` creates a new branch from the base, or checks out an
+existing local branch, without changing the shared checkout. It does not move
+an agent’s working directory: use the returned worktree path for subsequent
+commands. A branch already checked out elsewhere is rejected by Git.
+
+For an existing isolated worktree, claim its current branch and then its PR:
+
+```sh
+python3 ~/.agent-notify/navigation/search.py claim --checkout ../repo-worktrees/example
+python3 ~/.agent-notify/navigation/search.py claim https://github.com/OWNER/REPO/pull/123 \
+  --checkout ../repo-worktrees/example
+```
+
+Claims validate that the worktree is on the requested branch. They retain the
+canonical worktree root, branch, PR URL, and agent session ID when available.
+Outside the target tmux pane, pass its known stable `--pane %ID`; never guess a
+pane from whichever client happens to be active. Agents outside tmux have no
+picker destination and should create worktrees with Git directly.
+
+To explicitly backfill earlier work whose branch is no longer checked out, use
+`link` from its repository with a branch name or PR URL:
+
+```sh
+python3 ~/.agent-notify/navigation/search.py link eq/feat/earlier-branch --pane %ID
+python3 ~/.agent-notify/navigation/search.py link https://github.com/OWNER/REPO/pull/123 --pane %ID
+```
+
+History ends when the pane/server closes and is not restored by tmux-resurrect.
+Existing agents are not relocated or assigned ownership automatically. Work
+performed using shell `cd` or `git -C` without a corresponding hook directory
+can still need an explicit claim or historical link.
 
 Validate with `python3 -m unittest discover -s agent_notify/navigation -p 'test_*.py'`.
 The terminal integration check, `python3 agent_notify/navigation/integration_test.py`,

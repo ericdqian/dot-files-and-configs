@@ -18,24 +18,36 @@ PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'record', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
     parser.add_argument('--data', default='')
+    parser.add_argument('--checkout', default='')
+    parser.add_argument('--base', default='HEAD')
+    parser.add_argument('--agent-session', default=os.environ.get('CODEX_SESSION_ID', os.environ.get('CLAUDE_CODE_SESSION_ID', '')))
     arguments = parser.parse_args()
     if arguments.action == 'open':
         open_picker(arguments.client)
+    elif arguments.action == 'start':
+        checkout_path = create_agent_worktree(arguments.pane, arguments.reference, arguments.checkout, arguments.base)
+        record_branch(arguments.pane, str(checkout_path), source='claim', session_id=arguments.agent_session)
+        print(f'Worktree: {checkout_path}\nClaimed branch {arguments.reference} for pane {arguments.pane}. Use this worktree for subsequent work.')
+    elif arguments.action == 'claim':
+        record_branch(arguments.pane, arguments.checkout or os.getcwd(), arguments.reference,
+                      source='claim', session_id=arguments.agent_session)
+        print(f'Claim recorded for pane {arguments.pane}.')
     elif arguments.action == 'record':
         payload = json.load(sys.stdin)
         for working_directory in observed_directories(payload):
-            record_branch(arguments.pane, working_directory)
+            record_branch(arguments.pane, working_directory, session_id=payload.get('session_id', ''))
     elif arguments.action == 'link':
         if not arguments.reference:
             raise ValueError('Supply a branch name or GitHub PR URL to link.')
         if not arguments.pane:
             raise ValueError('Run link inside the agent’s tmux pane, or pass --pane %ID.')
-        record_branch(arguments.pane, os.getcwd(), arguments.reference)
+        record_branch(arguments.pane, arguments.checkout or os.getcwd(), arguments.reference,
+                      source='link', session_id=arguments.agent_session)
     elif arguments.action == 'accept':
         print_accept_action(Path(arguments.data), arguments.reference, arguments.pane)
     elif arguments.action == 'query':
@@ -58,30 +70,60 @@ def observed_directories(payload):
     return list(dict.fromkeys(directory for directory in [agent_directory, tool_directory] if directory))
 
 
-def record_branch(pane_id, working_directory, reference=''):
+def create_agent_worktree(pane_id, branch, checkout, base):
+    if not pane_id or not branch or not checkout:
+        raise ValueError('start requires a branch, --checkout PATH, and a tmux pane (--pane %ID outside tmux).')
+    if run(['tmux', 'display-message', '-p', '-t', pane_id, '#{pane_id}'], check=True) != pane_id:
+        raise ValueError('The target tmux pane no longer exists.')
+    checkout_path = Path(checkout).expanduser().resolve()
+    existing_branch = run(['git', 'show-ref', '--verify', f'refs/heads/{branch}'])
+    # Create a separate checkout without moving, stashing, or changing the shared worktree.
+    branch_arguments = [] if existing_branch else ['-b', branch]
+    starting_commit = branch if existing_branch else base
+    run(['git', 'worktree', 'add', *branch_arguments, '--', str(checkout_path), starting_commit], check=True)
+    return checkout_path
+
+
+def record_branch(pane_id, working_directory, reference='', source='observed', session_id=''):
     if not pane_id:
+        if source in {'claim', 'link'}:
+            raise ValueError('A claim needs a live tmux pane; pass --pane %ID outside tmux.')
         return
     # Remember non-Git directories too, so shell panes need no repeated Git probes.
     run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_nav_directory', working_directory], check=True)
     repository = repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
-    branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
+    current_branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
+    branch = current_branch
+    checkout_root = run(['git', '-C', working_directory, 'rev-parse', '--show-toplevel'])
     if not repository:
-        repository = run(['git', '-C', working_directory, 'rev-parse', '--show-toplevel'])
+        repository = checkout_root
     if reference:
         if PR_PATTERN.fullmatch(reference):
             repository, branch = resolve_pr(reference)
         else:
             branch = reference
+    if source == 'claim' and branch != current_branch:
+        raise ValueError(f"This checkout is on {current_branch or 'a detached HEAD'}, not {branch}. Use its dedicated worktree, or link historical work explicitly.")
     if not repository or not branch:
-        if reference:
+        if reference or source == 'claim':
             raise ValueError('Run branch links from a Git repository with a named branch.')
         return
-    association = {'repository': repository, 'branch': branch}
-    if PR_PATTERN.fullmatch(reference):
-        association['url'] = reference
+    association = {'repository': repository, 'branch': branch, 'checkout': checkout_root, 'source': source}
     association_identity = json.dumps(association, sort_keys=True)
     option_key = OPTION_PREFIX + hashlib.sha256(association_identity.encode()).hexdigest()
-    # Each association owns an option, so overlapping hooks cannot overwrite history.
+    previous_association = run(['tmux', 'show-options', '-pqv', '-t', pane_id, option_key])
+    if previous_association:
+        try:
+            previous_url = json.loads(previous_association).get('url')
+            if previous_url:
+                association['url'] = previous_url
+        except ValueError:
+            pass
+    if PR_PATTERN.fullmatch(reference):
+        association['url'] = reference
+    if session_id:
+        association['agent_session'] = session_id
+    # Each association owns an option, so observations cannot overwrite explicit claims.
     run(['tmux', 'set-option', '-p', '-t', pane_id, option_key, json.dumps(association)], check=True)
 
 
@@ -248,11 +290,11 @@ def is_feedback_session(session_name):
 def choose_row(pane_rows):
     title_width = max([len(row.get('title', row['label'])) for row in pane_rows] + [6])
     location_width = max([len(row.get('location', '')) for row in pane_rows] + [8])
-    repository_width = max([len(format_repository_label(row['associations'])) for row in pane_rows] + [10])
+    repository_width = max([len(format_repository_label(navigation_associations(row))) for row in pane_rows] + [10])
     column_widths = (min(title_width, 36), min(location_width, 24), min(repository_width, 36))
     candidates = '\n'.join(format_row(row, column_widths) for row in pane_rows)
     column_header = (f"{'WINDOW':<{column_widths[0]}}  {'PANE':<{column_widths[1]}}  "
-                     f"{'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  BRANCHES")
+                     f"{'OWNER':<8}  {'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  BRANCHES")
     # The private snapshot lets preview selection stay local, without querying tmux again.
     with tempfile.TemporaryDirectory(prefix='agent-search-') as preview_directory:
         preview_path = Path(preview_directory, 'panes.json')
@@ -289,13 +331,23 @@ def update_query_results(preview_path, query):
             repository, branch = resolve_pr(query.strip())
             matching_panes = {row['pane'] for row in pane_rows if any(
                 association['repository'] == repository and association['branch'] == branch
-                for association in row['associations'])}
+                for association in navigation_associations(row))}
+            claimed_panes = {row['pane'] for row in pane_rows if any(
+                association.get('source') in {'claim', 'link'} and association['repository'] == repository
+                and association['branch'] == branch for association in navigation_associations(row))}
+            if claimed_panes:
+                matching_panes = claimed_panes
             pr_number = PR_PATTERN.fullmatch(query.strip()).group(3)
-            result_lines = [line + f'  \033[35mPR #{pr_number}\033[0m' for line in candidate_lines
+            result_lines = [line.replace('\t', f'\t\033[35mPR #{pr_number}\033[0m  ', 1) for line in candidate_lines
                             if line.split('\t', 1)[0] in matching_panes]
             status = (f'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
                       'Link older work explicitly, or clear the URL to search windows.')
         else:
+            claimed_panes = {row['pane'] for row in pane_rows if any(
+                association.get('source') in {'claim', 'link'} and association['branch'] == query.strip()
+                for association in navigation_associations(row))}
+            if claimed_panes:
+                candidate_lines = [line for line in candidate_lines if line.split('\t', 1)[0] in claimed_panes]
             # Reuse fzf’s ranking while keeping original ANSI rows for presentation.
             filtered_lines = run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--filter', query],
                                  input_text='\n'.join(candidate_lines)).splitlines()
@@ -329,15 +381,23 @@ def print_accept_action(preview_path, query, selected_pane_id):
 def format_row(pane_row, column_widths=(30, 18, 24)):
     title = pane_row.get('title', pane_row['label'])
     location = pane_row.get('location', '')
-    branches = list(dict.fromkeys(association['branch'] for association in pane_row['associations']))
-    repository_label = format_repository_label(pane_row['associations'])
+    associations = navigation_associations(pane_row)
+    branches = list(dict.fromkeys(association['branch'] for association in associations))
+    repository_label = format_repository_label(associations)
+    ownership_label = 'claimed' if any(association.get('source') in {'claim', 'link'} for association in associations) else 'observed'
     process_label = 'claude' if re.fullmatch(r'\d+\.\d+\.\d+', pane_row['command']) else pane_row['command']
     branch_label = ', '.join(branches) or 'No recorded branch'
     # Keep complete titles and branches in the row so fuzzy search loses no history.
     return (f"{pane_row['pane']}\t\033[1;37m{title:<{column_widths[0]}}\033[0m  "
             f"\033[90m{location:<{column_widths[1]}}\033[0m  "
-            f"\033[32m{process_label:<9}\033[0m  "
+            f"\033[33m{ownership_label:<8}\033[0m  \033[32m{process_label:<9}\033[0m  "
             f"\033[36m{repository_label:<{column_widths[2]}}\033[0m  {branch_label}")
+
+
+def navigation_associations(pane_row):
+    claims = [association for association in pane_row['associations']
+              if association.get('source') in {'claim', 'link'}]
+    return claims or pane_row['associations']
 
 
 def format_repository_label(associations):
@@ -351,9 +411,15 @@ def format_details(pane_row):
                     f"Process   {pane_row['command']}", f"Directory {pane_row.get('directory', '—')}",
                     '', '\033[1mRecorded branches / PRs\033[0m']
     unique_associations = {json.dumps(association, sort_keys=True): association
-                           for association in pane_row['associations']}
+                           for association in navigation_associations(pane_row)}
     for association in unique_associations.values():
         detail_lines.append(f"  {association['branch']}  \033[90m{association['repository']}\033[0m")
+        ownership = 'Explicit ownership' if association.get('source') in {'claim', 'link'} else 'Checkout observation only; no ownership claim'
+        detail_lines.append(f'    {ownership}')
+        if association.get('checkout'):
+            detail_lines.append(f"    Worktree: {association['checkout']}")
+        if association.get('agent_session'):
+            detail_lines.append(f"    Agent session: {association['agent_session']}")
         if association.get('url'):
             detail_lines.append(f"    {association['url']}")
     if not unique_associations:

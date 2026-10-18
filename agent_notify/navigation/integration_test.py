@@ -84,7 +84,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
             raise AssertionError(('Picker did not switch', tmux('list-clients', '-F', '#{client_name}:#{session_name}:#{pane_id}'), observed_output[-5000:]))
         # A PR URL has no fuzzy match; Enter must still submit it for resolution.
         gh_script = Path(gh_directory, 'gh')
-        gh_script.write_text('#!/bin/sh\ncase "$2" in */999) branch=absent ;; *) branch=first ;; esac\nprintf \'{"head":{"repo":{"full_name":"owner/repo"},"ref":"%s"}}\' "$branch"\n')
+        gh_script.write_text('#!/bin/sh\ncase "$2" in */999) branch=absent ;; */124) branch=feature-claimed ;; *) branch=first ;; esac\nprintf \'{"head":{"repo":{"full_name":"owner/repo"},"ref":"%s"}}\' "$branch"\n')
         gh_script.chmod(0o755)
         tmux('set-environment', '-g', 'PATH', gh_directory + ':' + os.environ['PATH'])
         tmux('switch-client', '-t', 'other-session')
@@ -152,7 +152,27 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         else:
             raise AssertionError('Picker did not navigate away from shell input probe')
         assert shell_input_path.read_bytes() == b'', 'Picker selection leaked input to the original shell'
-        print('PASS: preview, reviewer filtering, branch/PR lookup, missing-history status, and text-search recovery')
+        # Create and claim an actual separate worktree, then attach its PR to that claim.
+        command('git', '-C', repository, '-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                '-c', 'core.hooksPath=/dev/null', 'commit', '--allow-empty', '-m', 'Initial')
+        tmux('new-session', '-d', '-s', 'claimed-session', '-c', repository)
+        claimed_pane_id = tmux('display-message', '-p', '-t', 'claimed-session', '#{pane_id}')
+        claimed_checkout = str(Path(directory, 'claimed-worktree'))
+        subprocess.run(['python3', search_script, 'start', 'feature-claimed', '--checkout', claimed_checkout,
+                        '--pane', claimed_pane_id], cwd=repository, env=environment, check=True, capture_output=True)
+        claim_environment = {**environment, 'PATH': test_environment['PATH']}
+        subprocess.run(['python3', search_script, 'claim', 'https://github.com/owner/repo/pull/124',
+                        '--checkout', claimed_checkout, '--pane', claimed_pane_id],
+                       env=claim_environment, check=True, capture_output=True)
+        claimed_options = tmux('show-options', '-p', '-t', claimed_pane_id)
+        claims = [json.loads(shlex.split(line)[1]) for line in claimed_options.splitlines()
+                  if line.startswith('@agent_nav_') and not line.startswith('@agent_nav_directory ')]
+        self_claim = next(association for association in claims if association.get('source') == 'claim')
+        assert self_claim['branch'] == 'feature-claimed'
+        assert self_claim['checkout'] == str(Path(claimed_checkout).resolve())
+        assert self_claim['url'] == 'https://github.com/owner/repo/pull/124'
+        assert command('git', '-C', repository, 'branch', '--show-current') == 'second'
+        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, and real worktree/PR claims')
     finally:
         tmux('kill-server')
         if 'terminal' in locals():

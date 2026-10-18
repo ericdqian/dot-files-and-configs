@@ -23,6 +23,8 @@ class SearchTests(unittest.TestCase):
         def fake_run(command, check=False):
             if command[0] == 'git':
                 return 'git@github.com:owner/repo.git' if 'remote' in command else 'first'
+            if command[1] == 'show-options':
+                return json.dumps(stored_options[command[-1]]) if command[-1] in stored_options else ''
             if command[-2] != '@agent_nav_directory':
                 stored_options[command[-2]] = json.loads(command[-1])
             return ''
@@ -42,6 +44,8 @@ class SearchTests(unittest.TestCase):
         def fake_run(command, check=False):
             if command[0] == 'git':
                 return 'git@github.com:owner/repo.git' if 'remote' in command else 'feature'
+            if command[1] == 'show-options':
+                return json.dumps(stored_options[command[-1]]) if command[-1] in stored_options else ''
             if command[-2] != '@agent_nav_directory':
                 stored_options[command[-2]] = json.loads(command[-1])
             return ''
@@ -120,7 +124,8 @@ class SearchTests(unittest.TestCase):
             with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
-            self.assertIn('%1\tAuthor pane', output.getvalue())
+            self.assertIn('%1\t', output.getvalue())
+            self.assertIn('Author pane', output.getvalue())
             self.assertIn('PR #7', output.getvalue())
             with redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'Other pane')
@@ -219,6 +224,64 @@ class SearchTests(unittest.TestCase):
                 search.pick_pane('/dev/origin', selection_path)
             self.assertEqual(selection_path.read_text(), '%42')
             navigate.assert_not_called()
+
+    def test_explicit_pr_and_branch_claims_exclude_shared_checkout_observations(self):
+        pane_rows = {
+            '%1': {'pane': '%1', 'associations': [{'repository': 'github.com/owner/repo',
+                'branch': 'feature', 'source': 'observed', 'checkout': '/shared'}]},
+            '%2': {'pane': '%2', 'associations': [{'repository': 'github.com/owner/repo',
+                'branch': 'feature', 'source': 'claim', 'checkout': '/worktrees/feature'}]},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            preview_path.write_text(json.dumps(pane_rows))
+            Path(directory, 'candidates.txt').write_text('%1\tObserved feature\n%2\tClaimed feature')
+            for query in ['feature', 'https://github.com/owner/repo/pull/7']:
+                with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
+                     redirect_stdout(io.StringIO()) as output:
+                    search.update_query_results(preview_path, query)
+                self.assertIn('%2\t', output.getvalue())
+                self.assertIn('Claimed feature', output.getvalue())
+                self.assertNotIn('%1\t', output.getvalue())
+
+    def test_claimed_pane_does_not_inherit_another_agents_shared_checkout_branch(self):
+        explicit_claim = {'repository': 'github.com/owner/repo', 'branch': 'my-work',
+                          'source': 'claim', 'checkout': '/worktrees/my-work'}
+        pane_row = {'associations': [explicit_claim,
+            {'repository': 'github.com/owner/repo', 'branch': 'someone-elses-work', 'source': 'observed'}]}
+        self.assertEqual(search.navigation_associations(pane_row), [explicit_claim])
+
+    def test_claim_rejects_a_branch_not_checked_out_in_the_target_worktree(self):
+        def fake_run(command, **kwargs):
+            if command[0] == 'git':
+                if 'remote' in command:
+                    return 'https://github.com/owner/repo.git'
+                if 'branch' in command:
+                    return 'main'
+                return '/shared'
+            return ''
+        with patch.object(search, 'run', side_effect=fake_run):
+            with self.assertRaisesRegex(ValueError, 'checkout is on main, not feature'):
+                search.record_branch('%42', '/shared', 'feature', source='claim')
+
+    def test_start_creates_isolated_worktree_without_changing_shared_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository_path = Path(directory, 'repo')
+            repository_path.mkdir()
+            search.run(['git', 'init', '-b', 'main', str(repository_path)], check=True)
+            search.run(['git', '-C', str(repository_path), '-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                        '-c', 'core.hooksPath=/dev/null', 'commit', '--allow-empty', '-m', 'Initial'], check=True)
+            checkout_path = Path(directory, 'feature-worktree')
+            original_run = search.run
+            def run_in_repository(command, **kwargs):
+                if command[0] == 'tmux':
+                    return '%42'
+                return original_run(['git', '-C', str(repository_path), *command[1:]], **kwargs)
+            with patch.object(search, 'run', side_effect=run_in_repository):
+                created_path = search.create_agent_worktree('%42', 'eq/feat/example', str(checkout_path), 'HEAD')
+            self.assertEqual(created_path, checkout_path.resolve())
+            self.assertEqual(search.run(['git', '-C', str(repository_path), 'branch', '--show-current']), 'main')
+            self.assertEqual(search.run(['git', '-C', str(checkout_path), 'branch', '--show-current']), 'eq/feat/example')
 
     def test_cancel_does_not_switch(self):
         with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \

@@ -136,13 +136,37 @@ def pick_pane(client_name, selection_path=''):
 
 def navigate_to_pane(pane_id, client_name):
     destination_client, wezterm_pane = find_destination(pane_id, client_name)
+    if destination_client is None and wezterm_pane is not None:
+        spawn_session_tab(pane_id, wezterm_pane)
+        return
     client_arguments = ['-c', destination_client] if destination_client else []
     run(['tmux', 'switch-client', *client_arguments, '-t', pane_id], check=True)
     run(['tmux', 'select-pane', '-t', pane_id], check=True)
     if wezterm_pane:
-        # Focus the existing outer tab and split after selecting its tmux destination.
-        run(['wezterm', 'cli', 'activate-tab', '--tab-id', str(wezterm_pane['tab_id'])])
-        run(['wezterm', 'cli', 'activate-pane', '--pane-id', str(wezterm_pane['pane_id'])])
+        focus_wezterm_pane(wezterm_pane)
+
+
+def spawn_session_tab(pane_id, source_wezterm_pane):
+    session_id, socket_path = run(['tmux', 'display-message', '-p', '-t', pane_id,
+                                  '#{session_id}\t#{socket_path}'], check=True).split('\t', 1)
+    # Select inside the destination session without replacing the source client’s session.
+    run(['tmux', 'select-window', '-t', pane_id], check=True)
+    run(['tmux', 'select-pane', '-t', pane_id], check=True)
+    created_pane_id = run(['wezterm', 'cli', 'spawn', '--window-id', str(source_wezterm_pane['window_id']),
+                           '--', 'env', '-u', 'TMUX', '-u', 'TMUX_PANE', 'tmux', '-S', socket_path,
+                           'attach-session', '-t', session_id], check=True)
+    wezterm_panes = json.loads(run(['wezterm', 'cli', 'list', '--format', 'json'], check=True))
+    created_pane = next((pane for pane in wezterm_panes if str(pane['pane_id']) == created_pane_id), None)
+    if created_pane:
+        focus_wezterm_pane(created_pane)
+    else:
+        run(['wezterm', 'cli', 'activate-pane', '--pane-id', created_pane_id], check=True)
+
+
+def focus_wezterm_pane(wezterm_pane):
+    # Focus both levels explicitly: the outer tab may differ from the selected split.
+    run(['wezterm', 'cli', 'activate-tab', '--tab-id', str(wezterm_pane['tab_id'])], check=True)
+    run(['wezterm', 'cli', 'activate-pane', '--pane-id', str(wezterm_pane['pane_id'])], check=True)
 
 
 def find_destination(pane_id, current_client):
@@ -165,7 +189,9 @@ def select_destination(destination_session, clients, wezterm_panes, current_clie
     for client_name, session_name in ordered_clients:
         if session_name == destination_session and client_name in panes_by_tty:
             return client_name, panes_by_tty[client_name]
-    return current_client, panes_by_tty.get(current_client)
+    if current_client in panes_by_tty:
+        return None, panes_by_tty[current_client]
+    return current_client, None
 
 
 def collect_and_record_pane_rows():

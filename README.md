@@ -61,8 +61,11 @@ source repository and branch automatically. Matching panes appear in the list;
 press Enter to select one. Missing history and API errors appear in the picker,
 and clearing the URL restores ordinary fuzzy search. Multiple matching panes remain
 available to choose from. When the destination session is already displayed
-in WezTerm, selection focuses its existing tab and pane. Otherwise the current
-tmux client switches to the destination. URL resolution requires authenticated `gh` access;
+in WezTerm, selection focuses its existing tab and pane. If the current terminal
+is WezTerm but no tab displays that session, selection opens a new tab attached
+to the same tmux server and session, leaving the original tab intact. Without
+WezTerm, the current tmux client switches to the destination. The popup closes
+and redraws before routing, and routing commands cannot read terminal input. URL resolution requires authenticated `gh` access;
 ordinary window/branch search stays local. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
 

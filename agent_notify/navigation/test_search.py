@@ -149,7 +149,7 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(search.select_destination('dotfiles', clients, panes, '/dev/one'),
                          ('/dev/one', panes[0]))
         self.assertEqual(search.select_destination('detached', clients, panes, '/dev/one'),
-                         ('/dev/one', panes[0]))
+                         (None, panes[0]))
 
     def test_navigation_focuses_the_destination_wezterm_tab_and_split(self):
         with patch.object(search, 'find_destination', return_value=(
@@ -162,6 +162,25 @@ class SearchTests(unittest.TestCase):
             ['wezterm', 'cli', 'activate-tab', '--tab-id', '7'],
             ['wezterm', 'cli', 'activate-pane', '--pane-id', '0'],
         ])
+
+    def test_unattached_session_opens_a_new_wezterm_tab_without_switching_origin(self):
+        def fake_run(command, **kwargs):
+            if command[1] == 'display-message':
+                return '$7\t/tmp/isolated-tmux.sock'
+            if command[:3] == ['wezterm', 'cli', 'spawn']:
+                return '42'
+            if command[:3] == ['wezterm', 'cli', 'list']:
+                return '[{"pane_id":42,"tab_id":8,"window_id":2}]'
+            return ''
+        with patch.object(search, 'find_destination', return_value=(None, {'window_id': 2})), \
+             patch.object(search, 'run', side_effect=fake_run) as commands:
+            search.navigate_to_pane('%9', '/dev/origin')
+        executed_commands = [call.args[0] for call in commands.call_args_list]
+        self.assertFalse(any(command[1] == 'switch-client' for command in executed_commands))
+        self.assertIn(['wezterm', 'cli', 'spawn', '--window-id', '2', '--', 'env', '-u', 'TMUX',
+                       '-u', 'TMUX_PANE', 'tmux', '-S', '/tmp/isolated-tmux.sock',
+                       'attach-session', '-t', '$7'], executed_commands)
+        self.assertEqual(executed_commands[-1], ['wezterm', 'cli', 'activate-pane', '--pane-id', '42'])
 
     def test_enter_rejects_stale_rows_while_query_results_are_updating(self):
         with tempfile.TemporaryDirectory() as directory:

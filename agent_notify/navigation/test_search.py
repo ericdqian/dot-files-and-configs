@@ -177,6 +177,30 @@ class SearchTests(unittest.TestCase):
                 search.print_accept_action(preview_path, 'feature', '%2')
             self.assertEqual(output.getvalue().strip(), 'accept')
 
+    def test_popup_closes_and_redraws_before_navigation(self):
+        calls = []
+        def fake_run(command, **kwargs):
+            calls.append(command[1])
+            if command[1] == 'display-popup':
+                import shlex
+                popup_command = shlex.split(command[-1])
+                Path(popup_command[popup_command.index('--data') + 1]).write_text('%42')
+            return ''
+        with patch.object(search, 'run', side_effect=fake_run), \
+             patch.object(search, 'navigate_to_pane', side_effect=lambda *arguments: calls.append('navigate')):
+            search.open_picker('/dev/origin')
+        self.assertEqual(calls, ['display-popup', 'refresh-client', 'navigate'])
+
+    def test_popup_picker_only_writes_selection_without_switching(self):
+        with tempfile.TemporaryDirectory() as directory:
+            selection_path = Path(directory, 'selection.txt')
+            with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
+                 patch.object(search, 'choose_row', return_value='%42\tSelected pane'), \
+                 patch.object(search, 'navigate_to_pane') as navigate:
+                search.pick_pane('/dev/origin', selection_path)
+            self.assertEqual(selection_path.read_text(), '%42')
+            navigate.assert_not_called()
+
     def test_cancel_does_not_switch(self):
         with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
              patch.object(search, 'choose_row', return_value=''), \

@@ -18,13 +18,15 @@ PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['record', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'record', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
     parser.add_argument('--data', default='')
     arguments = parser.parse_args()
-    if arguments.action == 'record':
+    if arguments.action == 'open':
+        open_picker(arguments.client)
+    elif arguments.action == 'record':
         payload = json.load(sys.stdin)
         for working_directory in observed_directories(payload):
             record_branch(arguments.pane, working_directory)
@@ -44,7 +46,7 @@ def main():
         print(format_details(selected_pane) if selected_pane else
               Path(arguments.data).with_name('status.txt').read_text())
     else:
-        pick_pane(arguments.client)
+        pick_pane(arguments.client, arguments.data)
 
 
 def observed_directories(payload):
@@ -101,7 +103,22 @@ def resolve_pr(pr_url):
     return 'github.com/' + head_repository['full_name'].lower(), pull_request['head']['ref']
 
 
-def pick_pane(client_name):
+def open_picker(client_name):
+    # Route only after tmux has closed the popup and restored its original terminal.
+    with tempfile.TemporaryDirectory(prefix='agent-picker-') as selection_directory:
+        selection_path = Path(selection_directory, 'selection.txt')
+        picker_command = shlex.join([sys.executable, str(Path(__file__).resolve()), 'pick',
+                                     '--client', client_name, '--data', str(selection_path)])
+        popup_arguments = ['-c', client_name] if client_name else []
+        run(['tmux', 'display-popup', *popup_arguments, '-B', '-w', '100%', '-h', '100%',
+             '-E', picker_command], check=True, timeout=None)
+        if client_name:
+            run(['tmux', 'refresh-client', '-t', client_name])
+        if selection_path.exists():
+            navigate_to_pane(selection_path.read_text(), client_name)
+
+
+def pick_pane(client_name, selection_path=''):
     if not shutil.which('fzf'):
         raise ValueError('Install fzf to use the agent window picker.')
     pane_rows = collect_and_record_pane_rows()
@@ -111,7 +128,10 @@ def pick_pane(client_name):
     pane_id = selected.split('\t', 1)[0]
     if not re.fullmatch(r'%\d+', pane_id):
         raise ValueError('No matching pane. Paste a GitHub PR URL, or search an observed branch/window name.')
-    navigate_to_pane(pane_id, client_name)
+    if selection_path:
+        Path(selection_path).write_text(pane_id)
+    else:
+        navigate_to_pane(pane_id, client_name)
 
 
 def navigate_to_pane(pane_id, client_name):
@@ -315,8 +335,11 @@ def format_details(pane_row):
     return '\n'.join(detail_lines)
 
 
-def run(command, check=False, input_text=None):
-    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, input=input_text)
+def run(command, check=False, input_text=None, timeout=20):
+    # Noninteractive commands must never consume keys intended for the popup or shell.
+    input_arguments = {'input': input_text} if input_text is not None else {'stdin': subprocess.DEVNULL}
+    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            timeout=timeout, **input_arguments)
     if check and result.returncode:
         raise ValueError(result.stderr.strip() or f'{command[0]} failed')
     return result.stdout.strip()

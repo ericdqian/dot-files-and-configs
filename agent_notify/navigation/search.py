@@ -92,6 +92,7 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
     # Remember non-Git directories too, so shell panes need no repeated Git probes.
     run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_nav_directory', working_directory], check=True)
     repository = repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
+    checkout_repository = repository
     current_branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
     branch = current_branch
     checkout_root = run(['git', '-C', working_directory, 'rev-parse', '--show-toplevel'])
@@ -100,6 +101,11 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
     if reference:
         if PR_PATTERN.fullmatch(reference):
             repository, branch = resolve_pr(reference)
+            if source == 'claim':
+                pr_owner, pr_repository, _ = PR_PATTERN.fullmatch(reference).groups()
+                base_repository = f'github.com/{pr_owner}/{pr_repository}'.lower()
+                if checkout_repository not in {repository, base_repository}:
+                    raise ValueError('This worktree belongs to a different repository than the requested PR.')
         else:
             branch = reference
     if source == 'claim' and branch != current_branch:

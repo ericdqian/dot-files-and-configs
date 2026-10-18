@@ -264,6 +264,25 @@ class SearchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'checkout is on main, not feature'):
                 search.record_branch('%42', '/shared', 'feature', source='claim')
 
+    def test_pr_claim_validates_repository_and_allows_base_checkout_for_fork_pr(self):
+        def run_in_repository(repository):
+            def fake_run(command, **kwargs):
+                if command[0] == 'git':
+                    if 'remote' in command:
+                        return f'https://{repository}.git'
+                    if 'branch' in command:
+                        return 'feature'
+                    return '/worktrees/feature'
+                return ''
+            return fake_run
+        with patch.object(search, 'resolve_pr', return_value=('github.com/fork/repo', 'feature')):
+            with patch.object(search, 'run', side_effect=run_in_repository('github.com/unrelated/repo')):
+                with self.assertRaisesRegex(ValueError, 'different repository'):
+                    search.record_branch('%42', '/worktrees/feature', 'https://github.com/base/repo/pull/7', source='claim')
+            with patch.object(search, 'run', side_effect=run_in_repository('github.com/base/repo')) as commands:
+                search.record_branch('%42', '/worktrees/feature', 'https://github.com/base/repo/pull/7', source='claim')
+                self.assertEqual(json.loads(commands.call_args.args[0][-1])['repository'], 'github.com/fork/repo')
+
     def test_start_creates_isolated_worktree_without_changing_shared_checkout(self):
         with tempfile.TemporaryDirectory() as directory:
             repository_path = Path(directory, 'repo')

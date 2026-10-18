@@ -195,13 +195,17 @@ def navigate_to_pane(pane_id, client_name):
 
 
 def spawn_session_tab(pane_id, source_wezterm_pane):
+    tmux_executable = shutil.which('tmux')
+    env_executable = shutil.which('env')
+    if not tmux_executable or not env_executable:
+        raise ValueError('Cannot locate tmux/env to attach the new WezTerm tab.')
     session_id, socket_path = run(['tmux', 'display-message', '-p', '-t', pane_id,
                                   '#{session_id}\t#{socket_path}'], check=True).split('\t', 1)
     # Select inside the destination session without replacing the source client’s session.
     run(['tmux', 'select-window', '-t', pane_id], check=True)
     run(['tmux', 'select-pane', '-t', pane_id], check=True)
     created_pane_id = run(['wezterm', 'cli', 'spawn', '--window-id', str(source_wezterm_pane['window_id']),
-                           '--', 'env', '-u', 'TMUX', '-u', 'TMUX_PANE', 'tmux', '-S', socket_path,
+                           '--', env_executable, '-u', 'TMUX', '-u', 'TMUX_PANE', tmux_executable, '-S', socket_path,
                            'attach-session', '-t', session_id], check=True)
     wezterm_panes = json.loads(run(['wezterm', 'cli', 'list', '--format', 'json'], check=True))
     created_pane = next((pane for pane in wezterm_panes if str(pane['pane_id']) == created_pane_id), None)

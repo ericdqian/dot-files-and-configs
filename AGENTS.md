@@ -50,7 +50,7 @@ Treat semantic divergence among a directory's files as a smell that the director
 
 ## Isolated worktrees and agent navigation
 
-Before implementing branch or PR work, use a dedicated Git worktree for this agent’s work. Reuse this session’s own existing worktree when appropriate. Do not share the main checkout or another agent’s worktree unless the user explicitly requests it. Follow the target repository’s guidance for worktree locations and base branches; do not relocate running agents or move existing uncommitted work automatically.
+Before implementing branch or PR work, prefer reusing an existing Git worktree for the target branch. If none exists, create a dedicated worktree for that branch. Do not use the main checkout or concurrently share a worktree with another active agent unless the user explicitly requests it. Follow the target repository’s guidance for worktree locations and base branches; do not relocate running agents or move existing uncommitted work automatically.
 
 When running inside tmux and `~/.agent-notify/navigation/search.py` exists, register explicit ownership rather than relying on the pane’s current directory:
 

@@ -48,9 +48,9 @@ Scope `AGENTS.md` files to the directory where the guidance applies. Generic age
 
 Treat semantic divergence among a directory's files as a smell that the directory needs further splitting. Group cohesive responsibilities into subdirectories named for the concepts they own, and keep shared files at the closest common parent where their meaning remains clear.
 
-## Isolated worktrees and agent navigation
+## Worktrees and agent navigation
 
-Before implementing branch or PR work, prefer reusing an existing Git worktree for the target branch. If none exists, create a dedicated worktree for that branch. Do not use the main checkout or concurrently share a worktree with another active agent unless the user explicitly requests it. Follow the target repository’s guidance for worktree locations and base branches; do not relocate running agents or move existing uncommitted work automatically.
+Before implementing branch or PR work, reuse the existing Git worktree for the target branch, even when another agent is already working in it, so the PR's changes are runnable locally in one place that reflects the PR. Create a dedicated worktree only when none exists for the branch, and do not work in the main checkout unless the user explicitly requests it. When sharing a worktree, stage files by name and do not rewrite or discard another agent's uncommitted work. Follow the target repository’s guidance for worktree locations and base branches; do not relocate running agents or move existing uncommitted work automatically.
 
 When running inside tmux and `~/.agent-notify/navigation/search.py` exists, register explicit ownership rather than relying on the pane’s current directory:
 

@@ -349,33 +349,82 @@ def choose_row(pane_rows):
     location_width = max([len(row.get('location', '')) for row in pane_rows] + [8])
     repository_width = max([len(format_repository_label(navigation_associations(row))) for row in pane_rows] + [10])
     column_widths = (min(title_width, 36), min(location_width, 24), min(repository_width, 36))
-    candidates = '\n'.join(format_row(row, column_widths) for row in pane_rows)
     column_header = (f"{'WINDOW':<{column_widths[0]}}  {'PANE':<{column_widths[1]}}  "
                      f"{'OWNER':<8}  {'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  BRANCHES")
-    # The private snapshot lets preview selection stay local, without querying tmux again.
+    query = ''
+    repository_scope = ''
+    # Keep one private snapshot directory while the two input fields take turns owning fzf.
     with tempfile.TemporaryDirectory(prefix='agent-search-') as preview_directory:
         preview_path = Path(preview_directory, 'panes.json')
-        preview_path.write_text(json.dumps({row['pane']: row for row in pane_rows}))
-        Path(preview_directory, 'candidates.txt').write_text(candidates)
-        Path(preview_directory, 'status.txt').write_text('No matching windows or branches. Edit your search or paste a GitHub PR URL.')
-        query_result_path(preview_path, '').write_text(json.dumps([row['pane'] for row in pane_rows]))
-        accept_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
-                                    'accept', '--data', str(preview_path)]) + ' --pane {1} -- {q}'
         preview_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
                                      'preview', '--data', str(preview_path)]) + ' {1}'
-        picker = subprocess.run(['fzf', '--with-shell=/bin/sh -c', '--ansi', '--no-multi', '--layout=reverse',
-                                 '--delimiter=\t', '--with-nth=2..', '--gap=1', '--highlight-line',
-                                 '--color=fg:252,hl:220,fg+:255,bg+:236,hl+:220,pointer:81,prompt:81',
-                                 '--prompt=Window / branch / PR > ',
-                                 '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+/ details\n'
-                                          'Search a window or branch; paste a PR URL to resolve matching panes.\n\n' + column_header,
-                                 '--preview=' + preview_command,
-                                 '--preview-window=down,35%,wrap,border-top',
-                                 '--bind=enter:transform(' + accept_command + '),ctrl-/:toggle-preview',
-                                 '--bind=change:transform(' + picker_change_command(preview_path, pane_rows) + ')'],
-                                input=candidates, text=True, stdout=subprocess.PIPE,
-                                env={**os.environ, 'FZF_DEFAULT_OPTS': '', 'FZF_DEFAULT_OPTS_FILE': ''})
-    return picker.stdout.strip() if picker.returncode == 0 else ''
+        picker_arguments = ['fzf', '--with-shell=/bin/sh -c', '--ansi', '--no-multi', '--layout=reverse',
+                            '--delimiter=\t', '--with-nth=2..', '--tabstop=2', '--gap=1', '--highlight-line',
+                            '--color=fg:252,hl:220,fg+:255,bg+:236,hl+:220,pointer:81,prompt:81',
+                            '--preview=' + preview_command, '--preview-window=down,35%,wrap,border-top',
+                            '--bind=ctrl-/:toggle-preview']
+        picker_environment = {**os.environ, 'FZF_DEFAULT_OPTS': '', 'FZF_DEFAULT_OPTS_FILE': ''}
+        while True:
+            scoped_rows = filter_repository_rows(pane_rows, repository_scope)
+            write_picker_snapshot(preview_path, scoped_rows, column_widths)
+            accept_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
+                                        'accept', '--data', str(preview_path)]) + ' --pane {1} -- {q}'
+            change_command = picker_change_command(preview_path, scoped_rows)
+            picker = subprocess.run([*picker_arguments, '--query=' + query, '--print-query', '--expect=ctrl-d',
+                                     '--prompt=Window / branch / PR > ',
+                                     '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
+                                              'Repository: ' + (repository_scope or 'All repositories') + '\n\n' + column_header,
+                                     '--bind=enter:transform(' + accept_command + ')',
+                                     '--bind=start:transform(' + change_command + ')',
+                                     '--bind=change:transform(' + change_command + ')'],
+                                    input=preview_path.with_name('candidates.txt').read_text(), text=True,
+                                    stdout=subprocess.PIPE, env=picker_environment)
+            output_lines = picker.stdout.splitlines()
+            # fzf returns 1 for an expected key when there are no matching rows.
+            if picker.returncode not in (0, 1) or len(output_lines) < 2:
+                return ''
+            query, pressed_key = output_lines[:2]
+            if pressed_key != 'ctrl-d':
+                return output_lines[2] if len(output_lines) > 2 else ''
+            # Scope edits start from all repositories, filtered by the saved search query.
+            # This makes widening or clearing a scope possible without losing that query.
+            write_picker_snapshot(preview_path, pane_rows, column_widths)
+            query_candidates = run([sys.executable, str(Path(__file__).resolve()),
+                                    'query', '--data', str(preview_path), '--', query], check=True)
+            scope_picker = subprocess.run([*picker_arguments, '--no-sort', '--nth=5',
+                                           '--query=' + repository_scope, '--print-query',
+                                           '--prompt=Repository > ',
+                                           '--header=Enter keep filter · Esc/Ctrl+C restore · Empty = all repositories\n'
+                                                    'Search: ' + (query or '(empty)') + '\n\n' + column_header,
+                                           '--bind=enter:accept-or-print-query'],
+                                          input='\n'.join(line for line in query_candidates.splitlines()
+                                                          if not line.startswith('!\t')),
+                                          text=True, stdout=subprocess.PIPE, env=picker_environment)
+            if scope_picker.returncode == 0:
+                repository_scope = scope_picker.stdout.split('\n', 1)[0]
+
+
+def filter_repository_rows(pane_rows, repository_scope):
+    if not repository_scope:
+        return list(pane_rows)
+    # Apply the same native fzf matching used by the repository input, once per committed scope.
+    repository_candidates = '\n'.join(row['pane'] + '\t' + format_repository_label(navigation_associations(row))
+                                      for row in pane_rows)
+    matched_panes = {line.split('\t', 1)[0] for line in
+                     run(['fzf', '--delimiter=\t', '--with-nth=2..', '--filter', repository_scope],
+                         input_text=repository_candidates).splitlines()}
+    return [row for row in pane_rows if row['pane'] in matched_panes]
+
+
+def write_picker_snapshot(preview_path, pane_rows, column_widths):
+    # Candidate files and query validations must describe the same repository scope.
+    preview_path.write_text(json.dumps({row['pane']: row for row in pane_rows}))
+    preview_path.with_name('candidates.txt').write_text('\n'.join(format_row(row, column_widths) for row in pane_rows))
+    preview_path.with_name('status.txt').write_text('No matching windows or branches. Edit your search or repository filter.')
+    preview_path.with_name('external-query').unlink(missing_ok=True)
+    for previous_query_path in preview_path.parent.glob('query-*.json'):
+        previous_query_path.unlink()
+    query_result_path(preview_path, '').write_text(json.dumps([row['pane'] for row in pane_rows]))
 
 
 def picker_change_command(preview_path, pane_rows):
@@ -489,10 +538,10 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
     process_label = 'claude' if re.fullmatch(r'\d+\.\d+\.\d+', pane_row['command']) else pane_row['command']
     branch_label = ', '.join(branches) or 'No recorded branch'
     # Keep complete titles and branches in the row so fuzzy search loses no history.
-    return (f"{pane_row['pane']}\t\033[1;37m{title:<{column_widths[0]}}\033[0m  "
-            f"\033[90m{location:<{column_widths[1]}}\033[0m  "
-            f"\033[33m{ownership_label:<8}\033[0m  \033[32m{process_label:<9}\033[0m  "
-            f"\033[36m{repository_label:<{column_widths[2]}}\033[0m  {branch_label}")
+    return (f"{pane_row['pane']}\t\033[1;37m{title:<{column_widths[0]}}\033[0m\t"
+            f"\033[90m{location:<{column_widths[1]}}\033[0m\t"
+            f"\033[33m{ownership_label:<8}\033[0m\t\033[32m{process_label:<9}\033[0m\t"
+            f"\033[36m{repository_label:<{column_widths[2]}}\033[0m\t{branch_label}")
 
 
 def navigation_associations(pane_row):

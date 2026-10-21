@@ -22,6 +22,43 @@ class SearchTests(unittest.TestCase):
         cache_environment.start()
         self.addCleanup(cache_environment.stop)
 
+    def test_repository_filter_matches_only_repositories_and_can_be_cleared(self):
+        pane_rows = [
+            {'pane': '%1', 'label': 'other', 'command': 'codex', 'associations': [
+                {'repository': 'github.com/owner/alpha', 'branch': 'feature'}]},
+            {'pane': '%2', 'label': 'alpha', 'command': 'codex', 'associations': [
+                {'repository': 'github.com/owner/beta', 'branch': 'alpha'}]},
+        ]
+        self.assertEqual(search.filter_repository_rows(pane_rows, 'alpha'), [pane_rows[0]])
+        self.assertEqual(search.filter_repository_rows(pane_rows, 'missing'), [])
+        self.assertEqual(search.filter_repository_rows(pane_rows, ''), pane_rows)
+        candidates = '\n'.join(search.format_row(row) for row in pane_rows)
+        native_matches = search.run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--nth=5',
+                                     '--filter', 'alpha'], input_text=candidates)
+        self.assertEqual(native_matches.split('\t', 1)[0], '%1')
+
+    def test_repository_editor_can_open_when_the_search_has_no_results(self):
+        picker_results = [subprocess.CompletedProcess([], 1, '\nctrl-d\n'),
+                          subprocess.CompletedProcess([], 0, '\n\n'),
+                          subprocess.CompletedProcess([], 130, '')]
+        with patch.object(search.subprocess, 'run', side_effect=picker_results) as pickers, \
+             patch.object(search, 'run', return_value=''):
+            self.assertEqual(search.choose_row([]), '')
+        self.assertIn('--prompt=Repository > ', pickers.call_args_list[1].args[0])
+        self.assertEqual(pickers.call_count, 3)
+
+    def test_snapshot_scope_change_discards_previous_query_validations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            search.query_result_path(preview_path, 'feature').write_text('["%2"]')
+            preview_path.with_name('external-query').touch()
+            pane_rows = [{'pane': '%1', 'label': 'Example', 'command': 'codex', 'associations': []}]
+            search.write_picker_snapshot(preview_path, pane_rows, (30, 18, 24))
+            self.assertFalse(search.query_result_path(preview_path, 'feature').exists())
+            self.assertFalse(preview_path.with_name('external-query').exists())
+            self.assertEqual(list(json.loads(preview_path.read_text())), ['%1'])
+            self.assertEqual(json.loads(search.query_result_path(preview_path, '').read_text()), ['%1'])
+
     def test_remote_identity_matches_ssh_and_https(self):
         for remote in ['git@github.com:Owner/Repo.git', 'https://github.com/Owner/Repo.git',
                        'ssh://git@github.com/Owner/Repo.git']:

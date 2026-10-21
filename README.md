@@ -53,7 +53,12 @@ panes across all tmux sessions. Type a window name, repository, or branch;
 use Up/Down to choose and Enter to jump directly to the pane. Escape cancels.
 Aligned, color-coded columns show the window, pane location, process, repository,
 ownership, and branches with space between rows. The bottom detail panel shows full paths
-and branch/PR associations; Ctrl+/ toggles it. Automated review sessions named
+and branch/PR associations; Ctrl+/ toggles it. Ctrl+D edits a separate repository
+filter in the same picker, like nv-navigator’s Scope field. Matching panes stay
+visible and filter live by repository. Enter keeps the filter and returns to the
+preserved window/branch/PR query; Escape or Ctrl+C restores the previous filter.
+Clear the repository field and press Enter to search all repositories again.
+Automated review sessions named
 `claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
 are excluded, while ordinary development windows with review-related names stay visible.
 Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL to resolve its

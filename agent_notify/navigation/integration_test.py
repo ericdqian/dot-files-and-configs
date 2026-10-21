@@ -194,7 +194,61 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
                     os.read(terminal, 65536)
             else:
                 raise AssertionError(f'Offline PR lookup did not navigate to {destination}')
-        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, real worktree/PR claims, and offline recorded and cached PR lookup')
+        # Ctrl+D edits repository scope independently of the window/branch query.
+        tmux('rename-window', '-t', claimed_pane_id, 'Scope agent')
+        other_repository = str(Path(directory, 'other-repository'))
+        command('git', 'init', '-b', 'other', other_repository)
+        command('git', '-C', other_repository, 'remote', 'add', 'origin', 'git@github.com:owner/other.git')
+        tmux('new-session', '-d', '-s', 'scope-other', '-c', other_repository)
+        other_pane_id = tmux('display-message', '-p', '-t', 'scope-other', '#{pane_id}')
+        tmux('rename-window', '-t', other_pane_id, 'Scope decoy')
+        subprocess.run(['python3', search_script, 'claim', '--checkout', other_repository, '--pane', other_pane_id],
+                       env=environment, check=True, capture_output=True)
+        tmux('switch-client', '-t', 'other-session')
+        while select.select([terminal], [], [], .3)[0]:
+            os.read(terminal, 65536)
+        os.write(terminal, b'\x02o')
+        read_until(b'Window / branch / PR')
+        os.write(terminal, b'Scope')
+        read_until(b'Scope')
+        os.write(terminal, b'\x04')
+        read_until(b'Repository >')
+        os.write(terminal, b'owner/other\r')
+        read_until(b'Window / branch / PR')
+        # Canceling an edit retains the previously committed repository scope.
+        os.write(terminal, b'\x04')
+        read_until(b'Repository >')
+        os.write(terminal, b'\x15owner/repo')
+        read_until(b'owner/repo')
+        os.write(terminal, b'\x03')
+        canceled_scope_output = read_until(b'Window / branch / PR')
+        if b'owner/other' not in canceled_scope_output:
+            read_until(b'owner/other')
+        # A no-match scope is valid, and Ctrl+D still lets the user clear it.
+        os.write(terminal, b'\x04')
+        read_until(b'Repository >')
+        os.write(terminal, b'\x15nonexistent-repository\r')
+        read_until(b'Window / branch / PR')
+        os.write(terminal, b'\x04')
+        read_until(b'Repository >')
+        os.write(terminal, b'\x15\r')
+        read_until(b'Window / branch / PR')
+        os.write(terminal, b'\x04')
+        read_until(b'Repository >')
+        os.write(terminal, b'owner/repo\r')
+        scoped_output = read_until(b'Window / branch / PR')
+        if b'Scope' not in scoped_output:
+            read_until(b'Scope')
+        os.write(terminal, b'\r')
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            if tmux('display-message', '-p', '#{session_name}:#{pane_id}') == f'claimed-session:{claimed_pane_id}':
+                break
+            if select.select([terminal], [], [], .1)[0]:
+                os.read(terminal, 65536)
+        else:
+            raise AssertionError('Repository filter lost the query or navigated to the wrong repository')
+        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, real worktree/PR claims, offline recorded/cached PR lookup, and repository scope apply/cancel/clear')
     finally:
         tmux('kill-server')
         if 'terminal' in locals():

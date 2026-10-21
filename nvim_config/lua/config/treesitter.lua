@@ -8,6 +8,18 @@ local parser_names = {
     "rust",
     "lua",
     "vim",
+    "bash",
+    "yaml",
+    "json",
+    "toml",
+    "hcl",
+    "terraform",
+    "dockerfile",
+    "make",
+    "css",
+    "html",
+    "xml",
+    "gotmpl",
     "markdown",
     "markdown_inline",
 }
@@ -18,6 +30,12 @@ local setup_legacy_treesitter
 local is_large_file
 
 function M.setup()
+    -- Helm and Helmfile templates use Go template syntax despite their YAML names.
+    vim.filetype.add({
+        extension = { gotmpl = "gotmpl" },
+        pattern = { [".*/templates/.*%.tpl"] = "gotmpl" },
+    })
+
     local treesitter = require("nvim-treesitter")
     if type(treesitter.install) == "function" then
         setup_current_treesitter(treesitter)

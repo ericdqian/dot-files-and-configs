@@ -256,6 +256,20 @@ require("lazy").setup({
     },
 
     -- Visual plugins
+    {
+        "MeanderingProgrammer/render-markdown.nvim",
+        ft = { "markdown" },
+        cmd = { "RenderMarkdown" },
+        dependencies = {
+            "nvim-treesitter/nvim-treesitter",
+            "nvim-tree/nvim-web-devicons",
+        },
+        opts = {},
+        keys = {
+            { "<leader>mr", "<cmd>RenderMarkdown buf_toggle<CR>", desc = "Toggle Markdown rendering" },
+        },
+        cond = not vim.g.vscode,
+    },
     -- Editor 'theme'
     {
         "navarasu/onedark.nvim",

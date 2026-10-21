@@ -42,13 +42,6 @@ require("lazy").setup({
         end,
         cond = not vim.g.vscode,
     },
-    {
-        "junegunn/fzf.vim",
-        config = function()
-            require("config.fzf").setup()
-        end,
-        cond = not vim.g.vscode,
-    },
     -- For local plugin dev
     {
         "folke/neodev.nvim",
@@ -150,10 +143,8 @@ require("lazy").setup({
         cond = use_lsp_ui("lspsaga"),
     },
     {
-        url = "https://github.com/ericdqian/nv-navigator.git",
+        dir = vim.fn.expand("~/nv-navigator"),
         name = "nv-navigator",
-        branch = "main",
-        dev = true,
         event = "LspAttach",
         cmd = { "NvNavigatorFiles", "NvNavigatorGrep", "NvNavigatorGitFiles", "NvNavigatorBuffers" },
         keys = {
@@ -172,7 +163,7 @@ require("lazy").setup({
         dependencies = {
             { "ibhagwan/fzf-lua" },
         },
-        cond = use_lsp_ui("navigator"),
+        cond = not vim.g.vscode,
     },
 
     -- Editing plugins

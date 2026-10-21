@@ -134,6 +134,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         os.write(terminal, b'\x02o')
         read_until(b'Window / branch / PR')
         os.write(terminal, b'text-that-must-stay-in-popup')
+        read_until(b'text-that-must-stay-in-popup')
         os.write(terminal, b'\x1b')
         while select.select([terminal], [], [], .3)[0]:
             os.read(terminal, 65536)

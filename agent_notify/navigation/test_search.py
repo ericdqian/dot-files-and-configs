@@ -3,6 +3,8 @@ import json
 import unittest
 import tempfile
 import io
+import subprocess
+import os
 from contextlib import redirect_stdout
 from unittest.mock import patch
 from pathlib import Path
@@ -190,18 +192,47 @@ class SearchTests(unittest.TestCase):
                        'attach-session', '-t', '$7'], executed_commands)
         self.assertEqual(executed_commands[-1], ['wezterm', 'cli', 'activate-pane', '--pane-id', '42'])
 
+    def test_live_search_dispatch_only_reloads_for_prs_claims_and_mode_changes(self):
+        pane_rows = [{'associations': [{'branch': 'feature', 'source': 'claim'}]}]
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            change_command = search.picker_change_command(preview_path, pane_rows)
+            def changed_query(query):
+                return subprocess.check_output(['/bin/sh', '-c', change_command], text=True,
+                                               env={**os.environ, 'FZF_QUERY': query}).strip()
+            for query in ['f', 'fea', 'window name', 'https://github.com/owner/repo/pull/']:
+                self.assertEqual(changed_query(query), '')
+            self.assertTrue(changed_query('feature').startswith('disable-search+reload('))
+            self.assertTrue(changed_query('features').startswith('enable-search+reload(cat '))
+            self.assertEqual(changed_query('features again'), '')
+            self.assertTrue(changed_query('https://github.com/owner/repo/pull/7').startswith('disable-search+reload('))
+            self.assertTrue(changed_query('').startswith('enable-search+reload(cat '))
+            self.assertEqual(changed_query(''), '')
+
+    def test_live_search_accepts_snapshot_panes_without_external_query_results(self):
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            preview_path.write_text(json.dumps({'%1': {'associations': []}}))
+            with redirect_stdout(io.StringIO()) as output:
+                search.print_accept_action(preview_path, 'feature', '%1')
+            self.assertEqual(output.getvalue().strip(), 'accept')
+            with redirect_stdout(io.StringIO()) as output:
+                search.print_accept_action(preview_path, 'feature', '!')
+            self.assertNotEqual(output.getvalue().strip(), 'accept')
+
     def test_enter_rejects_stale_rows_while_query_results_are_updating(self):
         with tempfile.TemporaryDirectory() as directory:
             preview_path = Path(directory, 'panes.json')
+            preview_path.write_text(json.dumps({'%1': {'associations': []}, '%2': {'associations': []}}))
             with redirect_stdout(io.StringIO()) as output:
-                search.print_accept_action(preview_path, 'feature', '%1')
+                search.print_accept_action(preview_path, 'https://github.com/owner/repo/pull/7', '%1')
             self.assertNotEqual(output.getvalue().strip(), 'accept')
-            search.query_result_path(preview_path, 'feature').write_text('["%2"]')
+            search.query_result_path(preview_path, 'https://github.com/owner/repo/pull/7').write_text('["%2"]')
             with redirect_stdout(io.StringIO()) as output:
-                search.print_accept_action(preview_path, 'feature', '%1')
+                search.print_accept_action(preview_path, 'https://github.com/owner/repo/pull/7', '%1')
             self.assertNotEqual(output.getvalue().strip(), 'accept')
             with redirect_stdout(io.StringIO()) as output:
-                search.print_accept_action(preview_path, 'feature', '%2')
+                search.print_accept_action(preview_path, 'https://github.com/owner/repo/pull/7', '%2')
             self.assertEqual(output.getvalue().strip(), 'accept')
 
     def test_popup_closes_and_redraws_before_navigation(self):

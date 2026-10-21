@@ -67,7 +67,8 @@ to the same tmux server and session, leaving the original tab intact. Detaching
 returns that new tab to your configured interactive login shell; exiting that
 shell closes the tab. Without WezTerm, the current tmux client switches to the destination. The popup closes
 and redraws before routing, and routing commands cannot read terminal input. URL resolution requires authenticated `gh` access;
-ordinary window/branch search stays local. The picker requires Python 3.9+ and
+ordinary window/branch search filters the cached list live in fzf, without a typing
+delay or Python filtering process. Exact branch claims retain ownership precedence. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
 
 The OWNER column distinguishes an explicit `claimed` branch/worktree from an

@@ -126,7 +126,10 @@ files, and `;` lists buffers. Ctrl-D opens one inline Scope editor for directori
 and globs (`src/`, `src/**/*.lua`, or `**/tests/`). There is no separate
 Ctrl-G glob editor. Results update as you type while preserving the query. Enter returns to results, Escape restores the previous filter, and
 Alt-D browses project folders. Ctrl-O shows a result while keeping the picker
-open. Alt-P/N recalls search history. The live Scope editor requires fzf 0.66+.
+open. Grep groups matches under each file and restores the last query and scope
+for the current starting directory, refreshing results from current files. Scope
+opens empty at the root; relative paths have an implicit `./` prefix. Alt-P/N
+recalls search history. The live Scope editor requires fzf 0.66+.
 
 Navigator development uses `~/nv-navigator` when present. That local clone
 must include the search-directory feature before using these shortcuts.

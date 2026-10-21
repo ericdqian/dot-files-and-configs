@@ -296,9 +296,14 @@ class SearchTests(unittest.TestCase):
                 self.assertEqual(changed_query(query), '')
             self.assertTrue(changed_query('feature').startswith('disable-search+reload('))
             self.assertTrue(changed_query('features').startswith('enable-search+reload(cat '))
+            self.assertTrue(changed_query('features again').startswith('enable-search+reload(cat '))
+            subprocess.check_output(['/bin/sh', '-c', search.picker_change_command(preview_path, pane_rows, on_load=True)],
+                                    env={**os.environ, 'FZF_QUERY': 'features again'})
             self.assertEqual(changed_query('features again'), '')
             self.assertTrue(changed_query('https://github.com/owner/repo/pull/7').startswith('disable-search+reload('))
             self.assertTrue(changed_query('').startswith('enable-search+reload(cat '))
+            subprocess.check_output(['/bin/sh', '-c', search.picker_change_command(preview_path, pane_rows, on_load=True)],
+                                    env={**os.environ, 'FZF_QUERY': ''})
             self.assertEqual(changed_query(''), '')
 
     def test_live_search_accepts_snapshot_panes_without_external_query_results(self):

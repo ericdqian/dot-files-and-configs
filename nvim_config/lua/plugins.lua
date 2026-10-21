@@ -42,13 +42,6 @@ require("lazy").setup({
         end,
         cond = not vim.g.vscode,
     },
-    {
-        "junegunn/fzf.vim",
-        config = function()
-            require("config.fzf").setup()
-        end,
-        cond = not vim.g.vscode,
-    },
     -- For local plugin dev
     {
         "folke/neodev.nvim",
@@ -150,12 +143,16 @@ require("lazy").setup({
         cond = use_lsp_ui("lspsaga"),
     },
     {
-        url = "https://github.com/ericdqian/nv-navigator.git",
+        dir = vim.fn.expand("~/nv-navigator"),
         name = "nv-navigator",
-        branch = "main",
-        dev = true,
         event = "LspAttach",
-        cmd = { "NvNavigatorFiles", "NvNavigatorGrep" },
+        cmd = { "NvNavigatorFiles", "NvNavigatorGrep", "NvNavigatorGitFiles", "NvNavigatorBuffers" },
+        keys = {
+            { "<leader>a", "<cmd>NvNavigatorGrep<CR>", desc = "Search text" },
+            { "<leader>z", "<cmd>NvNavigatorFiles<CR>", desc = "Search files" },
+            { "<leader>t", "<cmd>NvNavigatorGitFiles<CR>", desc = "Search Git files" },
+            { ";", "<cmd>NvNavigatorBuffers<CR>", desc = "Search buffers" },
+        },
         init = function()
             -- Let Lazy apply the configured keymaps instead of the plugin bootstrap defaults.
             vim.g.loaded_nv_navigator = 1
@@ -166,7 +163,7 @@ require("lazy").setup({
         dependencies = {
             { "ibhagwan/fzf-lua" },
         },
-        cond = use_lsp_ui("navigator"),
+        cond = not vim.g.vscode,
     },
 
     -- Editing plugins

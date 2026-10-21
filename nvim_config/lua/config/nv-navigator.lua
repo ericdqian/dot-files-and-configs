@@ -1,6 +1,17 @@
 local M = {}
 
 function M.setup()
+    local use_navigator_lsp = (vim.env.NV_LSP_UI or "lspsaga") == "navigator"
+    local navigator_keymaps = use_navigator_lsp
+            and {
+                definition = "gd",
+                type_definition = "gt",
+                references = "gr",
+                hover = "K",
+                code_action = "<leader>ca",
+                rename = "rn",
+            }
+        or {}
     require("nv-navigator").setup({
         picker = {
             fzf_opts = {
@@ -14,20 +25,15 @@ function M.setup()
                 },
             },
         },
-        keymaps = {
-            definition = "gd",
-            type_definition = "gt",
-            references = "gr",
-            hover = "K",
-            code_action = "<leader>ca",
-            rename = "rn",
-        },
+        keymaps = navigator_keymaps,
     })
 
-    vim.keymap.set("n", "gp", "<cmd>NvNavigatorDefinition<CR>", {
-        desc = "Preview definition",
-        silent = true,
-    })
+    if use_navigator_lsp then
+        vim.keymap.set("n", "gp", "<cmd>NvNavigatorDefinition<CR>", {
+            desc = "Preview definition",
+            silent = true,
+        })
+    end
 end
 
 return M

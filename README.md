@@ -115,6 +115,18 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 
 ### Neovim
 
+Treesitter installs syntax highlighting for the application and infrastructure
+languages used in `~/corridor/core`, including Bash, YAML, JSON, TOML,
+HCL/Terraform, Dockerfiles, Makefiles, CSS, HTML/XML, and Go templates.
+Open Neovim after updating the config and allow parser installation to finish;
+reopen the file if it was opened before its parser finished installing.
+
+Markdown files use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)
+to style headings, lists, tables, and code blocks inside the editor. Press
+`Space u m` (or run `:RenderMarkdown buf_toggle`) to toggle rendering for the
+current buffer. Insert mode shows the source for editing. Use
+`:RenderMarkdown preview` for a rendered view beside the source.
+
 ```
 curl -LO --output-dir ~/ https://github.com/neovim/neovim/releases/download/nightly/nvim-macos.tar.gz
 tar xzf ~/nvim-macos.tar.gz

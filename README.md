@@ -123,7 +123,7 @@ reopen the file if it was opened before its parser finished installing.
 
 Markdown files use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)
 to style headings, lists, tables, and code blocks inside the editor. Press
-`Space u m` (or run `:RenderMarkdown buf_toggle`) to toggle rendering for the
+`Space m r` (or run `:RenderMarkdown buf_toggle`) to toggle rendering for the
 current buffer. Insert mode shows the source for editing. Use
 `:RenderMarkdown preview` for a rendered view beside the source.
 

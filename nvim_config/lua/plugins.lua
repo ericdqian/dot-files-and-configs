@@ -269,7 +269,7 @@ require("lazy").setup({
         },
         opts = {},
         keys = {
-            { "<leader>um", "<cmd>RenderMarkdown buf_toggle<CR>", desc = "Toggle Markdown rendering" },
+            { "<leader>mr", "<cmd>RenderMarkdown buf_toggle<CR>", desc = "Toggle Markdown rendering" },
         },
         cond = not vim.g.vscode,
     },

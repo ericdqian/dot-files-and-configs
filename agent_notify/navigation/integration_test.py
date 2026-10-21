@@ -23,7 +23,8 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
     wezterm_stub = Path(gh_directory, 'wezterm')
     wezterm_stub.write_text('#!/bin/sh\nexit 1\n')
     wezterm_stub.chmod(0o755)
-    test_environment = {**os.environ, 'PATH': gh_directory + ':' + os.environ['PATH']}
+    test_environment = {**os.environ, 'PATH': gh_directory + ':' + os.environ['PATH'],
+                        'XDG_CACHE_HOME': directory + '/cache'}
     repository = directory + '/repository'
     os.mkdir(repository)
     def command(*arguments, **kwargs):
@@ -34,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
     command('git', '-C', repository, 'remote', 'add', 'origin', 'git@github.com:owner/repo.git')
     tmux('new-session', '-d', '-s', 'first-session', '-c', repository, '-x', '100', '-y', '40')
     pane_one = tmux('display-message', '-p', '#{pane_id}')
-    environment = {**os.environ, 'TMUX': f'{socket},0,0', 'TMUX_PANE': pane_one}
+    environment = {**test_environment, 'TMUX': f'{socket},0,0', 'TMUX_PANE': pane_one}
     def record():
         subprocess.run(['python3', search_script, 'record'], input=json.dumps({'cwd': repository}),
                        text=True, env=environment, check=True)
@@ -135,7 +136,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         read_until(b'Window / branch / PR')
         os.write(terminal, b'text-that-must-stay-in-popup')
         read_until(b'text-that-must-stay-in-popup')
-        os.write(terminal, b'\x1b')
+        os.write(terminal, b'\x03')  # Cancel without Escape/Alt sequence timing.
         while select.select([terminal], [], [], .3)[0]:
             os.read(terminal, 65536)
         assert shell_input_path.read_bytes() == b'', 'Canceled picker leaked input to the original shell'
@@ -173,7 +174,27 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         assert self_claim['checkout'] == str(Path(claimed_checkout).resolve())
         assert self_claim['url'] == 'https://github.com/owner/repo/pull/124'
         assert command('git', '-C', repository, 'branch', '--show-current') == 'second'
-        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, and real worktree/PR claims')
+        # Both recorded URLs and previous successful lookups work without GitHub.
+        gh_script.write_text('#!/bin/sh\nexit 91\n')
+        for pr_number, destination in [('123', f'first-session:{pane_one}'),
+                                       ('124', f'claimed-session:{claimed_pane_id}')]:
+            tmux('switch-client', '-t', 'other-session')
+            while select.select([terminal], [], [], .3)[0]:
+                os.read(terminal, 65536)
+            os.write(terminal, b'\x02o')
+            read_until(b'Window / branch / PR')
+            os.write(terminal, f'https://github.com/owner/repo/pull/{pr_number}'.encode())
+            read_until(f'PR #{pr_number}'.encode())
+            os.write(terminal, b'\r')
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                if tmux('display-message', '-p', '#{session_name}:#{pane_id}') == destination:
+                    break
+                if select.select([terminal], [], [], .1)[0]:
+                    os.read(terminal, 65536)
+            else:
+                raise AssertionError(f'Offline PR lookup did not navigate to {destination}')
+        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, real worktree/PR claims, and offline recorded and cached PR lookup')
     finally:
         tmux('kill-server')
         if 'terminal' in locals():

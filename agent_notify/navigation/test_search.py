@@ -15,6 +15,13 @@ SPEC.loader.exec_module(search)
 
 
 class SearchTests(unittest.TestCase):
+    def setUp(self):
+        cache_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(cache_directory.cleanup)
+        cache_environment = patch.dict(os.environ, {'XDG_CACHE_HOME': cache_directory.name})
+        cache_environment.start()
+        self.addCleanup(cache_environment.stop)
+
     def test_remote_identity_matches_ssh_and_https(self):
         for remote in ['git@github.com:Owner/Repo.git', 'https://github.com/Owner/Repo.git',
                        'ssh://git@github.com/Owner/Repo.git']:
@@ -133,6 +140,54 @@ class SearchTests(unittest.TestCase):
                 search.update_query_results(preview_path, 'Other pane')
             self.assertIn('%2\tOther pane', output.getvalue())
 
+    def test_recorded_pr_url_search_is_local_and_prefers_claims(self):
+        associations = [
+            {'pane': '%1', 'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
+                'source': 'observed', 'url': 'https://github.com/owner/repo/pull/7'}]},
+            {'pane': '%2', 'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
+                'source': 'claim', 'url': 'https://github.com/Owner/Repo/pull/7'}]},
+            {'pane': '%3', 'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
+                'source': 'claim'}]},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            preview_path = Path(directory, 'panes.json')
+            preview_path.write_text(json.dumps({row['pane']: row for row in associations}))
+            Path(directory, 'candidates.txt').write_text('%1\tObserved feature\n%2\tClaimed feature\n%3\tAnother claim')
+            with patch.object(search, 'resolve_pr', side_effect=AssertionError('Unexpected GitHub lookup')), \
+                 redirect_stdout(io.StringIO()) as output:
+                search.update_query_results(preview_path, 'https://github.com/OWNER/repo/pull/7/files#review')
+            self.assertIn('%2\t', output.getvalue())
+            self.assertNotIn('%1\t', output.getvalue())
+            self.assertIn('PR #7', output.getvalue())
+            self.assertIn('%3\t', output.getvalue())
+
+    def test_successful_pr_resolution_is_cached_across_url_variants(self):
+        with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')) as lookup:
+            self.assertEqual(search.resolve_and_cache_pr('https://github.com/Owner/Repo/pull/7'),
+                             ('github.com/owner/repo', 'feature'))
+            self.assertEqual(search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7/files'),
+                             ('github.com/owner/repo', 'feature'))
+        self.assertEqual(lookup.call_count, 1)
+
+    def test_pr_cache_expires_and_recovers_from_corruption(self):
+        with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')) as lookup:
+            with patch.object(search.time, 'time', return_value=1000):
+                search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
+            with patch.object(search.time, 'time', return_value=1301):
+                search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
+            cache_path = next(Path(os.environ['XDG_CACHE_HOME']).rglob('*.json'))
+            cache_path.write_text('broken JSON')
+            search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
+        self.assertEqual(lookup.call_count, 3)
+
+    def test_failed_pr_lookups_remain_retryable(self):
+        with patch.object(search, 'resolve_pr', side_effect=ValueError('not found')) as lookup:
+            for attempt in range(2):
+                with self.assertRaisesRegex(ValueError, 'not found'):
+                    search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
+        self.assertEqual(lookup.call_count, 2)
+        self.assertEqual(list(Path(os.environ['XDG_CACHE_HOME']).rglob('*.json')), [])
+
     def test_pr_query_reports_missing_history_and_api_errors_in_picker(self):
         with tempfile.TemporaryDirectory() as directory:
             preview_path = Path(directory, 'panes.json')
@@ -144,7 +199,7 @@ class SearchTests(unittest.TestCase):
             self.assertIn('No tmux pane has recorded absent', output.getvalue())
             with patch.object(search, 'resolve_pr', side_effect=ValueError('not found [404]')), \
                  redirect_stdout(io.StringIO()) as output:
-                search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
+                search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/8')
             self.assertIn('PR lookup failed:', output.getvalue())
 
     def test_wezterm_destination_uses_existing_client_and_prefers_current_when_possible(self):

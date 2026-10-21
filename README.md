@@ -57,7 +57,10 @@ and branch/PR associations; Ctrl+/ toggles it. Automated review sessions named
 `claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
 are excluded, while ordinary development windows with review-related names stay visible.
 Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL to resolve its
-source repository and branch automatically. Matching panes appear in the list;
+source repository and branch automatically. Recorded PR URLs match locally without
+contacting GitHub. Other successful PR lookups are cached for five minutes under
+`$XDG_CACHE_HOME/agent-notify/prs` (default `~/.cache/agent-notify/prs`); lookup failures
+remain retryable. Matching panes appear in the list;
 press Enter to select one. Missing history and API errors appear in the picker,
 and clearing the URL restores ordinary fuzzy search. Multiple matching panes remain
 available to choose from. When the destination session is already displayed
@@ -66,7 +69,7 @@ is WezTerm but no tab displays that session, selection opens a new tab attached
 to the same tmux server and session, leaving the original tab intact. Detaching
 returns that new tab to your configured interactive login shell; exiting that
 shell closes the tab. Without WezTerm, the current tmux client switches to the destination. The popup closes
-and redraws before routing, and routing commands cannot read terminal input. URL resolution requires authenticated `gh` access;
+and redraws before routing, and routing commands cannot read terminal input. Unrecorded, uncached URLs require authenticated `gh` access;
 ordinary window/branch search filters the cached list live in fzf, without a typing
 delay or Python filtering process. Exact branch claims retain ownership precedence. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).

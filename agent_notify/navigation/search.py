@@ -10,6 +10,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 OPTION_PREFIX = '@agent_nav_'
@@ -149,6 +150,44 @@ def resolve_pr(pr_url):
     if not head_repository:
         raise ValueError('The PR’s source repository has been deleted; link its branch explicitly.')
     return 'github.com/' + head_repository['full_name'].lower(), pull_request['head']['ref']
+
+
+def canonical_pr_url(pr_url):
+    match = PR_PATTERN.fullmatch(pr_url.strip())
+    if not match:
+        return ''
+    owner, repository_name, number = match.groups()
+    return f'https://github.com/{owner.lower()}/{repository_name.lower()}/pull/{int(number)}'
+
+
+def resolve_and_cache_pr(pr_url):
+    canonical_url = canonical_pr_url(pr_url)
+    cache_directory = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'agent-notify' / 'prs'
+    cache_path = cache_directory / (hashlib.sha256(canonical_url.encode()).hexdigest() + '.json')
+    try:
+        cached_resolution = json.loads(cache_path.read_text())
+        if (0 <= time.time() - cached_resolution['resolved_at'] < 300
+                and all(isinstance(cached_resolution[key], str) and cached_resolution[key]
+                        for key in ['repository', 'branch'])):
+            return cached_resolution['repository'], cached_resolution['branch']
+    except (OSError, ValueError, KeyError, TypeError):
+        pass  # Missing, expired, or malformed cache entries fall back to GitHub.
+    repository, branch = resolve_pr(pr_url)
+    # Cache only successful search lookups; ownership claims still validate against GitHub.
+    temporary_cache_path = cache_path.with_suffix(f'.{os.getpid()}.tmp')
+    try:
+        cache_directory.mkdir(parents=True, exist_ok=True)
+        temporary_cache_path.write_text(json.dumps({'repository': repository, 'branch': branch,
+                                                   'resolved_at': time.time()}))
+        os.replace(temporary_cache_path, cache_path)
+    except OSError:
+        pass  # A read-only cache must not prevent PR search.
+    finally:
+        try:
+            temporary_cache_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return repository, branch
 
 
 def open_picker(client_name):
@@ -372,20 +411,32 @@ def update_query_results(preview_path, query):
     pane_rows = list(json.loads(preview_path.read_text()).values())
     try:
         if PR_PATTERN.fullmatch(query.strip()):
-            repository, branch = resolve_pr(query.strip())
-            matching_panes = {row['pane'] for row in pane_rows if any(
-                association['repository'] == repository and association['branch'] == branch
-                for association in navigation_associations(row))}
-            claimed_panes = {row['pane'] for row in pane_rows if any(
-                association.get('source') in {'claim', 'link'} and association['repository'] == repository
-                and association['branch'] == branch for association in navigation_associations(row))}
+            canonical_url = canonical_pr_url(query)
+            matching_associations = [(row['pane'], association) for row in pane_rows
+                                     for association in navigation_associations(row)
+                                     if canonical_pr_url(association.get('url', '')) == canonical_url]
+            status = 'No matching destination for this PR.'
+            if matching_associations:
+                recorded_branches = {(association['repository'], association['branch'])
+                                     for pane_id, association in matching_associations}
+                matching_associations = [(row['pane'], association) for row in pane_rows
+                                         for association in navigation_associations(row)
+                                         if (association['repository'], association['branch']) in recorded_branches]
+            else:
+                repository, branch = resolve_and_cache_pr(query.strip())
+                matching_associations = [(row['pane'], association) for row in pane_rows
+                                         for association in navigation_associations(row)
+                                         if association['repository'] == repository and association['branch'] == branch]
+                status = (f'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
+                          'Link older work explicitly, or clear the URL to search windows.')
+            matching_panes = {pane_id for pane_id, association in matching_associations}
+            claimed_panes = {pane_id for pane_id, association in matching_associations
+                             if association.get('source') in {'claim', 'link'}}
             if claimed_panes:
                 matching_panes = claimed_panes
             pr_number = PR_PATTERN.fullmatch(query.strip()).group(3)
             result_lines = [line.replace('\t', f'\t\033[35mPR #{pr_number}\033[0m  ', 1) for line in candidate_lines
                             if line.split('\t', 1)[0] in matching_panes]
-            status = (f'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
-                      'Link older work explicitly, or clear the URL to search windows.')
         else:
             claimed_panes = {row['pane'] for row in pane_rows if any(
                 association.get('source') in {'claim', 'link'} and association['branch'] == query.strip()

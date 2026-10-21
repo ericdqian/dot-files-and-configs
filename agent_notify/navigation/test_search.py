@@ -22,14 +22,14 @@ class SearchTests(unittest.TestCase):
         cache_environment.start()
         self.addCleanup(cache_environment.stop)
 
-    def test_repository_filter_matches_only_repositories_and_can_be_cleared(self):
+    def test_repository_choice_filters_exact_identity_and_can_be_cleared(self):
         pane_rows = [
             {'pane': '%1', 'label': 'other', 'command': 'codex', 'associations': [
                 {'repository': 'github.com/owner/alpha', 'branch': 'feature'}]},
             {'pane': '%2', 'label': 'alpha', 'command': 'codex', 'associations': [
                 {'repository': 'github.com/owner/beta', 'branch': 'alpha'}]},
         ]
-        self.assertEqual(search.filter_repository_rows(pane_rows, 'alpha'), [pane_rows[0]])
+        self.assertEqual(search.filter_repository_rows(pane_rows, 'github.com/owner/alpha'), [pane_rows[0]])
         self.assertEqual(search.filter_repository_rows(pane_rows, 'missing'), [])
         self.assertEqual(search.filter_repository_rows(pane_rows, ''), pane_rows)
         candidates = '\n'.join(search.format_row(row) for row in pane_rows)
@@ -37,9 +37,50 @@ class SearchTests(unittest.TestCase):
                                      '--filter', 'alpha'], input_text=candidates)
         self.assertEqual(native_matches.split('\t', 1)[0], '%1')
 
+    def test_repository_dropdown_deduplicates_panes_and_excludes_incidental_observations(self):
+        pane_rows = [
+            {'pane': '%1', 'associations': [
+                {'repository': 'github.com/owner/core', 'source': 'claim'},
+                {'repository': 'github.com/owner/core', 'source': 'link'},
+                {'repository': 'github.com/owner/observed', 'source': 'observed'}]},
+            {'pane': '%2', 'associations': [{'repository': 'github.com/owner/core-api', 'source': 'claim'}]},
+            {'pane': '%3', 'associations': [{'repository': 'github.com/owner/core', 'source': 'claim'}]},
+        ]
+        self.assertEqual(search.repository_options(pane_rows), [
+            '*\tAll repositories\t(3 panes)',
+            'github.com/owner/core\towner/core\t(2 panes)',
+            'github.com/owner/core-api\towner/core-api\t(1 pane)',
+        ])
+        self.assertEqual(search.filter_repository_rows(pane_rows, 'github.com/owner/core'),
+                         [pane_rows[0], pane_rows[2]])
+
+    def test_repository_dropdown_search_does_not_match_pane_counts(self):
+        candidates = 'github.com/owner/other\towner/other\t(1 pane)\ngithub.com/owner/repo\towner/repo\t(2 panes)'
+        matches = search.run(['fzf', '--delimiter=\t', '--with-nth=2..', '--nth=1', '--filter', 'owner/repo'],
+                             input_text=candidates)
+        self.assertEqual(matches.split('\t', 1)[0], 'github.com/owner/repo')
+        self.assertEqual(len(matches.splitlines()), 1)
+
+    def test_repository_dropdown_uses_final_query_when_enter_beats_matching(self):
+        pane_rows = [
+            {'pane': '%1', 'label': 'Right', 'command': 'codex', 'associations': [
+                {'repository': 'github.com/owner/repo', 'branch': 'first'}]},
+            {'pane': '%2', 'label': 'Wrong', 'command': 'codex', 'associations': [
+                {'repository': 'github.com/owner/other', 'branch': 'second'}]},
+        ]
+        picker_results = [subprocess.CompletedProcess([], 0, '\nctrl-d\n'),
+                          subprocess.CompletedProcess([], 0, 'owner/repo\ngithub.com/owner/other\towner/other\n'),
+                          subprocess.CompletedProcess([], 130, '')]
+        with patch.object(search.subprocess, 'run', side_effect=picker_results) as pickers, \
+             patch.object(search, 'run', return_value='github.com/owner/repo\towner/repo\t(1 pane)'):
+            search.choose_row(pane_rows)
+        scoped_candidates = pickers.call_args_list[2].kwargs['input']
+        self.assertIn('%1\t', scoped_candidates)
+        self.assertNotIn('%2\t', scoped_candidates)
+
     def test_repository_editor_can_open_when_the_search_has_no_results(self):
         picker_results = [subprocess.CompletedProcess([], 1, '\nctrl-d\n'),
-                          subprocess.CompletedProcess([], 0, '\n\n'),
+                          subprocess.CompletedProcess([], 0, '\n*\tAll repositories  (0 panes)\n'),
                           subprocess.CompletedProcess([], 130, '')]
         with patch.object(search.subprocess, 'run', side_effect=picker_results) as pickers, \
              patch.object(search, 'run', return_value=''):

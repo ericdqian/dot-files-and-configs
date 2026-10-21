@@ -224,13 +224,11 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         canceled_scope_output = read_until(b'Window / branch / PR')
         if b'owner/other' not in canceled_scope_output:
             read_until(b'owner/other')
-        # A no-match scope is valid, and Ctrl+D still lets the user clear it.
+        # Clearing the repository query reveals the All repositories choice again.
         os.write(terminal, b'\x04')
         read_until(b'Repository >')
-        os.write(terminal, b'\x15nonexistent-repository\r')
-        read_until(b'Window / branch / PR')
-        os.write(terminal, b'\x04')
-        read_until(b'Repository >')
+        os.write(terminal, b'\x15nonexistent-repository')
+        read_until(b'nonexistent-repository')
         os.write(terminal, b'\x15\r')
         read_until(b'Window / branch / PR')
         os.write(terminal, b'\x04')
@@ -240,15 +238,18 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         if b'Scope' not in scoped_output:
             read_until(b'Scope')
         os.write(terminal, b'\r')
+        navigation_output = b''
         deadline = time.monotonic() + 8
         while time.monotonic() < deadline:
             if tmux('display-message', '-p', '#{session_name}:#{pane_id}') == f'claimed-session:{claimed_pane_id}':
                 break
             if select.select([terminal], [], [], .1)[0]:
-                os.read(terminal, 65536)
+                navigation_output += os.read(terminal, 65536)
         else:
-            raise AssertionError('Repository filter lost the query or navigated to the wrong repository')
-        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, real worktree/PR claims, offline recorded/cached PR lookup, and repository scope apply/cancel/clear')
+            raise AssertionError(('Repository filter lost the query or navigated to the wrong repository',
+                                  tmux('list-clients', '-F', '#{session_name}:#{pane_id}'),
+                                  scoped_output[-2000:], navigation_output[-3000:]))
+        print('PASS: preview, reviewer filtering, branch/PR lookup, query recovery, clean shell input, real worktree/PR claims, offline recorded/cached PR lookup, and repository dropdown select/cancel/clear')
     finally:
         tmux('kill-server')
         if 'terminal' in locals():

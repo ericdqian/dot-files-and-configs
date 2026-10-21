@@ -361,7 +361,6 @@ def choose_row(pane_rows):
         picker_arguments = ['fzf', '--with-shell=/bin/sh -c', '--ansi', '--no-multi', '--layout=reverse',
                             '--delimiter=\t', '--with-nth=2..', '--tabstop=2', '--gap=1', '--highlight-line',
                             '--color=fg:252,hl:220,fg+:255,bg+:236,hl+:220,pointer:81,prompt:81',
-                            '--preview=' + preview_command, '--preview-window=down,35%,wrap,border-top',
                             '--bind=ctrl-/:toggle-preview']
         picker_environment = {**os.environ, 'FZF_DEFAULT_OPTS': '', 'FZF_DEFAULT_OPTS_FILE': ''}
         while True:
@@ -370,10 +369,11 @@ def choose_row(pane_rows):
             accept_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
                                         'accept', '--data', str(preview_path)]) + ' --pane {1} -- {q}'
             change_command = picker_change_command(preview_path, scoped_rows)
-            picker = subprocess.run([*picker_arguments, '--query=' + query, '--print-query', '--expect=ctrl-d',
+            picker = subprocess.run([*picker_arguments, '--preview=' + preview_command,
+                                     '--preview-window=down,35%,wrap,border-top', '--query=' + query, '--print-query', '--expect=ctrl-d',
                                      '--prompt=Window / branch / PR > ',
                                      '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
-                                              'Repository: ' + (repository_scope or 'All repositories') + '\n\n' + column_header,
+                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + '\n\n' + column_header,
                                      '--bind=enter:transform(' + accept_command + ')',
                                      '--bind=start:transform(' + change_command + ')',
                                      '--bind=change:transform(' + change_command + ')',
@@ -387,34 +387,46 @@ def choose_row(pane_rows):
             query, pressed_key = output_lines[:2]
             if pressed_key != 'ctrl-d':
                 return output_lines[2] if len(output_lines) > 2 else ''
-            # Scope edits start from all repositories, filtered by the saved search query.
-            # This makes widening or clearing a scope possible without losing that query.
-            write_picker_snapshot(preview_path, pane_rows, column_widths)
-            query_candidates = run([sys.executable, str(Path(__file__).resolve()),
-                                    'query', '--data', str(preview_path), '--', query], check=True)
-            scope_picker = subprocess.run([*picker_arguments, '--no-sort', '--nth=5',
-                                           '--query=' + repository_scope, '--print-query',
+            repository_candidates = repository_options(pane_rows)
+            selected_repository = repository_scope or '*'
+            selected_position = next(index for index, candidate in enumerate(repository_candidates, 1)
+                                     if candidate.split('\t', 1)[0] == selected_repository)
+            scope_picker = subprocess.run([*picker_arguments, '--height=~12', '--border=rounded', '--gap=0', '--nth=1', '--print-query',
                                            '--prompt=Repository > ',
-                                           '--header=Enter keep filter · Esc/Ctrl+C restore · Empty = all repositories\n'
-                                                    'Search: ' + (query or '(empty)') + '\n\n' + column_header,
-                                           '--bind=enter:accept-or-print-query'],
-                                          input='\n'.join(line for line in query_candidates.splitlines()
-                                                          if not line.startswith('!\t')),
+                                           '--header=↑/↓ choose · Enter select · Esc/Ctrl+C cancel\n'
+                                                    'Search: ' + (query or '(empty)'),
+                                           '--bind=start:pos(' + str(selected_position) + ')'],
+                                          input='\n'.join(repository_candidates),
                                           text=True, stdout=subprocess.PIPE, env=picker_environment)
             if scope_picker.returncode == 0:
-                repository_scope = scope_picker.stdout.split('\n', 1)[0]
+                repository_query, selected_row = scope_picker.stdout.split('\n', 1)
+                # Enter may arrive before fzf's asynchronous matcher updates its highlighted row.
+                # Validate against the final input once, without adding work while typing.
+                matching_options = run(['fzf', '--delimiter=\t', '--with-nth=2..', '--nth=1',
+                                        '--filter', repository_query], input_text='\n'.join(repository_candidates)).splitlines()
+                matching_repositories = [line.split('\t', 1)[0] for line in matching_options]
+                if matching_repositories:
+                    selected_repository = selected_row.split('\t', 1)[0]
+                    if selected_repository not in matching_repositories:
+                        selected_repository = matching_repositories[0]
+                    repository_scope = '' if selected_repository == '*' else selected_repository
+
+
+def repository_options(pane_rows):
+    repositories = sorted({association['repository'] for row in pane_rows
+                           for association in navigation_associations(row)})
+    repository_candidates = [f'*\tAll repositories\t({len(pane_rows)} panes)']
+    for repository in repositories:
+        pane_count = sum(any(association['repository'] == repository
+                             for association in navigation_associations(row)) for row in pane_rows)
+        repository_candidates.append(f"{repository}\t{repository.removeprefix('github.com/')}\t({pane_count} {'pane' if pane_count == 1 else 'panes'})")
+    return repository_candidates
 
 
 def filter_repository_rows(pane_rows, repository_scope):
-    if not repository_scope:
-        return list(pane_rows)
-    # Apply the same native fzf matching used by the repository input, once per committed scope.
-    repository_candidates = '\n'.join(row['pane'] + '\t' + format_repository_label(navigation_associations(row))
-                                      for row in pane_rows)
-    matched_panes = {line.split('\t', 1)[0] for line in
-                     run(['fzf', '--delimiter=\t', '--with-nth=2..', '--filter', repository_scope],
-                         input_text=repository_candidates).splitlines()}
-    return [row for row in pane_rows if row['pane'] in matched_panes]
+    # Repository choices retain their complete identities so similarly named repos stay separate.
+    return [row for row in pane_rows if not repository_scope or any(
+        association['repository'] == repository_scope for association in navigation_associations(row))]
 
 
 def write_picker_snapshot(preview_path, pane_rows, column_widths):

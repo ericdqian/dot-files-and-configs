@@ -155,7 +155,13 @@ require("lazy").setup({
         branch = "main",
         dev = true,
         event = "LspAttach",
-        cmd = { "NvNavigatorFiles", "NvNavigatorGrep" },
+        cmd = { "NvNavigatorFiles", "NvNavigatorGrep", "NvNavigatorGitFiles", "NvNavigatorBuffers" },
+        keys = {
+            { "<leader>a", "<cmd>NvNavigatorGrep<CR>", desc = "Search text" },
+            { "<leader>z", "<cmd>NvNavigatorFiles<CR>", desc = "Search files" },
+            { "<leader>t", "<cmd>NvNavigatorGitFiles<CR>", desc = "Search Git files" },
+            { ";", "<cmd>NvNavigatorBuffers<CR>", desc = "Search buffers" },
+        },
         init = function()
             -- Let Lazy apply the configured keymaps instead of the plugin bootstrap defaults.
             vim.g.loaded_nv_navigator = 1

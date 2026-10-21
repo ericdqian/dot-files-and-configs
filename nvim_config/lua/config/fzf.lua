@@ -19,11 +19,13 @@ function M.setup()
           call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
         endfunction
         command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
-        nmap ; :Buffers<CR>
-        nmap <Leader>a :RG<CR>
-        nmap <Leader>z :Files<CR>
-        nmap <Leader>t :GFiles<CR>
     ]])
+    if (vim.env.NV_LSP_UI or "lspsaga") ~= "navigator" then
+        vim.keymap.set("n", ";", "<cmd>Buffers<CR>")
+        vim.keymap.set("n", "<leader>a", "<cmd>RG<CR>")
+        vim.keymap.set("n", "<leader>z", "<cmd>Files<CR>")
+        vim.keymap.set("n", "<leader>t", "<cmd>GFiles<CR>")
+    end
 end
 
 return M

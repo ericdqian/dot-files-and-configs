@@ -120,6 +120,15 @@ curl -LO --output-dir ~/ https://github.com/neovim/neovim/releases/download/nigh
 tar xzf ~/nvim-macos.tar.gz
 ```
 
+Use `nvc` to enable nv-navigator, or `nv` for the default Lspsaga setup.
+In `nvc`, Space-a searches text, Space-z searches files, Space-t searches Git
+files, and `;` lists buffers. Press Ctrl-D in a search picker to browse and
+select its directory; the search query is preserved. Ctrl-O shows a result
+while keeping the picker open. Alt-P/N recalls search history.
+
+Navigator development uses `~/nv-navigator` when present. That local clone
+must include the search-directory feature before using these shortcuts.
+
 ### Powerlevel10k
 
 ```

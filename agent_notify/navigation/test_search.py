@@ -178,13 +178,15 @@ class SearchTests(unittest.TestCase):
                 return '[{"pane_id":42,"tab_id":8,"window_id":2}]'
             return ''
         with patch.object(search, 'find_destination', return_value=(None, {'window_id': 2})), \
-             patch.object(search.shutil, 'which', side_effect=lambda executable: '/test/bin/' + executable), \
+             patch.dict(search.os.environ, {'SHELL': '/test/bin/login-shell'}), \
+             patch.object(search.shutil, 'which', side_effect=lambda executable: executable if executable.startswith('/') else '/test/bin/' + executable), \
              patch.object(search, 'run', side_effect=fake_run) as commands:
             search.navigate_to_pane('%9', '/dev/origin')
         executed_commands = [call.args[0] for call in commands.call_args_list]
         self.assertFalse(any(command[1] == 'switch-client' for command in executed_commands))
         self.assertIn(['wezterm', 'cli', 'spawn', '--window-id', '2', '--', '/test/bin/env', '-u', 'TMUX',
-                       '-u', 'TMUX_PANE', '/test/bin/tmux', '-S', '/tmp/isolated-tmux.sock',
+                       '-u', 'TMUX_PANE', '/bin/sh', '-c', '"$@"; exec "$0" -il', '/test/bin/login-shell',
+                       '/test/bin/tmux', '-S', '/tmp/isolated-tmux.sock',
                        'attach-session', '-t', '$7'], executed_commands)
         self.assertEqual(executed_commands[-1], ['wezterm', 'cli', 'activate-pane', '--pane-id', '42'])
 

@@ -197,6 +197,7 @@ def navigate_to_pane(pane_id, client_name):
 def spawn_session_tab(pane_id, source_wezterm_pane):
     tmux_executable = shutil.which('tmux')
     env_executable = shutil.which('env')
+    shell_executable = shutil.which(os.environ.get('SHELL', '/bin/sh')) or '/bin/sh'
     if not tmux_executable or not env_executable:
         raise ValueError('Cannot locate tmux/env to attach the new WezTerm tab.')
     session_id, socket_path = run(['tmux', 'display-message', '-p', '-t', pane_id,
@@ -205,14 +206,21 @@ def spawn_session_tab(pane_id, source_wezterm_pane):
     run(['tmux', 'select-window', '-t', pane_id], check=True)
     run(['tmux', 'select-pane', '-t', pane_id], check=True)
     created_pane_id = run(['wezterm', 'cli', 'spawn', '--window-id', str(source_wezterm_pane['window_id']),
-                           '--', env_executable, '-u', 'TMUX', '-u', 'TMUX_PANE', tmux_executable, '-S', socket_path,
-                           'attach-session', '-t', session_id], check=True)
+                           '--', *session_tab_command(env_executable, shell_executable, tmux_executable, socket_path, session_id)], check=True)
     wezterm_panes = json.loads(run(['wezterm', 'cli', 'list', '--format', 'json'], check=True))
     created_pane = next((pane for pane in wezterm_panes if str(pane['pane_id']) == created_pane_id), None)
     if created_pane:
         focus_wezterm_pane(created_pane)
     else:
         run(['wezterm', 'cli', 'activate-pane', '--pane-id', created_pane_id], check=True)
+
+
+def session_tab_command(env_executable, shell_executable, tmux_executable, socket_path, session_id):
+    # The POSIX wrapper waits for detach, then becomes the user’s interactive login shell.
+    # Positional arguments keep executable paths, socket paths, and session IDs out of shell code.
+    return [env_executable, '-u', 'TMUX', '-u', 'TMUX_PANE', '/bin/sh', '-c',
+            '"$@"; exec "$0" -il', shell_executable, tmux_executable, '-S', socket_path,
+            'attach-session', '-t', session_id]
 
 
 def focus_wezterm_pane(wezterm_pane):

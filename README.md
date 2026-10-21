@@ -63,8 +63,9 @@ and clearing the URL restores ordinary fuzzy search. Multiple matching panes rem
 available to choose from. When the destination session is already displayed
 in WezTerm, selection focuses its existing tab and pane. If the current terminal
 is WezTerm but no tab displays that session, selection opens a new tab attached
-to the same tmux server and session, leaving the original tab intact. Without
-WezTerm, the current tmux client switches to the destination. The popup closes
+to the same tmux server and session, leaving the original tab intact. Detaching
+returns that new tab to your configured interactive login shell; exiting that
+shell closes the tab. Without WezTerm, the current tmux client switches to the destination. The popup closes
 and redraws before routing, and routing commands cannot read terminal input. URL resolution requires authenticated `gh` access;
 ordinary window/branch search stays local. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
@@ -120,6 +121,8 @@ can still need an explicit claim or historical link.
 Validate with `python3 -m unittest discover -s agent_notify/navigation -p 'test_*.py'`.
 The terminal integration check, `python3 agent_notify/navigation/integration_test.py`,
 uses a separate tmux server and a stub GitHub response.
+Run `python3 agent_notify/navigation/detach_integration_test.py` to verify that
+new tabs return to a usable shell after detach and close on explicit shell exit.
 
 ### Karabiner-Elements
 

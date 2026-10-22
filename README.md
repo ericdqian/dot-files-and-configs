@@ -120,6 +120,45 @@ curl -LO --output-dir ~/ https://github.com/neovim/neovim/releases/download/nigh
 tar xzf ~/nvim-macos.tar.gz
 ```
 
+#### Inline Markdown diagrams
+
+Neovim uses [diagram.nvim](https://github.com/3rd/diagram.nvim) and
+[image.nvim](https://github.com/3rd/image.nvim) to render fenced `mermaid` and
+`plantuml` blocks inside Markdown buffers. Standalone `.mmd`, `.mermaid`, and
+PlantUML files also have syntax highlighting.
+
+Install the local rendering tools, then run `:Lazy sync` in Neovim:
+
+```sh
+brew install imagemagick plantuml graphviz
+npm install -g @mermaid-js/mermaid-cli
+```
+
+Use Kitty for the best-supported inline display. WezTerm's Kitty graphics
+support is incomplete and may render slowly or incorrectly. tmux needs version
+3.3 or newer; reload this repo's tmux config to enable graphics passthrough.
+The Markdown Tree-sitter parser is installed by the existing Neovim config;
+on first setup, wait for it to finish and reopen the Markdown file.
+These plugins are disabled in VS Code Neovim.
+
+For example, save the following in any Markdown file. Diagrams refresh when
+leaving insert mode or changing text, and render locally:
+
+````markdown
+```mermaid
+sequenceDiagram
+    Alice->>Bob: Hello
+    Bob-->>Alice: Hi
+```
+
+```plantuml
+@startuml
+Alice -> Bob: Hello
+Bob --> Alice: Hi
+@enduml
+```
+````
+
 ### Powerlevel10k
 
 ```

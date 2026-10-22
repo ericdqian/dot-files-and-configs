@@ -228,6 +228,49 @@ require("lazy").setup({
         cond = not vim.g.vscode,
     },
 
+    -- Inline diagrams in Markdown
+    {
+        "3rd/diagram.nvim",
+        ft = "markdown",
+        dependencies = {
+            "nvim-treesitter/nvim-treesitter",
+            {
+                "3rd/image.nvim",
+                opts = {
+                    backend = "kitty",
+                    processor = "magick_cli",
+                    integrations = {
+                        markdown = { enabled = false },
+                        neorg = { enabled = false },
+                        asciidoc = { enabled = false },
+                        typst = { enabled = false },
+                        syslang = { enabled = false },
+                    },
+                    max_height_window_percentage = 50,
+                    tmux_show_only_in_active_window = true,
+                },
+            },
+        },
+        opts = {},
+        cond = not vim.g.vscode,
+    },
+
+    -- Diagram source files
+    {
+        "aklt/plantuml-syntax",
+        ft = "plantuml",
+        cond = not vim.g.vscode,
+    },
+    {
+        "mracos/mermaid.vim",
+        ft = "mermaid",
+        init = function()
+            -- Keep .mm available for Objective-C++ files.
+            vim.g.mermaid_detect_mm = 0
+        end,
+        cond = not vim.g.vscode,
+    },
+
     -- Git plugins
 
     -- Enables using git commands in vim

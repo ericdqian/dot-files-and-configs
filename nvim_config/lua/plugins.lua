@@ -241,22 +241,6 @@ require("lazy").setup({
         cond = not vim.g.vscode,
     },
 
-    -- Diagram source files
-    {
-        "aklt/plantuml-syntax",
-        ft = "plantuml",
-        cond = not vim.g.vscode,
-    },
-    {
-        "mracos/mermaid.vim",
-        ft = "mermaid",
-        init = function()
-            -- Keep .mm available for Objective-C++ files.
-            vim.g.mermaid_detect_mm = 0
-        end,
-        cond = not vim.g.vscode,
-    },
-
     -- Git plugins
 
     -- Enables using git commands in vim

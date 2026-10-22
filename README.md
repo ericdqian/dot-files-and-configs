@@ -125,8 +125,8 @@ tar xzf ~/nvim-macos.tar.gz
 Neovim uses [md-render.nvim](https://github.com/delphinus/md-render.nvim) to
 preview Markdown with Mermaid and PlantUML diagrams inside the editor.
 Requires Neovim 0.12+ and a terminal supporting the Kitty graphics protocol;
-the plugin documents testing on WezTerm, Kitty, and Ghostty. Standalone `.mmd`,
-`.mermaid`, and PlantUML files also have syntax highlighting.
+the plugin documents testing on WezTerm, Kitty, and Ghostty. Both diagram
+formats are handled by this single plugin inside Markdown previews.
 
 Install the local renderers, then run `:Lazy sync` in Neovim:
 
@@ -146,7 +146,7 @@ Both `mermaid` and `plantuml` fenced blocks render locally. PlantUML stays as
 source text if its renderer is missing. For the first test, use Neovim directly
 in a WezTerm pane: tmux can filter graphics escape sequences, and passthrough
 alone does not guarantee the plugin's output will reach the terminal.
-These plugins are disabled in VS Code Neovim.
+This plugin is disabled in VS Code Neovim.
 
 ### Powerlevel10k
 

@@ -120,44 +120,33 @@ curl -LO --output-dir ~/ https://github.com/neovim/neovim/releases/download/nigh
 tar xzf ~/nvim-macos.tar.gz
 ```
 
-#### Inline Markdown diagrams
+#### Markdown diagram previews
 
-Neovim uses [diagram.nvim](https://github.com/3rd/diagram.nvim) and
-[image.nvim](https://github.com/3rd/image.nvim) to render fenced `mermaid` and
-`plantuml` blocks inside Markdown buffers. Standalone `.mmd`, `.mermaid`, and
-PlantUML files also have syntax highlighting.
+Neovim uses [md-render.nvim](https://github.com/delphinus/md-render.nvim) to
+preview Markdown with Mermaid and PlantUML diagrams inside the editor.
+Requires Neovim 0.12+ and a terminal supporting the Kitty graphics protocol;
+the plugin documents testing on WezTerm, Kitty, and Ghostty. Standalone `.mmd`,
+`.mermaid`, and PlantUML files also have syntax highlighting.
 
-Install the local rendering tools, then run `:Lazy sync` in Neovim:
+Install the local renderers, then run `:Lazy sync` in Neovim:
 
 ```sh
-brew install imagemagick plantuml graphviz
+brew install plantuml graphviz
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-Use Kitty for the best-supported inline display. WezTerm's Kitty graphics
-support is incomplete and may render slowly or incorrectly. tmux needs version
-3.3 or newer; reload this repo's tmux config to enable graphics passthrough.
-The Markdown Tree-sitter parser is installed by the existing Neovim config;
-on first setup, wait for it to finish and reopen the Markdown file.
+Open [the sample Markdown file](nvim_config/examples/diagrams.md), then use:
+
+- `:MdRender` or `<leader>mp` for a floating preview.
+- `:MdRender tab` or `<leader>mt` for a preview tab.
+- `:vertical MdRender split` or `<leader>ms` for source and preview together.
+- `:MdRender toggle` to switch the current window between source and preview.
+
+Both `mermaid` and `plantuml` fenced blocks render locally. PlantUML stays as
+source text if its renderer is missing. For the first test, use Neovim directly
+in a WezTerm pane: tmux can filter graphics escape sequences, and passthrough
+alone does not guarantee the plugin's output will reach the terminal.
 These plugins are disabled in VS Code Neovim.
-
-For example, save the following in any Markdown file. Diagrams refresh when
-leaving insert mode or changing text, and render locally:
-
-````markdown
-```mermaid
-sequenceDiagram
-    Alice->>Bob: Hello
-    Bob-->>Alice: Hi
-```
-
-```plantuml
-@startuml
-Alice -> Bob: Hello
-Bob --> Alice: Hi
-@enduml
-```
-````
 
 ### Powerlevel10k
 

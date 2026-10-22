@@ -228,30 +228,16 @@ require("lazy").setup({
         cond = not vim.g.vscode,
     },
 
-    -- Inline diagrams in Markdown
+    -- Render Markdown with Mermaid and PlantUML diagrams inside Neovim.
     {
-        "3rd/diagram.nvim",
+        "delphinus/md-render.nvim",
         ft = "markdown",
-        dependencies = {
-            "nvim-treesitter/nvim-treesitter",
-            {
-                "3rd/image.nvim",
-                opts = {
-                    backend = "kitty",
-                    processor = "magick_cli",
-                    integrations = {
-                        markdown = { enabled = false },
-                        neorg = { enabled = false },
-                        asciidoc = { enabled = false },
-                        typst = { enabled = false },
-                        syslang = { enabled = false },
-                    },
-                    max_height_window_percentage = 50,
-                    tmux_show_only_in_active_window = true,
-                },
-            },
+        cmd = "MdRender",
+        keys = {
+            { "<leader>mp", "<cmd>MdRender<CR>", desc = "Markdown preview" },
+            { "<leader>mt", "<cmd>MdRender tab<CR>", desc = "Markdown preview in tab" },
+            { "<leader>ms", "<cmd>vertical MdRender split<CR>", desc = "Markdown preview in split" },
         },
-        opts = {},
         cond = not vim.g.vscode,
     },
 

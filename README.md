@@ -22,6 +22,16 @@ Only windows in an attached session are marked. A window nobody is attached to c
 
 Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call; after recording the observed branch, the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
+## Worktree navigation
+
+`cwt` switches to an existing worktree by path or branch, or opens a fuzzy picker
+when there is no exact match. It also accepts a PR number (`cwt 42`, `cwt '#42'`)
+or URL (`cwt https://github.com/OWNER/REPO/pull/42`). PR lookup requires an
+authenticated GitHub CLI (`gh`) and uses the PR's head branch to find an existing
+local worktree. URLs must belong to the current repository; PR lookup errors and
+missing worktrees report an error. These commands do not create worktrees.
+`ccwt` (Cursor) and `cnwt` (Neovim) accept the same arguments.
+
 ## Claude session routing
 
 Claude's `SessionStart` hook also runs `agent_notify/register_claude_session.sh`.

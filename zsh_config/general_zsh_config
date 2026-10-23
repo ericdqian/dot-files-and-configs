@@ -86,17 +86,50 @@ cwt() {
 }
 
 _resolve_worktree() {
-  local query="$1"
-  local wt
+  local worktree_query="$1"
+  local worktree_path
 
-  if [[ -n "$query" ]]; then
-    wt="$(_match_worktree "$query")" && {
-      print -r -- "$wt"
+  if [[ -n "$worktree_query" ]]; then
+    worktree_path="$(_match_worktree "$worktree_query")" && {
+      print -r -- "$worktree_path"
       return
     }
   fi
 
-  _select_worktree "$query"
+  local pr_selector
+  local pr_branch
+  local repository_url
+  local pr_url_pattern='^https://[^/]+/[^/]+/[^/]+/pull/[0-9]+([/?#].*)?$'
+
+  if [[ "$worktree_query" == <-> || "$worktree_query" == \#<-> ]]; then
+    pr_selector="${worktree_query#\#}"
+  elif [[ "$worktree_query" =~ "$pr_url_pattern" ]]; then
+    repository_url="$(gh repo view --json url --jq .url)" || return
+    if [[ "$worktree_query" != "$repository_url"/pull/* ]]; then
+      print -u2 -- "worktree: PR URL does not belong to $repository_url"
+      return 1
+    fi
+    pr_selector="${worktree_query%%[?#]*}"
+    pr_selector="${pr_selector%%/pull/*}/pull/${${pr_selector#*/pull/}%%/*}"
+  fi
+
+  if [[ -n "$pr_selector" ]]; then
+    pr_branch="$(gh pr view "$pr_selector" --json headRefName --jq .headRefName)" || return
+    if [[ -z "$pr_branch" ]]; then
+      print -u2 -- "worktree: could not resolve PR $worktree_query to a branch"
+      return 1
+    fi
+    # PR navigation selects only an exact branch match, never an unrelated worktree.
+    worktree_path="$(_emit_worktrees | awk -F $'\t' -v branch="$pr_branch" '$2 == branch { print $1; exit }')" || return
+    if [[ -z "$worktree_path" ]]; then
+      print -u2 -- "worktree: no local worktree for PR $worktree_query (branch $pr_branch)"
+      return 1
+    fi
+    print -r -- "$worktree_path"
+    return
+  fi
+
+  _select_worktree "$worktree_query"
 }
 
 _match_worktree() {

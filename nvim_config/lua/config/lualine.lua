@@ -36,14 +36,30 @@ function M.setup()
             lualine_z = {},
         },
         winbar = {
-            lualine_a = { { "filename", path = 1 } },
+            lualine_a = {
+                {
+                    "filename",
+                    path = 1,
+                    fmt = function(filename)
+                        return vim.w.review_title or filename
+                    end,
+                },
+            },
             lualine_b = {},
             lualine_c = {},
             lualine_y = {},
             lualine_z = {},
         },
         inactive_winbar = {
-            lualine_a = { { "filename", path = 1 } },
+            lualine_a = {
+                {
+                    "filename",
+                    path = 1,
+                    fmt = function(filename)
+                        return vim.w.review_title or filename
+                    end,
+                },
+            },
             lualine_b = {},
             lualine_c = {},
             lualine_y = {},

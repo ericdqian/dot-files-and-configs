@@ -13,8 +13,13 @@ import tempfile
 import time
 from pathlib import Path
 
+# Resolve the checkout behind installed symlinks so hooks can run from any directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from navigation import github, picker
+from navigation.picker import query_result_path, update_query_results, print_accept_action
+from navigation.commands import run
+
 OPTION_PREFIX = '@agent_nav_'
-PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#].*)?$')
 
 
 def main():
@@ -103,7 +108,7 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
         return
     # Remember non-Git directories too, so shell panes need no repeated Git probes.
     run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_nav_directory', working_directory], check=True)
-    repository = repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
+    repository = github.repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
     checkout_repository = repository
     current_branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
     branch = current_branch
@@ -111,10 +116,10 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
     if not repository:
         repository = checkout_root
     if reference:
-        if PR_PATTERN.fullmatch(reference):
-            repository, branch = resolve_pr(reference)
+        if github.PR_PATTERN.fullmatch(reference):
+            repository, branch = github.resolve_pr(reference)
             if source == 'claim':
-                pr_owner, pr_repository, _ = PR_PATTERN.fullmatch(reference).groups()
+                pr_owner, pr_repository, _ = github.PR_PATTERN.fullmatch(reference).groups()
                 base_repository = f'github.com/{pr_owner}/{pr_repository}'.lower()
                 if checkout_repository not in {repository, base_repository}:
                     raise ValueError('This worktree belongs to a different repository than the requested PR.')
@@ -137,68 +142,12 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
                 association['url'] = previous_url
         except ValueError:
             pass
-    if PR_PATTERN.fullmatch(reference):
+    if github.PR_PATTERN.fullmatch(reference):
         association['url'] = reference
     if session_id:
         association['agent_session'] = session_id
     # Each association owns an option, so observations cannot overwrite explicit claims.
     run(['tmux', 'set-option', '-p', '-t', pane_id, option_key, json.dumps(association)], check=True)
-
-
-def repository_identity(remote_url):
-    normalized = re.sub(r'^\w+://(?:[^/@]+@)?', '', remote_url.strip())
-    normalized = re.sub(r'^git@', '', normalized).replace(':', '/', 1)
-    return normalized.removesuffix('.git').rstrip('/').lower()
-
-
-def resolve_pr(pr_url):
-    match = PR_PATTERN.fullmatch(pr_url)
-    if not match:
-        raise ValueError('Expected a GitHub PR URL.')
-    owner, repository_name, number = match.groups()
-    pull_request = json.loads(run(['gh', 'api', f'repos/{owner}/{repository_name}/pulls/{number}'], check=True))
-    head_repository = pull_request['head']['repo']
-    if not head_repository:
-        raise ValueError('The PR’s source repository has been deleted; link its branch explicitly.')
-    return 'github.com/' + head_repository['full_name'].lower(), pull_request['head']['ref']
-
-
-def canonical_pr_url(pr_url):
-    match = PR_PATTERN.fullmatch(pr_url.strip())
-    if not match:
-        return ''
-    owner, repository_name, number = match.groups()
-    return f'https://github.com/{owner.lower()}/{repository_name.lower()}/pull/{int(number)}'
-
-
-def resolve_and_cache_pr(pr_url):
-    canonical_url = canonical_pr_url(pr_url)
-    cache_directory = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'agent-notify' / 'prs'
-    cache_path = cache_directory / (hashlib.sha256(canonical_url.encode()).hexdigest() + '.json')
-    try:
-        cached_resolution = json.loads(cache_path.read_text())
-        if (0 <= time.time() - cached_resolution['resolved_at'] < 300
-                and all(isinstance(cached_resolution[key], str) and cached_resolution[key]
-                        for key in ['repository', 'branch'])):
-            return cached_resolution['repository'], cached_resolution['branch']
-    except (OSError, ValueError, KeyError, TypeError):
-        pass  # Missing, expired, or malformed cache entries fall back to GitHub.
-    repository, branch = resolve_pr(pr_url)
-    # Cache only successful search lookups; ownership claims still validate against GitHub.
-    temporary_cache_path = cache_path.with_suffix(f'.{os.getpid()}.tmp')
-    try:
-        cache_directory.mkdir(parents=True, exist_ok=True)
-        temporary_cache_path.write_text(json.dumps({'repository': repository, 'branch': branch,
-                                                   'resolved_at': time.time()}))
-        os.replace(temporary_cache_path, cache_path)
-    except OSError:
-        pass  # A read-only cache must not prevent PR search.
-    finally:
-        try:
-            temporary_cache_path.unlink(missing_ok=True)
-        except OSError:
-            pass
-    return repository, branch
 
 
 def open_picker(client_name):
@@ -413,23 +362,14 @@ def choose_row(pane_rows):
         while True:
             scoped_rows = filter_repository_rows(pane_rows, repository_scope)
             write_picker_snapshot(preview_path, scoped_rows, column_widths)
-            accept_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
-                                        'accept', '--data', str(preview_path)]) + ' --pane {1} -- {q}'
-            change_command = picker_change_command(preview_path, scoped_rows)
-            picker = subprocess.run([*picker_arguments, '--preview=' + preview_command,
-                                     '--preview-window=down,35%,wrap,border-top', '--query=' + query, '--print-query', '--expect=ctrl-d',
-                                     '--prompt=Window / branch / PR > ',
-                                     '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
-                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n\n' + column_header,
-                                     '--bind=enter:transform(' + accept_command + ')',
-                                     '--bind=start:transform(' + change_command + ')',
-                                     '--bind=change:transform(' + change_command + ')',
-                                     '--bind=load:transform(' + picker_change_command(preview_path, scoped_rows, on_load=True) + ')'],
-                                    input=preview_path.with_name('candidates.txt').read_text(), text=True,
-                                    stdout=subprocess.PIPE, env=picker_environment)
-            output_lines = picker.stdout.splitlines()
+            selection = picker.run_picker(preview_path, query, [*picker_arguments, '--preview=' + preview_command,
+                                            '--preview-window=down,35%,wrap,border-top', '--print-query', '--expect=ctrl-d',
+                                            '--prompt=Window / branch / PR > ',
+                                            '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
+                                                     'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n\n' + column_header])
+            output_lines = selection.stdout.splitlines()
             # fzf returns 1 for an expected key when there are no matching rows.
-            if picker.returncode not in (0, 1) or len(output_lines) < 2:
+            if selection.returncode not in (0, 1) or len(output_lines) < 2:
                 return ''
             query, pressed_key = output_lines[:2]
             if pressed_key != 'ctrl-d':
@@ -477,121 +417,10 @@ def filter_repository_rows(pane_rows, repository_scope):
 
 
 def write_picker_snapshot(preview_path, pane_rows, column_widths):
-    # Candidate files and query validations must describe the same repository scope.
-    preview_path.write_text(json.dumps({row['pane']: row for row in pane_rows}))
-    preview_path.with_name('candidates.txt').write_text('\n'.join(format_row(row, column_widths) for row in pane_rows))
-    preview_path.with_name('status.txt').write_text('No matching windows or branches. Edit your search or repository filter.')
-    preview_path.with_name('external-query').unlink(missing_ok=True)
-    for previous_query_path in preview_path.parent.glob('query-*.json'):
-        previous_query_path.unlink()
-    query_result_path(preview_path, '').write_text(json.dumps([row['pane'] for row in pane_rows]))
-
-
-def picker_change_command(preview_path, pane_rows, on_load=False):
-    query_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
-                                'query', '--data', str(preview_path), '--']) + ' "$FZF_QUERY"'
-    reload_action = shlex.quote('disable-search+reload(' + query_command + ')')
-    restore_command = shlex.join(['cat', str(preview_path.with_name('candidates.txt'))])
-    restore_action = shlex.quote('enable-search+reload(' + restore_command + ')')
-    mode_path = shlex.quote(str(preview_path.with_name('external-query')))
-    status_path = shlex.quote(str(preview_path.with_name('status.txt')))
-    claimed_branches = sorted({association['branch'] for row in pane_rows
-                               for association in navigation_associations(row)
-                               if association.get('source') in {'claim', 'link'}})
-    branch_case = ('case "$normalized_query" in ' + '|'.join(shlex.quote(branch) for branch in claimed_branches)
-                   + ') external_query=yes ;; esac; ') if claimed_branches else ''
-    if on_load:
-        mode_actions = ('if [ -z "$external_query" ] && [ -f ' + mode_path
-                        + ' ]; then rm -f ' + mode_path + '; fi')
-    else:
-        # Keep the marker until fzf loads the restored list; rapid typing can cancel a reload.
-        mode_actions = ('if [ "$external_query" = yes ]; then : > ' + mode_path
-                        + "; printf '%s\\n' " + reload_action
-                        + '; elif [ -f ' + mode_path + ' ]; then '
-                        + "printf '%s' 'No matching windows or branches. Edit your search or paste a GitHub PR URL.' > " + status_path
-                        + "; printf '%s\\n' " + restore_action + '; fi')
-    # A shell builtin dispatch keeps Python, GitHub, and a second fzf out of ordinary typing.
-    # The marker is private to this picker and tracks when its candidate list needs restoring.
-    return ('normalized_query="${FZF_QUERY#"${FZF_QUERY%%[![:space:]]*}"}"; '
-            'normalized_query="${normalized_query%"${normalized_query##*[![:space:]]}"}"; '
-            'external_query=; ' + branch_case
-            + 'case "$normalized_query" in https://github.com/*/*/pull/*) '
-              'pr_number="${normalized_query##*/pull/}"; pr_number="${pr_number%%[/?#]*}"; '
-              'case "$pr_number" in ""|*[!0-9]*) ;; *) external_query=yes ;; esac ;; esac; '
-            + mode_actions)
-
-
-def update_query_results(preview_path, query):
-    candidate_lines = preview_path.with_name('candidates.txt').read_text().splitlines()
-    pane_rows = list(json.loads(preview_path.read_text()).values())
-    try:
-        if PR_PATTERN.fullmatch(query.strip()):
-            canonical_url = canonical_pr_url(query)
-            matching_associations = [(row['pane'], association) for row in pane_rows
-                                     for association in navigation_associations(row)
-                                     if canonical_pr_url(association.get('url', '')) == canonical_url]
-            status = 'No matching destination for this PR.'
-            if matching_associations:
-                recorded_branches = {(association['repository'], association['branch'])
-                                     for pane_id, association in matching_associations}
-                matching_associations = [(row['pane'], association) for row in pane_rows
-                                         for association in navigation_associations(row)
-                                         if (association['repository'], association['branch']) in recorded_branches]
-            else:
-                repository, branch = resolve_and_cache_pr(query.strip())
-                matching_associations = [(row['pane'], association) for row in pane_rows
-                                         for association in navigation_associations(row)
-                                         if association['repository'] == repository and association['branch'] == branch]
-                status = (f'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
-                          'Link older work explicitly, or clear the URL to search windows.')
-            matching_panes = {pane_id for pane_id, association in matching_associations}
-            claimed_panes = {pane_id for pane_id, association in matching_associations
-                             if association.get('source') in {'claim', 'link'}}
-            if claimed_panes:
-                matching_panes = claimed_panes
-            pr_number = PR_PATTERN.fullmatch(query.strip()).group(3)
-            result_lines = [line.replace('\t', f'\t\033[35mPR #{pr_number}\033[0m  ', 1) for line in candidate_lines
-                            if line.split('\t', 1)[0] in matching_panes]
-        else:
-            claimed_panes = {row['pane'] for row in pane_rows if any(
-                association.get('source') in {'claim', 'link'} and association['branch'] == query.strip()
-                for association in navigation_associations(row))}
-            if claimed_panes:
-                candidate_lines = [line for line in candidate_lines if line.split('\t', 1)[0] in claimed_panes]
-            # Reuse fzf’s ranking while keeping original ANSI rows for presentation.
-            filtered_lines = run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--tiebreak=index', '--filter', query],
-                                 input_text='\n'.join(candidate_lines)).splitlines()
-            candidates_by_pane_id = {line.split('\t', 1)[0]: line for line in candidate_lines}
-            result_lines = [candidates_by_pane_id[line.split('\t', 1)[0]] for line in filtered_lines]
-            status = 'No matching windows or branches. Edit your search or paste a GitHub PR URL.'
-    except (ValueError, OSError, KeyError, subprocess.TimeoutExpired) as error:
-        result_lines = []
-        status = f'PR lookup failed: {error}. Edit the URL to retry, or search a branch name.'
-    # The non-selectable status row and preview explain empty results inside the picker.
-    preview_path.with_name('status.txt').write_text(status)
-    result_path = query_result_path(preview_path, query)
-    temporary_result_path = result_path.with_suffix(f'.{os.getpid()}.tmp')
-    temporary_result_path.write_text(json.dumps([line.split('\t', 1)[0] for line in result_lines]))
-    os.replace(temporary_result_path, result_path)
-    print('\n'.join(result_lines) if result_lines else '!\t' + status.replace('\n', ' '))
-
-
-def query_result_path(preview_path, query):
-    return preview_path.with_name('query-' + hashlib.sha256(query.encode()).hexdigest() + '.json')
-
-
-def print_accept_action(preview_path, query, selected_pane_id):
-    result_path = query_result_path(preview_path, query)
-    pane_rows_by_id = json.loads(preview_path.read_text())
-    exact_claim = any(association.get('source') in {'claim', 'link'}
-                      and association['branch'] == query.strip()
-                      for row in pane_rows_by_id.values() for association in navigation_associations(row))
-    live_search = not PR_PATTERN.fullmatch(query.strip()) and not exact_claim
-    if ((live_search and selected_pane_id in pane_rows_by_id) or
-            (result_path.exists() and selected_pane_id in json.loads(result_path.read_text()))):
-        print('accept')
-    else:
-        print('change-header(Search updating or no destination. Wait for results, then press Enter.)')
+    destination_rows = {row['pane']: {**row, 'associations': navigation_associations(row)} for row in pane_rows}
+    picker.write_snapshot(preview_path, destination_rows, [format_row(row, column_widths) for row in pane_rows],
+                          {'missing_destination': 'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
+                                                  'Link older work explicitly, or clear the URL to search windows.'})
 
 
 def format_row(pane_row, column_widths=(30, 18, 24)):
@@ -604,7 +433,7 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
     process_label = 'claude' if re.fullmatch(r'\d+\.\d+\.\d+', pane_row['command']) else pane_row['command']
     branch_label = ', '.join(branches) or 'No recorded branch'
     pr_numbers = list(dict.fromkeys(pr_match.group(3) for association in associations
-                                   if (pr_match := PR_PATTERN.fullmatch(association.get('url', '')))))
+                                   if (pr_match := github.PR_PATTERN.fullmatch(association.get('url', '')))))
     pr_label = ', '.join('#' + pr_number for pr_number in pr_numbers) or '—'
     # Keep complete titles and branches in the row so fuzzy search loses no history.
     return (f"{pane_row['pane']}\t\033[1;37m{title:<{column_widths[0]}}\033[0m\t"
@@ -646,16 +475,6 @@ def format_details(pane_row):
     if not unique_associations:
         detail_lines.append('  No branch recorded yet.')
     return '\n'.join(detail_lines)
-
-
-def run(command, check=False, input_text=None, timeout=20):
-    # Noninteractive commands must never consume keys intended for the popup or shell.
-    input_arguments = {'input': input_text} if input_text is not None else {'stdin': subprocess.DEVNULL}
-    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            timeout=timeout, **input_arguments)
-    if check and result.returncode:
-        raise ValueError(result.stderr.strip() or f'{command[0]} failed')
-    return result.stdout.strip()
 
 
 if __name__ == '__main__':

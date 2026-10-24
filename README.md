@@ -22,6 +22,28 @@ Only windows in an attached session are marked. A window nobody is attached to c
 
 Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call; after recording the observed branch, the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
+## Worktree navigation
+
+`cwt` switches to an existing worktree by path or branch, or opens a fuzzy picker
+when there is no exact match. It also accepts a PR number (`cwt 42`, `cwt '#42'`)
+or URL (`cwt https://github.com/OWNER/REPO/pull/42`). PR lookup requires an
+authenticated GitHub CLI (`gh`) and Python 3. It uses the shared `navigation/` PR
+resolver to find an existing local worktree for the PR's head branch, and works
+outside tmux too. URLs must belong to the current repository; PR lookup errors and
+missing worktrees report an error. These commands do not create worktrees.
+`ccwt` (Cursor) and `cnwt` (Neovim) accept the same arguments. You can also paste
+PR numbers or full URLs into the picker after running any of these commands.
+Interactive PR searches share tmux navigation's five-minute cache; explicit PR
+arguments resolve a fresh head. Failed lookups stay visible in the picker and
+are not cached. Clearing the PR query restores ordinary fuzzy filtering.
+
+The top-level `navigation/` package owns GitHub resolution, repository identity,
+PR caching, and the complete fzf picker flow: snapshots, query filtering, reloads,
+and selection validation. Both shell worktree commands and
+`tmux_config/navigation/search.py` use it. Tmux pane and window behavior stays
+under `tmux_config/`. Script paths resolve installed symlinks back to this checkout,
+so no Python package installation or `PYTHONPATH` configuration is needed.
+
 ## Claude session routing
 
 Claude's `SessionStart` hook also runs `agent_notify/register_claude_session.sh`.

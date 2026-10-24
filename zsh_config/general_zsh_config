@@ -86,71 +86,13 @@ cwt() {
 }
 
 _resolve_worktree() {
-  local query="$1"
-  local wt
+  local navigation_script="${${functions_source[_resolve_worktree]:A}:h:h}/navigation/cli.py"
 
-  if [[ -n "$query" ]]; then
-    wt="$(_match_worktree "$query")" && {
-      print -r -- "$wt"
-      return
-    }
-  fi
-
-  _select_worktree "$query"
-}
-
-_match_worktree() {
-  local query="$1"
-  local absolute_query="${query:A}"
-
-  _emit_worktrees |
-    awk -F $'\t' -v query="$query" -v absolute_query="$absolute_query" '
-      $1 == query || $1 == absolute_query || $2 == query || "refs/heads/" $2 == query {
-        print $1
-        found = 1
-        exit
-      }
-
-      END {
-        exit found ? 0 : 1
-      }
-    '
-}
-
-_select_worktree() {
-  local query="$1"
-
-  _emit_worktrees |
-    fzf --delimiter=$'\t' --with-nth=1,2 \
-        --query="$query" \
-        --prompt='worktree > ' \
-        --height=40% --reverse |
-    cut -f1
+  _emit_worktrees | python3 "$navigation_script" pick-worktree -- "$1"
 }
 
 _emit_worktrees() {
-  git worktree list --porcelain |
-    awk '
-      /^worktree / {
-        if (path != "") {
-          print path "\t" branch
-        }
-
-        path = substr($0, 10)
-        branch = ""
-      }
-
-      /^branch / {
-        branch = substr($0, 8)
-        sub(/^refs\/heads\//, "", branch)
-      }
-
-      END {
-        if (path != "") {
-          print path "\t" branch
-        }
-      }
-    '
+  git worktree list --porcelain -z
 }
 
 ccwt() {

@@ -53,6 +53,86 @@ class SearchTests(unittest.TestCase):
         self.assertEqual([association['branch'] for association in search.navigation_associations(window_row)],
                          ['claimed', 'sibling'])
 
+    def test_window_owner_hides_other_branches_even_when_a_sibling_pane_is_active(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim'}
+        pane_rows = [
+            {'pane': '%1', 'window': '@1', 'window_owner': window_owner, 'associations': []},
+            {'pane': '%2', 'window': '@1', 'active': True,
+             'associations': [{'repository': 'github.com/owner/repo', 'branch': 'incidental'}]},
+        ]
+        window_row = search.group_window_rows(pane_rows)[0]
+        self.assertEqual(window_row['pane'], '%2')
+        self.assertEqual(search.navigation_associations(window_row), [window_owner])
+
+    def test_collection_reads_window_ownership_and_skips_checkout_observations(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim'}
+        pane_listing = '%1\tcore\tFeature\t0.0\t/other\t/repo\tzsh\t@1\t0\t0\t1'
+        with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %1\nagent-owner ' + json.dumps(window_owner)]), \
+             patch.object(search, 'record_branch') as observations:
+            pane_rows = search.collect_and_record_pane_rows()
+        self.assertEqual(search.navigation_associations(pane_rows[0]), [window_owner])
+        observations.assert_not_called()
+
+    def test_claim_rejects_another_branch_or_checkout_in_the_same_window(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/feature'}
+        for conflicting_owner in [{**window_owner, 'branch': 'other'}, {**window_owner, 'checkout': '/other'}]:
+            with patch.object(search, 'run', side_effect=['@1', json.dumps(window_owner)]) as commands:
+                with self.assertRaisesRegex(ValueError, 'already owns feature'):
+                    search.claim_window('%1', conflicting_owner)
+            self.assertEqual(commands.call_count, 2)
+
+    def test_claim_rejects_a_duplicate_window_for_the_same_repository_and_branch(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/feature'}
+        with patch.object(search, 'run', side_effect=['@1', '']), \
+             patch.object(search, 'claimed_windows', return_value=[{'window': '@2', 'pane': '%2', 'owner': window_owner}]):
+            with self.assertRaisesRegex(ValueError, 'already belongs to window @2'):
+                search.claim_window('%1', window_owner)
+
+    def test_window_listing_handles_a_final_unclaimed_window(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/feature'}
+        with patch.object(search, 'run', return_value='@1\t%1\t' + json.dumps(window_owner) + '\n@2\t%2'):
+            self.assertEqual(search.claimed_windows(), [{'window': '@1', 'pane': '%1', 'owner': window_owner}])
+
+    def test_claim_refresh_preserves_pr_and_description_from_a_sibling_pane(self):
+        window_owner = {'repository': 'github.com/fork/repo', 'branch': 'feature', 'checkout': '/feature',
+                        'url': 'https://github.com/owner/repo/pull/7', 'description': 'Feature purpose'}
+        with patch.object(search, 'run', side_effect=['@1', json.dumps(window_owner), '']) as commands, \
+             patch.object(search, 'claimed_windows', return_value=[]):
+            search.claim_window('%2', {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/feature'})
+        recorded_owner = json.loads(commands.call_args.args[0][-1])
+        self.assertEqual(recorded_owner, window_owner)
+
+    def test_claim_rejects_a_second_pr_in_the_same_window(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/feature',
+                        'url': 'https://github.com/owner/repo/pull/7'}
+        with patch.object(search, 'run', side_effect=['@1', json.dumps(window_owner)]), \
+             patch.object(search, 'claimed_windows', return_value=[]):
+            with self.assertRaisesRegex(ValueError, 'different PR'):
+                search.claim_window('%1', {**window_owner, 'url': 'https://github.com/owner/repo/pull/8'})
+
+    def test_start_opens_window_in_source_session_using_existing_checkout(self):
+        with patch.object(search, 'create_agent_worktree', return_value=Path('/existing')), \
+             patch.object(search, 'claimed_windows', return_value=[]), \
+             patch.object(search, 'record_branch') as claims, \
+             patch.object(search, 'run', side_effect=['$7', 'git@github.com:owner/repo.git', '%99']) as commands, \
+             redirect_stdout(io.StringIO()) as output:
+            search.start_branch_window('%42', 'feature', '/proposed', 'main', 'Feature purpose', 'session-id')
+        self.assertEqual(commands.call_args.args[0], ['tmux', 'new-window', '-d', '-P', '-F', '#{pane_id}',
+                                                     '-t', '$7:', '-n', 'Feature purpose', '-c', '/existing'])
+        claims.assert_called_once_with('%99', '/existing', source='claim', session_id='session-id', window_name='Feature purpose')
+        self.assertIn('Pane: %99', output.getvalue())
+
+    def test_start_reuses_owned_window_instead_of_creating_a_duplicate(self):
+        window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/existing'}
+        with patch.object(search, 'create_agent_worktree', return_value=Path('/existing')), \
+             patch.object(search, 'claimed_windows', return_value=[{'window': '@9', 'pane': '%99', 'owner': window_owner}]), \
+             patch.object(search, 'record_branch') as claims, \
+             patch.object(search, 'run', side_effect=['$7', 'git@github.com:owner/repo.git']) as commands, \
+             redirect_stdout(io.StringIO()):
+            search.start_branch_window('%42', 'feature', '/proposed', 'main')
+        self.assertEqual(commands.call_count, 2)
+        self.assertEqual(claims.call_args.args[:2], ('%99', '/existing'))
+
     def test_recent_windows_stay_grouped_with_recent_panes_first(self):
         pane_rows = [
             {'pane': '%1', 'window': '@1', 'window_access': 100, 'pane_access': 80},
@@ -541,6 +621,10 @@ class SearchTests(unittest.TestCase):
             self.assertEqual(created_path, checkout_path.resolve())
             self.assertEqual(search.run(['git', '-C', str(repository_path), 'branch', '--show-current']), 'main')
             self.assertEqual(search.run(['git', '-C', str(checkout_path), 'branch', '--show-current']), 'eq/feat/example')
+            with patch.object(search, 'run', side_effect=run_in_repository):
+                reused_path = search.create_agent_worktree('%42', 'eq/feat/example', str(Path(directory, 'unused')), 'HEAD')
+            self.assertEqual(reused_path, created_path)
+            self.assertFalse(Path(directory, 'unused').exists())
 
     def test_cancel_does_not_switch(self):
         with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \

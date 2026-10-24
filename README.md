@@ -20,7 +20,7 @@ Markers retire themselves. A finished marker clears as soon as its window is loo
 
 Only windows in an attached session are marked. A window nobody is attached to cannot be looked at, so a marker there would sit in a count that nothing can ever clear — on a machine running background review agents in detached sessions, that is most of them. Such an agent still bounces the Dock if it blocks, since that needs answering wherever it runs, though with no marker to track it there is nothing to re-bounce from.
 
-Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call, so the handler exits after the single option read that proves the state unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
+Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call; after recording the observed branch, the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
 ## Claude session routing
 
@@ -45,6 +45,107 @@ Validate the hook with `node --test agent_notify/register_claude_session.test.cj
 Mason will require a few things like unzip, npm, and pip to be available in order to properly install the language servers. If you see any issues with the installation, make sure that the above are available in your path.
 
 ## Terminal
+
+### Tmux window search
+
+This is a general tmux navigation tool; it works without an LLM. Coding-agent
+hooks optionally record branch history, and associations can also be added manually.
+
+The navigation helper and its tests live in `tmux_config/navigation/`.
+`setup.sh` links that directory to `~/.tmux/navigation/`; notification
+hooks call the helper there to record branch history.
+
+Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
+windows across all tmux sessions. Each window appears once; selecting it returns
+to its active pane. Type a window name, repository, or branch;
+use Up/Down to choose and Enter to jump directly to the window. Escape cancels.
+Aligned, color-coded columns show the window, window location, process, repository,
+ownership, recorded PR numbers, and branches with space between rows. Each row
+combines recorded PRs and branches from the window’s panes. Windows are sorted
+by their most recent visit. Focus hooks record visits; background output does
+not change the order. Windows without visit history follow visited windows in
+their existing order. Reload the tmux config to begin recording visits. Search
+still ranks by match quality, with recent order breaking ties.
+The bottom detail panel shows full paths
+and branch/PR associations; Ctrl+/ toggles it. Ctrl+D opens a compact dropdown of known
+repositories, with window counts and an **All repositories** option. Type to fuzzy
+filter the list, use Up/Down to choose, and press Enter to select a repository.
+Escape or Ctrl+C cancels. The main window/branch/PR query is preserved, and the
+chosen repository filters by exact identity so similarly named repos stay separate.
+Automated review sessions named
+`claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
+are excluded, while ordinary development windows with review-related names stay visible.
+Paste a full `https://github.com/OWNER/REPO/pull/NUMBER` URL to resolve its
+source repository and branch automatically. Recorded PR URLs match locally without
+contacting GitHub. Other successful PR lookups are cached for five minutes under
+`$XDG_CACHE_HOME/agent-notify/prs` (default `~/.cache/agent-notify/prs`); lookup failures
+remain retryable. Matching panes appear in the list;
+press Enter to select one. Missing history and API errors appear in the picker,
+and clearing the URL restores ordinary fuzzy search. Multiple matching panes remain
+available to choose from. When the destination session is already displayed
+in WezTerm, selection focuses its existing tab and pane. If the current terminal
+is WezTerm but no tab displays that session, selection opens a new tab attached
+to the same tmux server and session, leaving the original tab intact. Detaching
+returns that new tab to your configured interactive login shell; exiting that
+shell closes the tab. Without WezTerm, the current tmux client switches to the destination. The popup closes
+and redraws before routing, and routing commands cannot read terminal input. Unrecorded, uncached URLs require authenticated `gh` access;
+ordinary window/branch search filters the cached list live in fzf, without a typing
+delay or Python filtering process. Exact branch claims retain ownership precedence. The picker requires Python 3.9+ and
+fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
+
+The OWNER column distinguishes an explicit `claimed` branch/worktree from an
+`observed` checkout. Hooks and picker seeding only observe directories; they do
+not establish that every pane sharing a checkout owns its current branch. Once a
+pane has explicit claims, incidental branch observations are hidden from its
+navigation history. PR URLs and exact branch searches prefer explicit claims
+over observations. Multiple genuine claims remain selectable, with their full
+worktree paths and optional agent session IDs in the detail panel.
+
+For a new task, create a dedicated worktree and claim it for the agent’s pane:
+
+```sh
+python3 ~/.tmux/navigation/search.py start eq/feat/example \
+  --checkout ../repo-worktrees/example --base origin/main
+```
+
+Run from the repository and choose the base according to that repository’s
+instructions. `start` creates a new branch from the base, or checks out an
+existing local branch, without changing the shared checkout. It does not move
+an agent’s working directory: use the returned worktree path for subsequent
+commands. A branch already checked out elsewhere is rejected by Git.
+
+For an existing isolated worktree, claim its current branch and then its PR:
+
+```sh
+python3 ~/.tmux/navigation/search.py claim --checkout ../repo-worktrees/example
+python3 ~/.tmux/navigation/search.py claim https://github.com/OWNER/REPO/pull/123 \
+  --checkout ../repo-worktrees/example
+```
+
+Claims validate that the worktree is on the requested branch. They retain the
+canonical worktree root, branch, PR URL, and agent session ID when available.
+Outside the target tmux pane, pass its known stable `--pane %ID`; never guess a
+pane from whichever client happens to be active. Agents outside tmux have no
+picker destination and should create worktrees with Git directly.
+
+To explicitly backfill earlier work whose branch is no longer checked out, use
+`link` from its repository with a branch name or PR URL:
+
+```sh
+python3 ~/.tmux/navigation/search.py link eq/feat/earlier-branch --pane %ID
+python3 ~/.tmux/navigation/search.py link https://github.com/OWNER/REPO/pull/123 --pane %ID
+```
+
+History ends when the pane/server closes and is not restored by tmux-resurrect.
+Existing agents are not relocated or assigned ownership automatically. Work
+performed using shell `cd` or `git -C` without a corresponding hook directory
+can still need an explicit claim or historical link.
+
+Validate with `python3 -m unittest discover -s tmux_config/navigation -p 'test_*.py'`.
+The terminal integration check, `python3 tmux_config/navigation/integration_test.py`,
+uses a separate tmux server and a stub GitHub response.
+Run `python3 tmux_config/navigation/detach_integration_test.py` to verify that
+new tabs return to a usable shell after detach and close on explicit shell exit.
 
 ### Karabiner-Elements
 

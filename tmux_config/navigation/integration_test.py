@@ -271,6 +271,19 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         tmux('rename-window', '-t', other_pane_id, 'Scope decoy')
         subprocess.run(['python3', search_script, 'claim', '--checkout', other_repository, '--pane', other_pane_id],
                        env=environment, check=True, capture_output=True)
+        command('git', '-C', other_repository, '-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                '-c', 'core.hooksPath=/dev/null', 'commit', '--allow-empty', '-m', 'Initial')
+        routed_start = subprocess.run(['python3', search_script, 'start', 'cross-repository',
+                                       '--checkout', str(Path(directory, 'cross-repository-worktree')),
+                                       '--name', 'Cross repository task', '--pane', pane_one],
+                                      cwd=other_repository, env=environment, capture_output=True, text=True)
+        assert routed_start.returncode == 0, routed_start.stderr
+        routed_pane = next(line.removeprefix('Pane: ') for line in routed_start.stdout.splitlines() if line.startswith('Pane: '))
+        assert tmux('display-message', '-p', '-t', routed_pane, '#{session_id}') == tmux(
+            'display-message', '-p', '-t', other_pane_id, '#{session_id}')
+        assert tmux('display-message', '-p', '-t', routed_pane, '#{@agent_nav_repository}') == 'github.com/owner/other'
+        assert tmux('display-message', '-p', '-t', pane_one, '#{session_id}') != tmux(
+            'display-message', '-p', '-t', routed_pane, '#{session_id}')
         tmux('switch-client', '-t', 'other-session')
         while select.select([terminal], [], [], .3)[0]:
             os.read(terminal, 65536)

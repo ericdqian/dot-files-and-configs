@@ -113,12 +113,13 @@ class SearchTests(unittest.TestCase):
     def test_start_opens_window_in_source_session_using_existing_checkout(self):
         with patch.object(search, 'create_agent_worktree', return_value=Path('/existing')), \
              patch.object(search, 'claimed_windows', return_value=[]), \
+             patch.object(search, 'collect_repository_sessions', return_value=[{'id': '$7', 'name': 'repo', 'repository': '', 'match': 2}]), \
              patch.object(search, 'record_branch') as claims, \
-             patch.object(search, 'run', side_effect=['$7', 'git@github.com:owner/repo.git', '%99']) as commands, \
+             patch.object(search, 'run', side_effect=['$7', 'git@github.com:owner/repo.git', '%99', '']) as commands, \
              redirect_stdout(io.StringIO()) as output:
             search.start_branch_window('%42', 'feature', '/proposed', 'main', 'Feature purpose', 'session-id')
-        self.assertEqual(commands.call_args.args[0], ['tmux', 'new-window', '-d', '-P', '-F', '#{pane_id}',
-                                                     '-t', '$7:', '-n', 'Feature purpose', '-c', '/existing'])
+        commands.assert_any_call(['tmux', 'new-window', '-d', '-P', '-F', '#{pane_id}',
+                                  '-t', '$7:', '-n', 'Feature purpose', '-c', '/existing'], check=True)
         claims.assert_called_once_with('%99', '/existing', source='claim', session_id='session-id', window_name='Feature purpose')
         self.assertIn('Pane: %99', output.getvalue())
 
@@ -132,6 +133,57 @@ class SearchTests(unittest.TestCase):
             search.start_branch_window('%42', 'feature', '/proposed', 'main')
         self.assertEqual(commands.call_count, 2)
         self.assertEqual(claims.call_args.args[:2], ('%99', '/existing'))
+
+    def test_session_routing_prefers_repository_metadata_over_source_directory(self):
+        session_rows = [{'id': '$1', 'name': 'source', 'repository': '', 'match': 2},
+                        {'id': '$2', 'name': 'target', 'repository': 'github.com/owner/repo', 'match': 4}]
+        self.assertEqual(search.select_repository_session(session_rows, '$1'), '$2')
+
+    def test_session_routing_requires_explicit_choice_when_matches_are_ambiguous(self):
+        session_rows = [{'id': '$2', 'name': 'first', 'repository': '', 'match': 3},
+                        {'id': '$3', 'name': 'second', 'repository': '', 'match': 3}]
+        with self.assertRaisesRegex(ValueError, 'Multiple tmux sessions'):
+            search.select_repository_session(session_rows, '$1')
+        self.assertEqual(search.select_repository_session(session_rows, '$2'), '$2')
+        self.assertEqual(search.select_repository_session(session_rows, '$1', 'second'), '$3')
+
+    def test_session_routing_rejects_explicit_unrelated_or_missing_sessions(self):
+        session_rows = [{'id': '$2', 'name': 'other', 'repository': 'github.com/owner/other', 'match': 0}]
+        for target_session in ['$2', 'missing']:
+            with self.assertRaises(ValueError):
+                search.select_repository_session(session_rows, '$1', target_session)
+
+    def test_session_routing_excludes_review_sessions_and_returns_no_match_for_unrelated_sessions(self):
+        session_rows = [{'id': '$2', 'name': 'claude-pr-123-security', 'repository': '', 'match': 3},
+                        {'id': '$3', 'name': 'unrelated', 'repository': '', 'match': 0}]
+        self.assertEqual(search.select_repository_session(session_rows, '$1'), '')
+
+    def test_start_creates_a_repository_session_when_none_matches(self):
+        with patch.object(search, 'create_agent_worktree', return_value=Path('/existing')), \
+             patch.object(search, 'claimed_windows', return_value=[]), \
+             patch.object(search, 'collect_repository_sessions', return_value=[]), \
+             patch.object(search, 'record_branch'), \
+             patch.object(search, 'run', side_effect=['$7', 'git@github.com:owner/repo.git', '%99', '']) as commands, \
+             redirect_stdout(io.StringIO()):
+            search.start_branch_window('%42', 'feature', '/proposed', 'main', 'Feature purpose')
+        commands.assert_any_call(['tmux', 'new-session', '-d', '-P', '-F', '#{pane_id}',
+                                  '-s', 'repo', '-n', 'Feature purpose', '-c', '/existing'], check=True)
+
+    def test_session_discovery_uses_git_worktrees_but_respects_explicit_repository_metadata(self):
+        session_listing = '$1\tsource\tgithub.com/owner/other\n$2\tdestination\t'
+        pane_listing = '$1\t/shared\t\n$2\t/shared\t'
+        with patch.object(search, 'run', side_effect=[session_listing, pane_listing, '/git/common',
+                                                      'git@github.com:owner/repo.git', '/git/common']):
+            session_rows = search.collect_repository_sessions('/worktree', 'github.com/owner/repo')
+        self.assertEqual([session['match'] for session in session_rows], [0, 2])
+
+    def test_session_name_match_does_not_override_another_repository_checkout(self):
+        session_listing = '$1\trepo\t'
+        pane_listing = '$1\t/other\t'
+        with patch.object(search, 'run', side_effect=[session_listing, pane_listing, '/git/repo',
+                                                      'git@github.com:someone/other.git', '/git/other']):
+            session_rows = search.collect_repository_sessions('/worktree', 'github.com/owner/repo')
+        self.assertEqual(search.select_repository_session(session_rows, '$9'), '')
 
     def test_recent_windows_stay_grouped_with_recent_panes_first(self):
         pane_rows = [

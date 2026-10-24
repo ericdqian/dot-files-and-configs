@@ -15,7 +15,8 @@ from pathlib import Path
 
 # Resolve the checkout behind installed symlinks so hooks can run from any directory.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from navigation import github
+from navigation import github, picker
+from navigation.picker import query_result_path
 from navigation.commands import run
 
 OPTION_PREFIX = '@agent_nav_'
@@ -438,35 +439,11 @@ def write_picker_snapshot(preview_path, pane_rows, column_widths):
 def picker_change_command(preview_path, pane_rows, on_load=False):
     query_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
                                 'query', '--data', str(preview_path), '--']) + ' "$FZF_QUERY"'
-    reload_action = shlex.quote('disable-search+reload(' + query_command + ')')
-    restore_command = shlex.join(['cat', str(preview_path.with_name('candidates.txt'))])
-    restore_action = shlex.quote('enable-search+reload(' + restore_command + ')')
-    mode_path = shlex.quote(str(preview_path.with_name('external-query')))
-    status_path = shlex.quote(str(preview_path.with_name('status.txt')))
     claimed_branches = sorted({association['branch'] for row in pane_rows
                                for association in navigation_associations(row)
                                if association.get('source') in {'claim', 'link'}})
-    branch_case = ('case "$normalized_query" in ' + '|'.join(shlex.quote(branch) for branch in claimed_branches)
-                   + ') external_query=yes ;; esac; ') if claimed_branches else ''
-    if on_load:
-        mode_actions = ('if [ -z "$external_query" ] && [ -f ' + mode_path
-                        + ' ]; then rm -f ' + mode_path + '; fi')
-    else:
-        # Keep the marker until fzf loads the restored list; rapid typing can cancel a reload.
-        mode_actions = ('if [ "$external_query" = yes ]; then : > ' + mode_path
-                        + "; printf '%s\\n' " + reload_action
-                        + '; elif [ -f ' + mode_path + ' ]; then '
-                        + "printf '%s' 'No matching windows or branches. Edit your search or paste a GitHub PR URL.' > " + status_path
-                        + "; printf '%s\\n' " + restore_action + '; fi')
-    # A shell builtin dispatch keeps Python, GitHub, and a second fzf out of ordinary typing.
-    # The marker is private to this picker and tracks when its candidate list needs restoring.
-    return ('normalized_query="${FZF_QUERY#"${FZF_QUERY%%[![:space:]]*}"}"; '
-            'normalized_query="${normalized_query%"${normalized_query##*[![:space:]]}"}"; '
-            'external_query=; ' + branch_case
-            + 'case "$normalized_query" in https://github.com/*/*/pull/*) '
-              'pr_number="${normalized_query##*/pull/}"; pr_number="${pr_number%%[/?#]*}"; '
-              'case "$pr_number" in ""|*[!0-9]*) ;; *) external_query=yes ;; esac ;; esac; '
-            + mode_actions)
+    return picker.query_change_command(query_command, preview_path.with_name('candidates.txt'),
+                                       exact_queries=claimed_branches, on_load=on_load)
 
 
 def update_query_results(preview_path, query):
@@ -524,22 +501,13 @@ def update_query_results(preview_path, query):
     print('\n'.join(result_lines) if result_lines else '!\t' + status.replace('\n', ' '))
 
 
-def query_result_path(preview_path, query):
-    return preview_path.with_name('query-' + hashlib.sha256(query.encode()).hexdigest() + '.json')
-
-
 def print_accept_action(preview_path, query, selected_pane_id):
-    result_path = query_result_path(preview_path, query)
     pane_rows_by_id = json.loads(preview_path.read_text())
     exact_claim = any(association.get('source') in {'claim', 'link'}
                       and association['branch'] == query.strip()
                       for row in pane_rows_by_id.values() for association in navigation_associations(row))
     live_search = not github.PR_PATTERN.fullmatch(query.strip()) and not exact_claim
-    if ((live_search and selected_pane_id in pane_rows_by_id) or
-            (result_path.exists() and selected_pane_id in json.loads(result_path.read_text()))):
-        print('accept')
-    else:
-        print('change-header(Search updating or no destination. Wait for results, then press Enter.)')
+    print(picker.accept_action(preview_path, query, selected_pane_id, pane_rows_by_id, live_search))
 
 
 def format_row(pane_row, column_widths=(30, 18, 24)):

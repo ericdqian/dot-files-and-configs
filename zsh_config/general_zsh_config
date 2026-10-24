@@ -134,14 +134,10 @@ _match_worktree() {
 }
 
 _select_worktree() {
-  local query="$1"
+  local worktree_query="$1"
+  local navigation_script="${${functions_source[_select_worktree]:A}:h:h}/navigation/cli.py"
 
-  _emit_worktrees |
-    fzf --delimiter=$'\t' --with-nth=1,2 \
-        --query="$query" \
-        --prompt='worktree > ' \
-        --height=40% --reverse |
-    cut -f1
+  _emit_worktrees | python3 "$navigation_script" pick-worktree -- "$worktree_query"
 }
 
 _emit_worktrees() {

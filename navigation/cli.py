@@ -1,41 +1,32 @@
 #!/usr/bin/env python3
 """Resolve repository navigation references for shell commands."""
 import argparse
-import re
 import subprocess
 import sys
 from pathlib import Path
 
 # Resolve the checkout behind installed symlinks so callers need no PYTHONPATH setup.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from navigation import github
-from navigation.commands import run
+from navigation import worktrees
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['worktree-branch'])
-    parser.add_argument('reference')
+    parser.add_argument('action', choices=['worktree-branch', 'pick-worktree', 'worktree-query', 'worktree-accept'])
+    parser.add_argument('reference', nargs='?', default='')
+    parser.add_argument('--data', default='')
+    parser.add_argument('--selected', default='')
     arguments = parser.parse_args()
-    print(resolve_worktree_pr_branch(arguments.reference))
-
-
-def resolve_worktree_pr_branch(reference):
-    repository_url = run(['gh', 'repo', 'view', '--json', 'url', '--jq', '.url'], check=True)
-    if re.fullmatch(r'#?[0-9]+', reference):
-        pr_url = f'{repository_url}/pull/{reference.lstrip("#")}'
+    if arguments.action == 'worktree-branch':
+        print(worktrees.resolve_worktree_pr_branch(arguments.reference))
+    elif arguments.action == 'pick-worktree':
+        selected_path = worktrees.pick_worktree(sys.stdin.read().splitlines(), arguments.reference)
+        if selected_path:
+            print(selected_path)
+    elif arguments.action == 'worktree-query':
+        worktrees.update_worktree_query(Path(arguments.data), arguments.reference)
     else:
-        pr_url = github.canonical_pr_url(reference)
-        if not pr_url:
-            raise ValueError('Expected a GitHub PR number or URL.')
-        pr_owner, pr_repository, _ = github.PR_PATTERN.fullmatch(pr_url).groups()
-        if github.repository_identity(repository_url) != f'github.com/{pr_owner}/{pr_repository}':
-            raise ValueError(f'PR URL does not belong to {repository_url}')
-    # Resolve a fresh PR head so worktree selection does not depend on cached search results.
-    _, head_branch = github.resolve_pr(pr_url)
-    if not head_branch:
-        raise ValueError(f'Could not resolve PR {reference} to a branch.')
-    return head_branch
+        worktrees.print_worktree_accept_action(Path(arguments.data), arguments.reference, arguments.selected)
 
 
 if __name__ == '__main__':

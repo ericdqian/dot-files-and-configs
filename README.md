@@ -31,11 +31,15 @@ authenticated GitHub CLI (`gh`) and Python 3. It uses the shared `navigation/` P
 resolver to find an existing local worktree for the PR's head branch, and works
 outside tmux too. URLs must belong to the current repository; PR lookup errors and
 missing worktrees report an error. These commands do not create worktrees.
-`ccwt` (Cursor) and `cnwt` (Neovim) accept the same arguments.
+`ccwt` (Cursor) and `cnwt` (Neovim) accept the same arguments. You can also paste
+PR numbers or full URLs into the picker after running any of these commands.
+Interactive PR searches share tmux navigation's five-minute cache; explicit PR
+arguments resolve a fresh head. Failed lookups stay visible in the picker and
+are not cached. Clearing the PR query restores ordinary fuzzy filtering.
 
 The top-level `navigation/` package owns GitHub resolution, repository identity,
-and PR caching. Both shell worktree commands and `tmux_config/navigation/search.py`
-use it; tmux pane and window behavior stays under `tmux_config/`. Script paths
+PR caching, and fzf query switching and selection validation. Both shell worktree
+commands and `tmux_config/navigation/search.py` use it; tmux pane and window behavior stays under `tmux_config/`. Script paths
 resolve their installed symlinks back to this checkout, so no Python package
 installation or `PYTHONPATH` configuration is needed.
 

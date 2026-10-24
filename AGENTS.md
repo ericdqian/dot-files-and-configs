@@ -65,7 +65,7 @@ Inside tmux, use one session per repository and one window per branch/PR. Reuse 
 When the helper is available:
 
 - Run `python3 ~/.tmux/navigation/search.py start BRANCH --checkout PATH --base BASE --name 'Short purpose' --pane SOURCE_PANE` from the target repository. It finds the repository's session and creates or reuses the branch's worktree and window. Use the returned worktree and destination pane ID; use `--session NAME` if session selection is ambiguous.
-- For an existing branch window, run `python3 ~/.tmux/navigation/search.py claim --checkout PATH --pane DESTINATION_PANE`. After opening its PR, add the URL with `claim PR_URL --checkout PATH --pane DESTINATION_PANE`. Respect conflicting ownership; do not clear another branch's claim.
+- To associate an already-open tmux window with a branch's worktree, run `python3 ~/.tmux/navigation/search.py claim --checkout PATH --pane DESTINATION_PANE`. After opening its PR, add the URL with `claim PR_URL --checkout PATH --pane DESTINATION_PANE`. Respect conflicting ownership; do not clear another branch's claim.
 - For an agent handoff, launch the requested coding-agent CLI (`codex` or `claude`) in the destination window's worktree with task context. Opening an idle shell is only preparation. Reuse an existing agent through its messaging or resume flow rather than typing a new CLI command into it.
 
 Resolve the source pane from the agent's own `$TMUX_PANE` or an explicitly known stable `%ID`, never tmux's implicit current pane. If the helper is unavailable, follow the same session/window rules manually and report missing navigator metadata. Outside tmux, use Git worktrees directly.

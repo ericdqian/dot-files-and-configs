@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Resolve the checkout behind installed symlinks so hooks can run from any directory.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from navigation import github, picker
+from navigation import github, picker, worktrees
 from navigation.picker import query_result_path, update_query_results, print_accept_action
 from navigation.commands import run
 
@@ -127,11 +127,11 @@ def create_agent_worktree(pane_id, branch, checkout, base):
         raise ValueError('start requires a branch, --checkout PATH, and a tmux pane (--pane %ID outside tmux).')
     if run(['tmux', 'display-message', '-p', '-t', pane_id, '#{pane_id}'], check=True) != pane_id:
         raise ValueError('The target tmux pane no longer exists.')
-    worktree_listing = run(['git', 'worktree', 'list', '--porcelain'], check=True)
-    for worktree_record in worktree_listing.split('\n\n'):
-        worktree_fields = dict(line.split(' ', 1) for line in worktree_record.splitlines() if ' ' in line)
-        if worktree_fields.get('branch') == f'refs/heads/{branch}':
-            return Path(worktree_fields['worktree']).resolve()
+    worktree_listing = run(['git', 'worktree', 'list', '--porcelain', '-z'], check=True)
+    for worktree_candidate in worktrees.worktree_candidates(worktree_listing):
+        worktree_path, worktree_branch = worktree_candidate.split('\t', 1)
+        if worktree_branch == branch:
+            return Path(worktree_path).resolve()
     checkout_path = Path(checkout).expanduser().resolve()
     existing_branch = run(['git', 'show-ref', '--verify', f'refs/heads/{branch}'])
     # Create a separate checkout without moving, stashing, or changing the shared worktree.

@@ -65,3 +65,14 @@ def resolve_and_cache_pr(pr_url):
         except OSError:
             pass
     return repository, branch
+
+
+def pr_reference_url(reference, repository_url):
+    if re.fullmatch(r'#?[0-9]+', reference):
+        return f'{repository_url}/pull/{reference.lstrip("#")}'
+    pr_url = canonical_pr_url(reference)
+    if not pr_url:
+        raise ValueError('Expected a GitHub PR number or URL.')
+    if repository_url and repository_identity(pr_url.split('/pull/', 1)[0]) != repository_identity(repository_url):
+        raise ValueError(f'PR URL does not belong to {repository_url}')
+    return pr_url

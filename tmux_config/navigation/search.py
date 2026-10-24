@@ -16,7 +16,7 @@ from pathlib import Path
 # Resolve the checkout behind installed symlinks so hooks can run from any directory.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from navigation import github, picker
-from navigation.picker import query_result_path
+from navigation.picker import query_result_path, update_query_results, print_accept_action
 from navigation.commands import run
 
 OPTION_PREFIX = '@agent_nav_'
@@ -362,23 +362,14 @@ def choose_row(pane_rows):
         while True:
             scoped_rows = filter_repository_rows(pane_rows, repository_scope)
             write_picker_snapshot(preview_path, scoped_rows, column_widths)
-            accept_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
-                                        'accept', '--data', str(preview_path)]) + ' --pane {1} -- {q}'
-            change_command = picker_change_command(preview_path, scoped_rows)
-            picker = subprocess.run([*picker_arguments, '--preview=' + preview_command,
-                                     '--preview-window=down,35%,wrap,border-top', '--query=' + query, '--print-query', '--expect=ctrl-d',
-                                     '--prompt=Window / branch / PR > ',
-                                     '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
-                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n\n' + column_header,
-                                     '--bind=enter:transform(' + accept_command + ')',
-                                     '--bind=start:transform(' + change_command + ')',
-                                     '--bind=change:transform(' + change_command + ')',
-                                     '--bind=load:transform(' + picker_change_command(preview_path, scoped_rows, on_load=True) + ')'],
-                                    input=preview_path.with_name('candidates.txt').read_text(), text=True,
-                                    stdout=subprocess.PIPE, env=picker_environment)
-            output_lines = picker.stdout.splitlines()
+            selection = picker.run_picker(preview_path, query, [*picker_arguments, '--preview=' + preview_command,
+                                            '--preview-window=down,35%,wrap,border-top', '--print-query', '--expect=ctrl-d',
+                                            '--prompt=Window / branch / PR > ',
+                                            '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
+                                                     'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n\n' + column_header])
+            output_lines = selection.stdout.splitlines()
             # fzf returns 1 for an expected key when there are no matching rows.
-            if picker.returncode not in (0, 1) or len(output_lines) < 2:
+            if selection.returncode not in (0, 1) or len(output_lines) < 2:
                 return ''
             query, pressed_key = output_lines[:2]
             if pressed_key != 'ctrl-d':
@@ -426,88 +417,10 @@ def filter_repository_rows(pane_rows, repository_scope):
 
 
 def write_picker_snapshot(preview_path, pane_rows, column_widths):
-    # Candidate files and query validations must describe the same repository scope.
-    preview_path.write_text(json.dumps({row['pane']: row for row in pane_rows}))
-    preview_path.with_name('candidates.txt').write_text('\n'.join(format_row(row, column_widths) for row in pane_rows))
-    preview_path.with_name('status.txt').write_text('No matching windows or branches. Edit your search or repository filter.')
-    preview_path.with_name('external-query').unlink(missing_ok=True)
-    for previous_query_path in preview_path.parent.glob('query-*.json'):
-        previous_query_path.unlink()
-    query_result_path(preview_path, '').write_text(json.dumps([row['pane'] for row in pane_rows]))
-
-
-def picker_change_command(preview_path, pane_rows, on_load=False):
-    query_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
-                                'query', '--data', str(preview_path), '--']) + ' "$FZF_QUERY"'
-    claimed_branches = sorted({association['branch'] for row in pane_rows
-                               for association in navigation_associations(row)
-                               if association.get('source') in {'claim', 'link'}})
-    return picker.query_change_command(query_command, preview_path.with_name('candidates.txt'),
-                                       exact_queries=claimed_branches, on_load=on_load)
-
-
-def update_query_results(preview_path, query):
-    candidate_lines = preview_path.with_name('candidates.txt').read_text().splitlines()
-    pane_rows = list(json.loads(preview_path.read_text()).values())
-    try:
-        if github.PR_PATTERN.fullmatch(query.strip()):
-            canonical_url = github.canonical_pr_url(query)
-            matching_associations = [(row['pane'], association) for row in pane_rows
-                                     for association in navigation_associations(row)
-                                     if github.canonical_pr_url(association.get('url', '')) == canonical_url]
-            status = 'No matching destination for this PR.'
-            if matching_associations:
-                recorded_branches = {(association['repository'], association['branch'])
-                                     for pane_id, association in matching_associations}
-                matching_associations = [(row['pane'], association) for row in pane_rows
-                                         for association in navigation_associations(row)
-                                         if (association['repository'], association['branch']) in recorded_branches]
-            else:
-                repository, branch = github.resolve_and_cache_pr(query.strip())
-                matching_associations = [(row['pane'], association) for row in pane_rows
-                                         for association in navigation_associations(row)
-                                         if association['repository'] == repository and association['branch'] == branch]
-                status = (f'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
-                          'Link older work explicitly, or clear the URL to search windows.')
-            matching_panes = {pane_id for pane_id, association in matching_associations}
-            claimed_panes = {pane_id for pane_id, association in matching_associations
-                             if association.get('source') in {'claim', 'link'}}
-            if claimed_panes:
-                matching_panes = claimed_panes
-            pr_number = github.PR_PATTERN.fullmatch(query.strip()).group(3)
-            result_lines = [line.replace('\t', f'\t\033[35mPR #{pr_number}\033[0m  ', 1) for line in candidate_lines
-                            if line.split('\t', 1)[0] in matching_panes]
-        else:
-            claimed_panes = {row['pane'] for row in pane_rows if any(
-                association.get('source') in {'claim', 'link'} and association['branch'] == query.strip()
-                for association in navigation_associations(row))}
-            if claimed_panes:
-                candidate_lines = [line for line in candidate_lines if line.split('\t', 1)[0] in claimed_panes]
-            # Reuse fzf’s ranking while keeping original ANSI rows for presentation.
-            filtered_lines = run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--tiebreak=index', '--filter', query],
-                                 input_text='\n'.join(candidate_lines)).splitlines()
-            candidates_by_pane_id = {line.split('\t', 1)[0]: line for line in candidate_lines}
-            result_lines = [candidates_by_pane_id[line.split('\t', 1)[0]] for line in filtered_lines]
-            status = 'No matching windows or branches. Edit your search or paste a GitHub PR URL.'
-    except (ValueError, OSError, KeyError, subprocess.TimeoutExpired) as error:
-        result_lines = []
-        status = f'PR lookup failed: {error}. Edit the URL to retry, or search a branch name.'
-    # The non-selectable status row and preview explain empty results inside the picker.
-    preview_path.with_name('status.txt').write_text(status)
-    result_path = query_result_path(preview_path, query)
-    temporary_result_path = result_path.with_suffix(f'.{os.getpid()}.tmp')
-    temporary_result_path.write_text(json.dumps([line.split('\t', 1)[0] for line in result_lines]))
-    os.replace(temporary_result_path, result_path)
-    print('\n'.join(result_lines) if result_lines else '!\t' + status.replace('\n', ' '))
-
-
-def print_accept_action(preview_path, query, selected_pane_id):
-    pane_rows_by_id = json.loads(preview_path.read_text())
-    exact_claim = any(association.get('source') in {'claim', 'link'}
-                      and association['branch'] == query.strip()
-                      for row in pane_rows_by_id.values() for association in navigation_associations(row))
-    live_search = not github.PR_PATTERN.fullmatch(query.strip()) and not exact_claim
-    print(picker.accept_action(preview_path, query, selected_pane_id, pane_rows_by_id, live_search))
+    destination_rows = {row['pane']: {**row, 'associations': navigation_associations(row)} for row in pane_rows}
+    picker.write_snapshot(preview_path, destination_rows, [format_row(row, column_widths) for row in pane_rows],
+                          {'missing_destination': 'No tmux pane has recorded {branch}. Its agent may be outside tmux. '
+                                                  'Link older work explicitly, or clear the URL to search windows.'})
 
 
 def format_row(pane_row, column_widths=(30, 18, 24)):

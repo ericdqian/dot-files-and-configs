@@ -38,10 +38,11 @@ arguments resolve a fresh head. Failed lookups stay visible in the picker and
 are not cached. Clearing the PR query restores ordinary fuzzy filtering.
 
 The top-level `navigation/` package owns GitHub resolution, repository identity,
-PR caching, and fzf query switching and selection validation. Both shell worktree
-commands and `tmux_config/navigation/search.py` use it; tmux pane and window behavior stays under `tmux_config/`. Script paths
-resolve their installed symlinks back to this checkout, so no Python package
-installation or `PYTHONPATH` configuration is needed.
+PR caching, and the complete fzf picker flow: snapshots, query filtering, reloads,
+and selection validation. Both shell worktree commands and
+`tmux_config/navigation/search.py` use it. Tmux pane and window behavior stays
+under `tmux_config/`. Script paths resolve installed symlinks back to this checkout,
+so no Python package installation or `PYTHONPATH` configuration is needed.
 
 ## Claude session routing
 

@@ -7,12 +7,12 @@ from pathlib import Path
 
 # Resolve the checkout behind installed symlinks so callers need no PYTHONPATH setup.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from navigation import worktrees
+from navigation import picker, worktrees
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['worktree-branch', 'pick-worktree', 'worktree-query', 'worktree-accept'])
+    parser.add_argument('action', choices=['worktree-branch', 'pick-worktree', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--data', default='')
     parser.add_argument('--selected', default='')
@@ -20,13 +20,13 @@ def main():
     if arguments.action == 'worktree-branch':
         print(worktrees.resolve_worktree_pr_branch(arguments.reference))
     elif arguments.action == 'pick-worktree':
-        selected_path = worktrees.pick_worktree(sys.stdin.read().splitlines(), arguments.reference)
+        selected_path = worktrees.pick_worktree(worktrees.worktree_candidates(sys.stdin.read()), arguments.reference)
         if selected_path:
             print(selected_path)
-    elif arguments.action == 'worktree-query':
-        worktrees.update_worktree_query(Path(arguments.data), arguments.reference)
+    elif arguments.action == 'query':
+        picker.update_query_results(Path(arguments.data), arguments.reference)
     else:
-        worktrees.print_worktree_accept_action(Path(arguments.data), arguments.reference, arguments.selected)
+        picker.print_accept_action(Path(arguments.data), arguments.reference, arguments.selected)
 
 
 if __name__ == '__main__':

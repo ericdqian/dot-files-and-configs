@@ -54,10 +54,16 @@ else:
             time.sleep(.05)
         raise AssertionError((expected, screen))
     try:
-        candidates = f'{main_path}\tmain\n{feature_path}\tfeature\n'
+        candidates = f'worktree {main_path}\0branch refs/heads/main\0\0worktree {feature_path}\0branch refs/heads/feature\0\0'
+        candidates_path = test_root / 'worktrees.txt'
+        candidates_path.write_text(candidates)
         with shell_fixture.open('a') as shell_file:
-            shell_file.write('\n_emit_worktrees() { printf %s ' + shlex.quote(candidates) + '; }\n')
-        setup_command = 'source ' + shlex.quote(str(shell_fixture)) + '; clear'
+            shell_file.write('\n_emit_worktrees() { cat ' + shlex.quote(str(candidates_path)) + '; }\n')
+        subprocess.run(['git', 'init', '-q', str(main_path)], check=True)
+        subprocess.run(['git', '-C', str(main_path), 'remote', 'add', 'origin', 'git@github.com:owner/repo.git'], check=True)
+        subprocess.run(['git', 'init', '-q', str(feature_path)], check=True)
+        subprocess.run(['git', '-C', str(feature_path), 'remote', 'add', 'origin', 'git@github.com:owner/repo.git'], check=True)
+        setup_command = 'cd ' + shlex.quote(str(main_path)) + '; source ' + shlex.quote(str(shell_fixture)) + '; clear'
         send(setup_command)
         tmux('send-keys', 'Enter')
         for pr_query in ['https://github.com/owner/repo/pull/84', '#84', '84',
@@ -81,7 +87,7 @@ else:
         wait_for('Search updating or no destination')
         tmux('send-keys', 'C-u')
         send('main')
-        wait_for('1/2')
+        wait_for(str(main_path))
         tmux('send-keys', 'Enter')
         wait_for('RECOVERED:' + str(main_path))
         send('cwt; print -r -- "CANCELLED:$PWD"')

@@ -303,7 +303,7 @@ class SearchTests(unittest.TestCase):
             with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'absent')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
-            self.assertIn('No tmux pane has recorded absent', output.getvalue())
+            self.assertIn('No matching destination for branch absent', output.getvalue())
             with patch.object(search.github, 'resolve_pr', side_effect=ValueError('not found [404]')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/8')
@@ -358,7 +358,7 @@ class SearchTests(unittest.TestCase):
         pane_rows = [{'associations': [{'branch': 'feature', 'source': 'claim'}]}]
         with tempfile.TemporaryDirectory() as directory:
             preview_path = Path(directory, 'panes.json')
-            change_command = search.picker_change_command(preview_path, pane_rows)
+            change_command = search.picker.query_change_command('echo query', preview_path.with_name('candidates.txt'), exact_queries=['feature'])
             def changed_query(query):
                 return subprocess.check_output(['/bin/sh', '-c', change_command], text=True,
                                                env={**os.environ, 'FZF_QUERY': query}).strip()
@@ -367,12 +367,12 @@ class SearchTests(unittest.TestCase):
             self.assertTrue(changed_query('feature').startswith('disable-search+reload('))
             self.assertTrue(changed_query('features').startswith('enable-search+reload(cat '))
             self.assertTrue(changed_query('features again').startswith('enable-search+reload(cat '))
-            subprocess.check_output(['/bin/sh', '-c', search.picker_change_command(preview_path, pane_rows, on_load=True)],
+            subprocess.check_output(['/bin/sh', '-c', search.picker.query_change_command('echo query', preview_path.with_name('candidates.txt'), exact_queries=['feature'], on_load=True)],
                                     env={**os.environ, 'FZF_QUERY': 'features again'})
             self.assertEqual(changed_query('features again'), '')
             self.assertTrue(changed_query('https://github.com/owner/repo/pull/7').startswith('disable-search+reload('))
             self.assertTrue(changed_query('').startswith('enable-search+reload(cat '))
-            subprocess.check_output(['/bin/sh', '-c', search.picker_change_command(preview_path, pane_rows, on_load=True)],
+            subprocess.check_output(['/bin/sh', '-c', search.picker.query_change_command('echo query', preview_path.with_name('candidates.txt'), exact_queries=['feature'], on_load=True)],
                                     env={**os.environ, 'FZF_QUERY': ''})
             self.assertEqual(changed_query(''), '')
 

@@ -27,11 +27,17 @@ Two cases need more than that, because neither agent reports them. No hook fires
 `cwt` switches to an existing worktree by path or branch, or opens a fuzzy picker
 when there is no exact match. It also accepts a PR number (`cwt 42`, `cwt '#42'`)
 or URL (`cwt https://github.com/OWNER/REPO/pull/42`). PR lookup requires an
-authenticated GitHub CLI (`gh`) and Python 3. It reuses tmux navigation's PR
+authenticated GitHub CLI (`gh`) and Python 3. It uses the shared `navigation/` PR
 resolver to find an existing local worktree for the PR's head branch, and works
 outside tmux too. URLs must belong to the current repository; PR lookup errors and
 missing worktrees report an error. These commands do not create worktrees.
 `ccwt` (Cursor) and `cnwt` (Neovim) accept the same arguments.
+
+The top-level `navigation/` package owns GitHub resolution, repository identity,
+and PR caching. Both shell worktree commands and `tmux_config/navigation/search.py`
+use it; tmux pane and window behavior stays under `tmux_config/`. Script paths
+resolve their installed symlinks back to this checkout, so no Python package
+installation or `PYTHONPATH` configuration is needed.
 
 ## Claude session routing
 

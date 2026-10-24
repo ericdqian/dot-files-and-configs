@@ -97,7 +97,7 @@ _resolve_worktree() {
   fi
 
   local pr_branch
-  local navigation_script="${${functions_source[_resolve_worktree]:A}:h:h}/tmux_config/navigation/search.py"
+  local navigation_script="${${functions_source[_resolve_worktree]:A}:h:h}/navigation/cli.py"
   local pr_url_pattern='^https://[^/]+/[^/]+/[^/]+/pull/[0-9]+([/?#].*)?$'
 
   if [[ "$worktree_query" == <-> || "$worktree_query" == \#<-> || "$worktree_query" =~ "$pr_url_pattern" ]]; then

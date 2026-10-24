@@ -13,13 +13,17 @@ import tempfile
 import time
 from pathlib import Path
 
+# Resolve the checkout behind installed symlinks so hooks can run from any directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from navigation import github
+from navigation.commands import run
+
 OPTION_PREFIX = '@agent_nav_'
-PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#].*)?$')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept', 'worktree-branch'])
+    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -30,8 +34,6 @@ def main():
     arguments = parser.parse_args()
     if arguments.action == 'open':
         open_picker(arguments.client)
-    elif arguments.action == 'worktree-branch':
-        print(resolve_worktree_pr_branch(arguments.reference))
     elif arguments.action == 'record-access':
         record_pane_access(arguments.pane)
     elif arguments.action == 'start':
@@ -64,24 +66,6 @@ def main():
               Path(arguments.data).with_name('status.txt').read_text())
     else:
         pick_pane(arguments.client, arguments.data)
-
-
-def resolve_worktree_pr_branch(reference):
-    repository_url = run(['gh', 'repo', 'view', '--json', 'url', '--jq', '.url'], check=True)
-    if re.fullmatch(r'#?[0-9]+', reference):
-        pr_url = f'{repository_url}/pull/{reference.lstrip("#")}'
-    else:
-        pr_url = canonical_pr_url(reference)
-        if not pr_url:
-            raise ValueError('Expected a GitHub PR number or URL.')
-        pr_owner, pr_repository, _ = PR_PATTERN.fullmatch(pr_url).groups()
-        if repository_identity(repository_url) != f'github.com/{pr_owner}/{pr_repository}':
-            raise ValueError(f'PR URL does not belong to {repository_url}')
-    # Resolve through the same GitHub plumbing as tmux navigation, without needing tmux.
-    _, head_branch = resolve_pr(pr_url)
-    if not head_branch:
-        raise ValueError(f'Could not resolve PR {reference} to a branch.')
-    return head_branch
 
 
 def record_pane_access(pane_id):
@@ -123,7 +107,7 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
         return
     # Remember non-Git directories too, so shell panes need no repeated Git probes.
     run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_nav_directory', working_directory], check=True)
-    repository = repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
+    repository = github.repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
     checkout_repository = repository
     current_branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
     branch = current_branch
@@ -131,10 +115,10 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
     if not repository:
         repository = checkout_root
     if reference:
-        if PR_PATTERN.fullmatch(reference):
-            repository, branch = resolve_pr(reference)
+        if github.PR_PATTERN.fullmatch(reference):
+            repository, branch = github.resolve_pr(reference)
             if source == 'claim':
-                pr_owner, pr_repository, _ = PR_PATTERN.fullmatch(reference).groups()
+                pr_owner, pr_repository, _ = github.PR_PATTERN.fullmatch(reference).groups()
                 base_repository = f'github.com/{pr_owner}/{pr_repository}'.lower()
                 if checkout_repository not in {repository, base_repository}:
                     raise ValueError('This worktree belongs to a different repository than the requested PR.')
@@ -157,68 +141,12 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
                 association['url'] = previous_url
         except ValueError:
             pass
-    if PR_PATTERN.fullmatch(reference):
+    if github.PR_PATTERN.fullmatch(reference):
         association['url'] = reference
     if session_id:
         association['agent_session'] = session_id
     # Each association owns an option, so observations cannot overwrite explicit claims.
     run(['tmux', 'set-option', '-p', '-t', pane_id, option_key, json.dumps(association)], check=True)
-
-
-def repository_identity(remote_url):
-    normalized = re.sub(r'^\w+://(?:[^/@]+@)?', '', remote_url.strip())
-    normalized = re.sub(r'^git@', '', normalized).replace(':', '/', 1)
-    return normalized.removesuffix('.git').rstrip('/').lower()
-
-
-def resolve_pr(pr_url):
-    match = PR_PATTERN.fullmatch(pr_url)
-    if not match:
-        raise ValueError('Expected a GitHub PR URL.')
-    owner, repository_name, number = match.groups()
-    pull_request = json.loads(run(['gh', 'api', f'repos/{owner}/{repository_name}/pulls/{number}'], check=True))
-    head_repository = pull_request['head']['repo']
-    if not head_repository:
-        raise ValueError('The PR’s source repository has been deleted; link its branch explicitly.')
-    return 'github.com/' + head_repository['full_name'].lower(), pull_request['head']['ref']
-
-
-def canonical_pr_url(pr_url):
-    match = PR_PATTERN.fullmatch(pr_url.strip())
-    if not match:
-        return ''
-    owner, repository_name, number = match.groups()
-    return f'https://github.com/{owner.lower()}/{repository_name.lower()}/pull/{int(number)}'
-
-
-def resolve_and_cache_pr(pr_url):
-    canonical_url = canonical_pr_url(pr_url)
-    cache_directory = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'agent-notify' / 'prs'
-    cache_path = cache_directory / (hashlib.sha256(canonical_url.encode()).hexdigest() + '.json')
-    try:
-        cached_resolution = json.loads(cache_path.read_text())
-        if (0 <= time.time() - cached_resolution['resolved_at'] < 300
-                and all(isinstance(cached_resolution[key], str) and cached_resolution[key]
-                        for key in ['repository', 'branch'])):
-            return cached_resolution['repository'], cached_resolution['branch']
-    except (OSError, ValueError, KeyError, TypeError):
-        pass  # Missing, expired, or malformed cache entries fall back to GitHub.
-    repository, branch = resolve_pr(pr_url)
-    # Cache only successful search lookups; ownership claims still validate against GitHub.
-    temporary_cache_path = cache_path.with_suffix(f'.{os.getpid()}.tmp')
-    try:
-        cache_directory.mkdir(parents=True, exist_ok=True)
-        temporary_cache_path.write_text(json.dumps({'repository': repository, 'branch': branch,
-                                                   'resolved_at': time.time()}))
-        os.replace(temporary_cache_path, cache_path)
-    except OSError:
-        pass  # A read-only cache must not prevent PR search.
-    finally:
-        try:
-            temporary_cache_path.unlink(missing_ok=True)
-        except OSError:
-            pass
-    return repository, branch
 
 
 def open_picker(client_name):
@@ -545,11 +473,11 @@ def update_query_results(preview_path, query):
     candidate_lines = preview_path.with_name('candidates.txt').read_text().splitlines()
     pane_rows = list(json.loads(preview_path.read_text()).values())
     try:
-        if PR_PATTERN.fullmatch(query.strip()):
-            canonical_url = canonical_pr_url(query)
+        if github.PR_PATTERN.fullmatch(query.strip()):
+            canonical_url = github.canonical_pr_url(query)
             matching_associations = [(row['pane'], association) for row in pane_rows
                                      for association in navigation_associations(row)
-                                     if canonical_pr_url(association.get('url', '')) == canonical_url]
+                                     if github.canonical_pr_url(association.get('url', '')) == canonical_url]
             status = 'No matching destination for this PR.'
             if matching_associations:
                 recorded_branches = {(association['repository'], association['branch'])
@@ -558,7 +486,7 @@ def update_query_results(preview_path, query):
                                          for association in navigation_associations(row)
                                          if (association['repository'], association['branch']) in recorded_branches]
             else:
-                repository, branch = resolve_and_cache_pr(query.strip())
+                repository, branch = github.resolve_and_cache_pr(query.strip())
                 matching_associations = [(row['pane'], association) for row in pane_rows
                                          for association in navigation_associations(row)
                                          if association['repository'] == repository and association['branch'] == branch]
@@ -569,7 +497,7 @@ def update_query_results(preview_path, query):
                              if association.get('source') in {'claim', 'link'}}
             if claimed_panes:
                 matching_panes = claimed_panes
-            pr_number = PR_PATTERN.fullmatch(query.strip()).group(3)
+            pr_number = github.PR_PATTERN.fullmatch(query.strip()).group(3)
             result_lines = [line.replace('\t', f'\t\033[35mPR #{pr_number}\033[0m  ', 1) for line in candidate_lines
                             if line.split('\t', 1)[0] in matching_panes]
         else:
@@ -606,7 +534,7 @@ def print_accept_action(preview_path, query, selected_pane_id):
     exact_claim = any(association.get('source') in {'claim', 'link'}
                       and association['branch'] == query.strip()
                       for row in pane_rows_by_id.values() for association in navigation_associations(row))
-    live_search = not PR_PATTERN.fullmatch(query.strip()) and not exact_claim
+    live_search = not github.PR_PATTERN.fullmatch(query.strip()) and not exact_claim
     if ((live_search and selected_pane_id in pane_rows_by_id) or
             (result_path.exists() and selected_pane_id in json.loads(result_path.read_text()))):
         print('accept')
@@ -624,7 +552,7 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
     process_label = 'claude' if re.fullmatch(r'\d+\.\d+\.\d+', pane_row['command']) else pane_row['command']
     branch_label = ', '.join(branches) or 'No recorded branch'
     pr_numbers = list(dict.fromkeys(pr_match.group(3) for association in associations
-                                   if (pr_match := PR_PATTERN.fullmatch(association.get('url', '')))))
+                                   if (pr_match := github.PR_PATTERN.fullmatch(association.get('url', '')))))
     pr_label = ', '.join('#' + pr_number for pr_number in pr_numbers) or '—'
     # Keep complete titles and branches in the row so fuzzy search loses no history.
     return (f"{pane_row['pane']}\t\033[1;37m{title:<{column_widths[0]}}\033[0m\t"
@@ -668,16 +596,6 @@ def format_details(pane_row):
     return '\n'.join(detail_lines)
 
 
-def run(command, check=False, input_text=None, timeout=20):
-    # Noninteractive commands must never consume keys intended for the popup or shell.
-    input_arguments = {'input': input_text} if input_text is not None else {'stdin': subprocess.DEVNULL}
-    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            timeout=timeout, **input_arguments)
-    if check and result.returncode:
-        raise ValueError(result.stderr.strip() or f'{command[0]} failed')
-    return result.stdout.strip()
-
-
 if __name__ == '__main__':
     try:
         main()
@@ -685,6 +603,6 @@ if __name__ == '__main__':
         if len(sys.argv) > 1 and sys.argv[1] == 'record':
             sys.exit(0)  # Navigation must never block an agent lifecycle hook.
         print(f'Agent search: {error}', file=sys.stderr)
-        if sys.argv[1:2] != ['worktree-branch'] and sys.stdin.isatty():
+        if sys.stdin.isatty():
             input('Press Enter to close…')
         sys.exit(1)

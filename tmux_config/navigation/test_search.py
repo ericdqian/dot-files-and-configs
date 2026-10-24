@@ -165,11 +165,6 @@ class SearchTests(unittest.TestCase):
             self.assertEqual(list(json.loads(preview_path.read_text())), ['%1'])
             self.assertEqual(json.loads(search.query_result_path(preview_path, '').read_text()), ['%1'])
 
-    def test_remote_identity_matches_ssh_and_https(self):
-        for remote in ['git@github.com:Owner/Repo.git', 'https://github.com/Owner/Repo.git',
-                       'ssh://git@github.com/Owner/Repo.git']:
-            self.assertEqual(search.repository_identity(remote), 'github.com/owner/repo')
-
     def test_branch_history_has_independent_keys_and_stable_repeats(self):
         stored_options = {}
         def fake_run(command, check=False):
@@ -202,20 +197,13 @@ class SearchTests(unittest.TestCase):
                 stored_options[command[-2]] = json.loads(command[-1])
             return ''
         with patch.object(search, 'run', side_effect=fake_run), \
-             patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')):
+             patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')):
             search.record_branch('%42', '/repo', 'https://github.com/owner/repo/pull/7')
             search.record_branch('%42', '/repo')
         self.assertTrue(any(association.get('url') for association in stored_options.values()))
 
-    def test_pr_resolves_head_repository_including_forks(self):
-        with patch.object(search, 'run', return_value=json.dumps({
-            'head': {'repo': {'full_name': 'Fork/Repo'}, 'ref': 'feature'}})) as request:
-            self.assertEqual(search.resolve_pr('https://github.com/base/repo/pull/123/files'),
-                             ('github.com/fork/repo', 'feature'))
-        self.assertEqual(request.call_args.args[0], ['gh', 'api', 'repos/base/repo/pulls/123'])
-
     def test_explicit_pr_link_retains_url(self):
-        with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
+        with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
              patch.object(search, 'run', return_value='') as commands:
             search.record_branch('%42', '/repo', 'https://github.com/owner/repo/pull/7')
         association = json.loads(commands.call_args.args[0][-1])
@@ -276,7 +264,7 @@ class SearchTests(unittest.TestCase):
             preview_path.write_text(json.dumps({'%1': {'pane': '%1', 'associations': [
                 {'repository': 'github.com/owner/repo', 'branch': 'feature'}]}}))
             Path(directory, 'candidates.txt').write_text('%1\tAuthor pane\n%2\tOther pane')
-            with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
+            with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
             self.assertIn('%1\t', output.getvalue())
@@ -299,7 +287,7 @@ class SearchTests(unittest.TestCase):
             preview_path = Path(directory, 'panes.json')
             preview_path.write_text(json.dumps({row['pane']: row for row in associations}))
             Path(directory, 'candidates.txt').write_text('%1\tObserved feature\n%2\tClaimed feature\n%3\tAnother claim')
-            with patch.object(search, 'resolve_pr', side_effect=AssertionError('Unexpected GitHub lookup')), \
+            with patch.object(search.github, 'resolve_pr', side_effect=AssertionError('Unexpected GitHub lookup')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/OWNER/repo/pull/7/files#review')
             self.assertIn('%2\t', output.getvalue())
@@ -307,43 +295,16 @@ class SearchTests(unittest.TestCase):
             self.assertIn('PR #7', output.getvalue())
             self.assertIn('%3\t', output.getvalue())
 
-    def test_successful_pr_resolution_is_cached_across_url_variants(self):
-        with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')) as lookup:
-            self.assertEqual(search.resolve_and_cache_pr('https://github.com/Owner/Repo/pull/7'),
-                             ('github.com/owner/repo', 'feature'))
-            self.assertEqual(search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7/files'),
-                             ('github.com/owner/repo', 'feature'))
-        self.assertEqual(lookup.call_count, 1)
-
-    def test_pr_cache_expires_and_recovers_from_corruption(self):
-        with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')) as lookup:
-            with patch.object(search.time, 'time', return_value=1000):
-                search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
-            with patch.object(search.time, 'time', return_value=1301):
-                search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
-            cache_path = next(Path(os.environ['XDG_CACHE_HOME']).rglob('*.json'))
-            cache_path.write_text('broken JSON')
-            search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
-        self.assertEqual(lookup.call_count, 3)
-
-    def test_failed_pr_lookups_remain_retryable(self):
-        with patch.object(search, 'resolve_pr', side_effect=ValueError('not found')) as lookup:
-            for attempt in range(2):
-                with self.assertRaisesRegex(ValueError, 'not found'):
-                    search.resolve_and_cache_pr('https://github.com/owner/repo/pull/7')
-        self.assertEqual(lookup.call_count, 2)
-        self.assertEqual(list(Path(os.environ['XDG_CACHE_HOME']).rglob('*.json')), [])
-
     def test_pr_query_reports_missing_history_and_api_errors_in_picker(self):
         with tempfile.TemporaryDirectory() as directory:
             preview_path = Path(directory, 'panes.json')
             preview_path.write_text('{}')
             Path(directory, 'candidates.txt').write_text('')
-            with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'absent')), \
+            with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'absent')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/7')
             self.assertIn('No tmux pane has recorded absent', output.getvalue())
-            with patch.object(search, 'resolve_pr', side_effect=ValueError('not found [404]')), \
+            with patch.object(search.github, 'resolve_pr', side_effect=ValueError('not found [404]')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/owner/repo/pull/8')
             self.assertIn('PR lookup failed:', output.getvalue())
@@ -477,7 +438,7 @@ class SearchTests(unittest.TestCase):
             preview_path.write_text(json.dumps(pane_rows))
             Path(directory, 'candidates.txt').write_text('%1\tObserved feature\n%2\tClaimed feature')
             for query in ['feature', 'https://github.com/owner/repo/pull/7']:
-                with patch.object(search, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
+                with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
                      redirect_stdout(io.StringIO()) as output:
                     search.update_query_results(preview_path, query)
                 self.assertIn('%2\t', output.getvalue())
@@ -515,7 +476,7 @@ class SearchTests(unittest.TestCase):
                     return '/worktrees/feature'
                 return ''
             return fake_run
-        with patch.object(search, 'resolve_pr', return_value=('github.com/fork/repo', 'feature')):
+        with patch.object(search.github, 'resolve_pr', return_value=('github.com/fork/repo', 'feature')):
             with patch.object(search, 'run', side_effect=run_in_repository('github.com/unrelated/repo')):
                 with self.assertRaisesRegex(ValueError, 'different repository'):
                     search.record_branch('%42', '/worktrees/feature', 'https://github.com/base/repo/pull/7', source='claim')

@@ -27,8 +27,9 @@ Two cases need more than that, because neither agent reports them. No hook fires
 `cwt` switches to an existing worktree by path or branch, or opens a fuzzy picker
 when there is no exact match. It also accepts a PR number (`cwt 42`, `cwt '#42'`)
 or URL (`cwt https://github.com/OWNER/REPO/pull/42`). PR lookup requires an
-authenticated GitHub CLI (`gh`) and uses the PR's head branch to find an existing
-local worktree. URLs must belong to the current repository; PR lookup errors and
+authenticated GitHub CLI (`gh`) and Python 3. It reuses tmux navigation's PR
+resolver to find an existing local worktree for the PR's head branch, and works
+outside tmux too. URLs must belong to the current repository; PR lookup errors and
 missing worktrees report an error. These commands do not create worktrees.
 `ccwt` (Cursor) and `cnwt` (Neovim) accept the same arguments.
 

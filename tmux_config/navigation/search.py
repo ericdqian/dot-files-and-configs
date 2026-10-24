@@ -19,7 +19,7 @@ PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept', 'worktree-branch'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -30,6 +30,8 @@ def main():
     arguments = parser.parse_args()
     if arguments.action == 'open':
         open_picker(arguments.client)
+    elif arguments.action == 'worktree-branch':
+        print(resolve_worktree_pr_branch(arguments.reference))
     elif arguments.action == 'record-access':
         record_pane_access(arguments.pane)
     elif arguments.action == 'start':
@@ -62,6 +64,24 @@ def main():
               Path(arguments.data).with_name('status.txt').read_text())
     else:
         pick_pane(arguments.client, arguments.data)
+
+
+def resolve_worktree_pr_branch(reference):
+    repository_url = run(['gh', 'repo', 'view', '--json', 'url', '--jq', '.url'], check=True)
+    if re.fullmatch(r'#?[0-9]+', reference):
+        pr_url = f'{repository_url}/pull/{reference.lstrip("#")}'
+    else:
+        pr_url = canonical_pr_url(reference)
+        if not pr_url:
+            raise ValueError('Expected a GitHub PR number or URL.')
+        pr_owner, pr_repository, _ = PR_PATTERN.fullmatch(pr_url).groups()
+        if repository_identity(repository_url) != f'github.com/{pr_owner}/{pr_repository}':
+            raise ValueError(f'PR URL does not belong to {repository_url}')
+    # Resolve through the same GitHub plumbing as tmux navigation, without needing tmux.
+    _, head_branch = resolve_pr(pr_url)
+    if not head_branch:
+        raise ValueError(f'Could not resolve PR {reference} to a branch.')
+    return head_branch
 
 
 def record_pane_access(pane_id):
@@ -665,6 +685,6 @@ if __name__ == '__main__':
         if len(sys.argv) > 1 and sys.argv[1] == 'record':
             sys.exit(0)  # Navigation must never block an agent lifecycle hook.
         print(f'Agent search: {error}', file=sys.stderr)
-        if sys.stdin.isatty():
+        if sys.argv[1:2] != ['worktree-branch'] and sys.stdin.isatty():
             input('Press Enter to close…')
         sys.exit(1)

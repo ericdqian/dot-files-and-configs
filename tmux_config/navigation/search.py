@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--checkout', default='')
     parser.add_argument('--base', default='HEAD')
     parser.add_argument('--name', default='', help='Short description for the branch window.')
+    parser.add_argument('--session', default='', help='Exact destination tmux session name or stable $ID.')
     parser.add_argument('--agent-session', default=os.environ.get('CODEX_SESSION_ID', os.environ.get('CLAUDE_CODE_SESSION_ID', '')))
     arguments = parser.parse_args()
     if arguments.action in {'start', 'claim'}:
@@ -52,7 +53,7 @@ def execute_action(arguments):
         record_pane_access(arguments.pane)
     elif arguments.action == 'start':
         start_branch_window(arguments.pane, arguments.reference, arguments.checkout, arguments.base,
-                            arguments.name, arguments.agent_session)
+                            arguments.name, arguments.agent_session, arguments.session)
     elif arguments.action == 'claim':
         record_branch(arguments.pane, arguments.checkout or os.getcwd(), arguments.reference,
                       source='claim', session_id=arguments.agent_session, window_name=arguments.name)
@@ -99,7 +100,7 @@ def observed_directories(payload):
     return list(dict.fromkeys(directory for directory in [agent_directory, tool_directory] if directory))
 
 
-def start_branch_window(pane_id, branch, checkout, base, window_name='', session_id=''):
+def start_branch_window(pane_id, branch, checkout, base, window_name='', session_id='', target_session=''):
     if not re.fullmatch(r'%\d+', pane_id) or not branch or not checkout:
         raise ValueError('start requires a branch, --checkout PATH, and a stable source --pane %ID.')
     source_session = run(['tmux', 'display-message', '-p', '-t', pane_id, '#{session_id}'], check=True)
@@ -111,15 +112,93 @@ def start_branch_window(pane_id, branch, checkout, base, window_name='', session
     if existing_window:
         destination_pane = existing_window['pane']
     else:
+        repository_sessions = collect_repository_sessions(str(checkout_path), repository)
+        destination_session = select_repository_session(repository_sessions, source_session, target_session)
         # A new branch gets its own window without moving the running agent or stealing focus.
-        destination_pane = run(['tmux', 'new-window', '-d', '-P', '-F', '#{pane_id}',
-                                '-t', source_session + ':', '-n', window_name or branch,
-                                '-c', str(checkout_path)], check=True)
+        if destination_session:
+            destination_pane = run(['tmux', 'new-window', '-d', '-P', '-F', '#{pane_id}',
+                                    '-t', destination_session + ':', '-n', window_name or branch,
+                                    '-c', str(checkout_path)], check=True)
+        else:
+            repository_name = repository.rstrip('/').rsplit('/', 1)[-1].removesuffix('.git')
+            session_name = re.sub(r'[^\w-]', '-', repository_name) or 'repository'
+            if any(session['name'] == session_name for session in repository_sessions):
+                session_name += '-' + hashlib.sha256(repository.encode()).hexdigest()[:8]
+            destination_pane = run(['tmux', 'new-session', '-d', '-P', '-F', '#{pane_id}',
+                                    '-s', session_name, '-n', window_name or branch, '-c', str(checkout_path)], check=True)
+        # Session metadata makes future cross-repository launches independent of shell cwd.
+        run(['tmux', 'set-option', '-t', destination_pane, '@agent_nav_repository', repository], check=True)
     record_branch(destination_pane, str(checkout_path), source='claim', session_id=session_id,
                   window_name=window_name)
     print(f'Worktree: {checkout_path}\nPane: {destination_pane}\n'
           f'Use this worktree and --pane {destination_pane} for subsequent navigation commands. '
           'The running agent has not moved; launch any continuation in the destination window.')
+
+
+def collect_repository_sessions(checkout_path, repository):
+    session_listing = run(['tmux', 'list-sessions', '-F',
+                           '#{session_id}\t#{session_name}\t#{@agent_nav_repository}'], check=True)
+    repository_name = repository.rstrip('/').rsplit('/', 1)[-1].removesuffix('.git')
+    session_rows = []
+    for session_line in session_listing.splitlines():
+        session_fields = session_line.split('\t', 2)
+        session_repository = session_fields[2] if len(session_fields) > 2 else ''
+        session_rows.append({'id': session_fields[0], 'name': session_fields[1],
+                             'repository': session_repository,
+                             'match': 4 if session_repository == repository else
+                                      1 if not session_repository and session_fields[1] == repository_name else 0})
+    sessions_by_id = {session['id']: session for session in session_rows}
+    pane_listing = run(['tmux', 'list-panes', '-a', '-F',
+                        '#{session_id}\t#{pane_current_path}\t#{@agent_nav_owner}'], check=True)
+    checkout_common_directory = run(['git', '-C', checkout_path, 'rev-parse', '--path-format=absolute', '--git-common-dir'])
+    directory_matches = {}
+    for pane_line in pane_listing.splitlines():
+        pane_fields = pane_line.split('\t', 2)
+        pane_session = sessions_by_id[pane_fields[0]]
+        if is_feedback_session(pane_session['name']) or pane_session['repository']:
+            continue  # Explicit session identity takes precedence over incidental pane directories.
+        owner = json.loads(pane_fields[2]) if len(pane_fields) > 2 and pane_fields[2] else {}
+        if owner.get('repository') == repository:
+            pane_session['match'] = max(pane_session['match'], 3)
+            continue
+        if owner.get('repository') and pane_session['match'] == 1:
+            pane_session['match'] = 0  # A matching basename must not override another repository's claim.
+        pane_directory = pane_fields[1]
+        if pane_directory not in directory_matches:
+            pane_repository = github.repository_identity(run(['git', '-C', pane_directory, 'remote', 'get-url', 'origin']))
+            pane_common_directory = run(['git', '-C', pane_directory, 'rev-parse', '--path-format=absolute', '--git-common-dir'])
+            directory_matches[pane_directory] = {
+                'repository': pane_repository,
+                'matches': pane_repository == repository or
+                           bool(checkout_common_directory) and pane_common_directory == checkout_common_directory,
+            }
+        directory_repository = directory_matches[pane_directory]['repository']
+        if directory_repository and directory_repository != repository and pane_session['match'] == 1:
+            pane_session['match'] = 0
+        if directory_matches[pane_directory]['matches']:
+            pane_session['match'] = max(pane_session['match'], 2)
+    return session_rows
+
+
+def select_repository_session(session_rows, source_session, target_session=''):
+    if target_session:
+        explicit_session = next((session for session in session_rows if target_session in {session['id'], session['name']}), None)
+        if not explicit_session:
+            raise ValueError(f'No tmux session named {target_session}. Supply an exact name or stable $ID.')
+        if explicit_session['repository'] and explicit_session['match'] == 0:
+            raise ValueError('The requested session is registered to a different repository.')
+        return explicit_session['id']
+    matching_sessions = [session for session in session_rows
+                         if session['match'] and not is_feedback_session(session['name'])]
+    if not matching_sessions:
+        return ''
+    strongest_match = max(session['match'] for session in matching_sessions)
+    strongest_sessions = [session['id'] for session in matching_sessions if session['match'] == strongest_match]
+    if source_session in strongest_sessions:
+        return source_session
+    if len(strongest_sessions) == 1:
+        return strongest_sessions[0]
+    raise ValueError('Multiple tmux sessions match this repository. Choose one with --session NAME or $ID.')
 
 
 def create_agent_worktree(pane_id, branch, checkout, base):
@@ -207,7 +286,7 @@ def claim_window(pane_id, association, window_name=''):
     for identity_field in ['branch', 'checkout']:
         if previous_owner and previous_owner[identity_field] != association[identity_field]:
             raise ValueError(f"Window {window_id} already owns {previous_owner['branch']}. "
-                             'Use start to open a separate branch window in the same session.')
+                             'Use start to open a separate branch window in the repository session.')
     for claimed_window in claimed_windows():
         if (claimed_window['window'] != window_id
                 and (claimed_window['owner']['repository'] == association['repository']

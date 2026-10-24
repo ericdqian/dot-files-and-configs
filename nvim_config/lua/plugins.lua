@@ -225,6 +225,19 @@ require("lazy").setup({
         cond = not vim.g.vscode,
     },
 
+    -- Render Markdown with Mermaid and PlantUML diagrams inside Neovim.
+    {
+        "delphinus/md-render.nvim",
+        ft = "markdown",
+        cmd = "MdRender",
+        keys = {
+            { "<leader>mp", "<cmd>MdRender<CR>", desc = "Markdown preview" },
+            { "<leader>mt", "<cmd>MdRender tab<CR>", desc = "Markdown preview in tab" },
+            { "<leader>ms", "<cmd>vertical MdRender split<CR>", desc = "Markdown preview in split" },
+        },
+        cond = not vim.g.vscode,
+    },
+
     -- Git plugins
 
     -- Enables using git commands in vim

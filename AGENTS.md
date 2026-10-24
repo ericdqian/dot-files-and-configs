@@ -60,7 +60,7 @@ Before implementing branch or PR work, reuse the existing Git worktree for the t
 
 Inside tmux, keep a one-to-one relationship between a branch (and its PR) and a tmux window. All panes in a claimed window support that same branch. Reuse its existing window for follow-up work, including when another agent shares the worktree. Treat tmux sessions as repository workspaces. For a new branch or PR, find the target repository's existing tmux session and open a separate window there; never repurpose the old branch's window or mix PRs across its panes. Do not automatically move running agents or their uncommitted changes.
 
-`~/.tmux/navigation/search.py` is the local helper behind the tmux navigation picker. The dotfiles setup installs it by linking `~/.tmux/navigation` to this repository's `tmux_config/navigation` directory. It connects Git repositories, branches, worktrees, and PR URLs to tmux sessions and windows so the picker can find the right destination even when a pane's shell is in another directory. Its `start` command prepares a branch worktree and window; `claim` records ownership and PR metadata in tmux user options; `open` displays the searchable picker. It does not launch a coding-agent CLI or transfer task context; the calling agent completes that handoff.
+`~/.tmux/navigation/search.py` tracks metadata describing each tmux window's intended role: its repository, branch, worktree, PR, and agent. The navigation search is built on top of these records, so it can find the right window regardless of a pane's current directory.
 
 When the helper exists, use it to register explicit window ownership rather than relying on pane directories or names:
 

@@ -349,6 +349,7 @@ def choose_row(pane_rows):
                      f"{'OWNER':<8}  {'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  {'PR':<10}  BRANCHES")
     query = ''
     repository_scope = ''
+    open_status = ''
     # Keep one private snapshot directory while the two input fields take turns owning fzf.
     with tempfile.TemporaryDirectory(prefix='agent-search-') as preview_directory:
         preview_path = Path(preview_directory, 'panes.json')
@@ -363,15 +364,30 @@ def choose_row(pane_rows):
             scoped_rows = filter_repository_rows(pane_rows, repository_scope)
             write_picker_snapshot(preview_path, scoped_rows, column_widths)
             selection = picker.run_picker(preview_path, query, [*picker_arguments, '--preview=' + preview_command,
-                                            '--preview-window=down,35%,wrap,border-top', '--print-query', '--expect=ctrl-d',
+                                            '--preview-window=down,35%,wrap,border-top', '--print-query', '--expect=ctrl-d,ctrl-o',
                                             '--prompt=Window / branch / PR > ',
-                                            '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
-                                                     'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n\n' + column_header])
+                                            '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+O PR in Chrome · Ctrl+D repository · Ctrl+/ details\n'
+                                                     'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n'
+                                                     + open_status + '\n' + column_header])
             output_lines = selection.stdout.splitlines()
             # fzf returns 1 for an expected key when there are no matching rows.
             if selection.returncode not in (0, 1) or len(output_lines) < 2:
                 return ''
             query, pressed_key = output_lines[:2]
+            if pressed_key == 'ctrl-o':
+                selected_id = output_lines[2].split('\t', 1)[0] if len(output_lines) > 2 else ''
+                selected_row = next((row for row in scoped_rows if row['pane'] == selected_id), None)
+                pr_urls = selected_pr_urls(selected_row, query, preview_path)
+                if not pr_urls:
+                    open_status = 'No recorded PR for this selection.'
+                    continue
+                try:
+                    # Launch only on the explicit shortcut, keeping tmux navigation separate.
+                    run(['open', '-a', 'Google Chrome', *pr_urls], check=True)
+                    open_status = f'Opened {len(pr_urls)} PR(s) in Chrome.'
+                except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+                    open_status = f'Could not open Chrome: {error}'
+                continue
             if pressed_key != 'ctrl-d':
                 return output_lines[2] if len(output_lines) > 2 else ''
             repository_candidates = repository_options(pane_rows)
@@ -397,6 +413,20 @@ def choose_row(pane_rows):
                     if selected_repository not in matching_repositories:
                         selected_repository = matching_repositories[0]
                     repository_scope = '' if selected_repository == '*' else selected_repository
+
+
+def selected_pr_urls(selected_row, query, preview_path):
+    if not selected_row:
+        return []
+    query_pr_url = github.canonical_pr_url(query)
+    if query_pr_url:
+        result_path = query_result_path(preview_path, query)
+        # A URL search can resolve a branch without persisting its PR association.
+        if result_path.exists() and selected_row['pane'] in json.loads(result_path.read_text()):
+            return [query_pr_url]
+        return []
+    return list(dict.fromkeys(pr_url for association in navigation_associations(selected_row)
+                              if (pr_url := github.canonical_pr_url(association.get('url', '')))))
 
 
 def repository_options(pane_rows):

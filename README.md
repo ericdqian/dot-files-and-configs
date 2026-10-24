@@ -55,8 +55,8 @@ The navigation helper and its tests live in `tmux_config/navigation/`.
 `setup.sh` links that directory to `~/.tmux/navigation/`; notification
 hooks call the helper there to record branch history.
 
-Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
-windows across all tmux sessions. Each window appears once; selecting it returns
+Press **Ctrl+;** in WezTerm (or **Ctrl+b o** in any terminal) for a borderless picker
+that fills the terminal and searches windows across all tmux sessions. Each window appears once; selecting it returns
 to its active pane. Type a window name, repository, or branch;
 use Up/Down to choose and Enter to jump directly to the window. Escape cancels.
 Aligned, color-coded columns show the window, window location, process, repository,

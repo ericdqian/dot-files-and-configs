@@ -167,6 +167,11 @@ config.keys = {
         action = send_tmux_prefix_key("o"),
     },
     {
+        key = ";",
+        mods = "CTRL",
+        action = send_tmux_prefix_key("o"),
+    },
+    {
         key = "\\",
         mods = "SUPER|CTRL",
         action = wezterm.action.AdjustPaneSize({ "Right", 100 }),

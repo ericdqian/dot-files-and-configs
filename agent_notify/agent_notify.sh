@@ -29,7 +29,7 @@ apply_hook_payload() {
   local state window attached hook_payload
   hook_payload="$(cat)"
   # Capture branch history before the unchanged-marker fast path skips this hook.
-  printf '%s' "$hook_payload" | python3 "$HOME/.tmux/agent-navigation/search.py" record >/dev/null 2>&1 || true
+  printf '%s' "$hook_payload" | python3 "$HOME/.tmux/navigation/search.py" record >/dev/null 2>&1 || true
   state="$(resolve_state "$hook_payload")"
 
   # A finished turn is only worth flagging if it finished out of sight, otherwise

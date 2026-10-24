@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record observed agent branches and select their live tmux panes."""
+"""Record branch history and select tmux windows."""
 import argparse
 import hashlib
 import json

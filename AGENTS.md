@@ -52,8 +52,8 @@ Treat semantic divergence among a directory's files as a smell that the director
 
 Before implementing branch or PR work, reuse the existing Git worktree for the target branch, even when another agent is already working in it, so the PR's changes are runnable locally in one place that reflects the PR. Create a dedicated worktree only when none exists for the branch, and do not work in the main checkout unless the user explicitly requests it. When sharing a worktree, stage files by name and do not rewrite or discard another agent's uncommitted work. Follow the target repository’s guidance for worktree locations and base branches; do not relocate running agents or move existing uncommitted work automatically.
 
-When running inside tmux and `~/.tmux/agent-navigation/search.py` exists, register explicit ownership rather than relying on the pane’s current directory:
+When running inside tmux and `~/.tmux/navigation/search.py` exists, register explicit ownership rather than relying on the pane’s current directory:
 
-- From the repository, `python3 ~/.tmux/agent-navigation/search.py start BRANCH --checkout PATH --base BASE` creates an isolated worktree and claims it for the agent’s `$TMUX_PANE`. Use the returned worktree path for all subsequent work.
-- For an existing worktree, run `python3 ~/.tmux/agent-navigation/search.py claim --checkout PATH`. After creating or changing the associated PR, run `python3 ~/.tmux/agent-navigation/search.py claim PR_URL --checkout PATH` so the picker can resolve that PR to this pane unambiguously.
+- From the repository, `python3 ~/.tmux/navigation/search.py start BRANCH --checkout PATH --base BASE` creates an isolated worktree and claims it for the agent’s `$TMUX_PANE`. Use the returned worktree path for all subsequent work.
+- For an existing worktree, run `python3 ~/.tmux/navigation/search.py claim --checkout PATH`. After creating or changing the associated PR, run `python3 ~/.tmux/navigation/search.py claim PR_URL --checkout PATH` so the picker can resolve that PR to this pane unambiguously.
 - If the agent’s pane is known explicitly but `$TMUX_PANE` is unavailable, pass its stable `--pane %ID`. Never infer ownership from tmux’s implicit current pane or from a shared checkout’s current branch. Outside tmux, create the isolated worktree with Git directly; there is no tmux destination to claim.

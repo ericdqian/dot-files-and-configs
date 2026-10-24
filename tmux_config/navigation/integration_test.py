@@ -62,7 +62,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         access_hooks = [line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines()
                         if line.startswith('set-hook ') and 'record-access' in line]
         binding_file.write_text('\n'.join([binding, 'set-option -g focus-events on', *access_hooks]).replace(
-            '~/.tmux/agent-navigation/search.py', search_script) + '\n')
+            '~/.tmux/navigation/search.py', search_script) + '\n')
         tmux('source-file', str(binding_file))
         client_pid, terminal = pty.fork()
         if client_pid == 0:

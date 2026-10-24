@@ -58,8 +58,16 @@ Treat semantic divergence among a directory's files as a smell that the director
 
 Before implementing branch or PR work, reuse the existing Git worktree for the target branch, even when another agent is already working in it, so the PR's changes are runnable locally in one place that reflects the PR. Create a dedicated worktree only when none exists for the branch, and do not work in the main checkout unless the user explicitly requests it. When sharing a worktree, stage files by name and do not rewrite or discard another agent's uncommitted work. Follow the target repository’s guidance for worktree locations and base branches; do not relocate running agents or move existing uncommitted work automatically.
 
-When running inside tmux and `~/.tmux/navigation/search.py` exists, register explicit ownership rather than relying on the pane’s current directory:
+Inside tmux, use one session per repository and one window per branch/PR. Reuse the branch's existing window; open a new one for a new branch. Do not repurpose another branch's window or relocate running agents automatically.
 
-- From the repository, `python3 ~/.tmux/navigation/search.py start BRANCH --checkout PATH --base BASE` creates an isolated worktree and claims it for the agent’s `$TMUX_PANE`. Use the returned worktree path for all subsequent work.
-- For an existing worktree, run `python3 ~/.tmux/navigation/search.py claim --checkout PATH`. After creating or changing the associated PR, run `python3 ~/.tmux/navigation/search.py claim PR_URL --checkout PATH` so the picker can resolve that PR to this pane unambiguously.
-- If the agent’s pane is known explicitly but `$TMUX_PANE` is unavailable, pass its stable `--pane %ID`. Never infer ownership from tmux’s implicit current pane or from a shared checkout’s current branch. Outside tmux, create the isolated worktree with Git directly; there is no tmux destination to claim.
+For a PR stack, apply this to every PR: reuse its existing window, or create its worktree from the appropriate stack base, open and associate a new window in the repository's session, and launch an agent there. Give each agent the full task context, stack plan, its PR's scope and dependencies, relevant decisions, and validation requirements; fork the parent session when supported, or provide an equivalent complete handoff.
+
+`~/.tmux/navigation/search.py` tracks each window's intended role (repository, branch, worktree, PR, and agent). Navigation search is built on these records, so register ownership explicitly rather than relying on pane directories or window names.
+
+When the helper is available:
+
+- Run `python3 ~/.tmux/navigation/search.py start BRANCH --checkout PATH --base BASE --name 'Short purpose' --pane SOURCE_PANE` from the target repository. It finds the repository's session and creates or reuses the branch's worktree and window. Use the returned worktree and destination pane ID; use `--session NAME` if session selection is ambiguous.
+- To associate an already-open tmux window with a branch's worktree, run `python3 ~/.tmux/navigation/search.py claim --checkout PATH --pane DESTINATION_PANE`. After opening its PR, add the URL with `claim PR_URL --checkout PATH --pane DESTINATION_PANE`. Respect conflicting ownership; do not clear another branch's claim.
+- In each new window, start an interactive shell in the worktree, then run the same coding-agent CLI as the parent (`codex` or `claude`) as a child of that shell, with the full task context. Do not replace the shell with `exec` or make the agent the window's sole process: exiting the agent must leave a usable shell and keep the window open. Opening an idle shell alone does not complete the handoff. Reuse an existing agent through its messaging or resume flow rather than typing a new CLI command into it.
+
+Resolve the source pane from the agent's own `$TMUX_PANE` or an explicitly known stable `%ID`, never tmux's implicit current pane. If the helper is unavailable, follow the same session/window rules manually and report missing navigator metadata. Outside tmux, use Git worktrees directly.

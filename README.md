@@ -52,7 +52,13 @@ Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
 panes across all tmux sessions. Type a window name, repository, or branch;
 use Up/Down to choose and Enter to jump directly to the pane. Escape cancels.
 Aligned, color-coded columns show the window, pane location, process, repository,
-ownership, and branches with space between rows. The bottom detail panel shows full paths
+ownership, recorded PR numbers, and branches with space between rows. Panes are
+grouped by tmux window, with recently visited windows first and recently visited
+panes first within each window. Focus hooks record visits; background output does
+not change the order. Windows without visit history follow visited windows in
+their existing order. Reload the tmux config to begin recording visits. Search
+still ranks by match quality, with recent order breaking ties.
+The bottom detail panel shows full paths
 and branch/PR associations; Ctrl+/ toggles it. Ctrl+D opens a compact dropdown of known
 repositories, with pane counts and an **All repositories** option. Type to fuzzy
 filter the list, use Up/Down to choose, and press Enter to select a repository.

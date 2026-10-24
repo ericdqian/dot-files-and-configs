@@ -50,7 +50,10 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         tmux('new-session', '-d', '-s', 'claude-pr-123-security', '-c', repository)
         binding = next(line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines() if line.startswith('bind-key o '))
         binding_file = Path(directory, 'binding.conf')
-        binding_file.write_text(binding.replace('~/.agent-notify/navigation/search.py', search_script) + '\n')
+        access_hooks = [line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines()
+                        if line.startswith('set-hook ') and 'record-access' in line]
+        binding_file.write_text('\n'.join([binding, 'set-option -g focus-events on', *access_hooks]).replace(
+            '~/.agent-notify/navigation/search.py', search_script) + '\n')
         tmux('source-file', str(binding_file))
         client_pid, terminal = pty.fork()
         if client_pid == 0:
@@ -67,6 +70,15 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
                         return output
             raise AssertionError((expected, re.sub(rb'\x1b\[[0-?]*[ -/]*[@-~]', b'', output).decode(errors='replace')[-5000:]))
         read_until(b'other-ses')
+        active_pane = tmux('display-message', '-p', '#{pane_id}')
+        access_deadline = time.monotonic() + 5
+        while time.monotonic() < access_deadline:
+            pane_access = tmux('display-message', '-p', '-t', active_pane, '#{@agent_pane_access}')
+            if pane_access.isdigit():
+                break
+            time.sleep(.05)
+        assert pane_access.isdigit(), 'Focus hook did not record the active pane'
+        assert tmux('show-options', '-w', '-v', '-t', active_pane, '@agent_window_access') == pane_access
         os.write(terminal, b'\x02o')
         output = read_until(b'Window / branch / PR')
         preview_output = read_until(b'Recorded branches / PRs') if b'Recorded branches / PRs' not in output else output

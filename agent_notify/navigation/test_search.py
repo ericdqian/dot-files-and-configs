@@ -22,6 +22,40 @@ class SearchTests(unittest.TestCase):
         cache_environment.start()
         self.addCleanup(cache_environment.stop)
 
+    def test_recent_windows_stay_grouped_with_recent_panes_first(self):
+        pane_rows = [
+            {'pane': '%1', 'window': '@1', 'window_access': 100, 'pane_access': 80},
+            {'pane': '%3', 'window': '@2', 'window_access': 200, 'pane_access': 200},
+            {'pane': '%2', 'window': '@1', 'window_access': 100, 'pane_access': 100},
+            {'pane': '%4', 'window': '@2', 'window_access': 200, 'pane_access': 150},
+        ]
+        original_rows = json.loads(json.dumps(pane_rows))
+        self.assertEqual([row['pane'] for row in search.sort_pane_rows_by_access(pane_rows)],
+                         ['%3', '%4', '%2', '%1'])
+        self.assertEqual(pane_rows, original_rows)
+
+    def test_unvisited_windows_keep_stable_order_after_visited_windows(self):
+        pane_rows = [
+            {'pane': '%1', 'window': '@1'},
+            {'pane': '%2', 'window': '@2'},
+            {'pane': '%3', 'window': '@1'},
+            {'pane': '%4', 'window': '@3', 'pane_access': 10},
+        ]
+        self.assertEqual([row['pane'] for row in search.sort_pane_rows_by_access(pane_rows)],
+                         ['%4', '%1', '%3', '%2'])
+
+    def test_record_access_targets_both_pane_and_its_window(self):
+        with patch.object(search.time, 'time_ns', return_value=123456789), \
+             patch.object(search, 'run') as commands:
+            search.record_pane_access('%42')
+        commands.assert_called_once_with([
+            'tmux', 'set-option', '-p', '-t', '%42', '@agent_pane_access', '123456789', ';',
+            'set-option', '-w', '-t', '%42', '@agent_window_access', '123456789'], check=True)
+        with patch.object(search, 'run') as commands:
+            with self.assertRaises(ValueError):
+                search.record_pane_access('')
+            commands.assert_not_called()
+
     def test_repository_choice_filters_exact_identity_and_can_be_cleared(self):
         pane_rows = [
             {'pane': '%1', 'label': 'other', 'command': 'codex', 'associations': [
@@ -177,15 +211,17 @@ class SearchTests(unittest.TestCase):
 
     def test_feedback_sessions_are_filtered_without_hiding_development_windows(self):
         pane_listing = '\n'.join([
-            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\t/review\tclaude',
-            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\t/review\tcodex',
-            '%3\tcore\tPR review export\t184.0\t/repo\t/repo\tcodex',
+            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\t/review\tclaude\t@1\t\t',
+            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\t/review\tcodex\t@2\t\t',
+            '%3\tcore\tPR review export\t184.0\t/repo\t/repo\tcodex\t@3\t100\t90',
         ])
         with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %3']):
             pane_rows = search.collect_and_record_pane_rows()
         self.assertEqual([row['pane'] for row in pane_rows], ['%3'])
         self.assertEqual(pane_rows[0]['title'], 'PR review export')
         self.assertEqual(pane_rows[0]['location'], 'core:184.0')
+        self.assertEqual(pane_rows[0]['window_access'], 100)
+        self.assertEqual(pane_rows[0]['pane_access'], 90)
         self.assertFalse(search.is_feedback_session('coding-agents'))
 
     def test_compact_rows_retain_searchable_history_and_preview_full_details(self):
@@ -198,6 +234,7 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(formatted_row.count('owner/repo'), 1)
         self.assertIn('old, new', formatted_row)
         self.assertIn('claude', formatted_row)
+        self.assertIn('#7', formatted_row)
         self.assertNotIn('https://', formatted_row)
         self.assertIn('/repo', search.format_details(pane_row))
         self.assertIn('https://github.com/owner/repo/pull/7', search.format_details(pane_row))

@@ -19,7 +19,7 @@ PR_PATTERN = re.compile(r'https://github\.com/([^/]+)/([^/]+)/pull/(\d+)(?:[/?#]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -30,6 +30,8 @@ def main():
     arguments = parser.parse_args()
     if arguments.action == 'open':
         open_picker(arguments.client)
+    elif arguments.action == 'record-access':
+        record_pane_access(arguments.pane)
     elif arguments.action == 'start':
         checkout_path = create_agent_worktree(arguments.pane, arguments.reference, arguments.checkout, arguments.base)
         record_branch(arguments.pane, str(checkout_path), source='claim', session_id=arguments.agent_session)
@@ -60,6 +62,15 @@ def main():
               Path(arguments.data).with_name('status.txt').read_text())
     else:
         pick_pane(arguments.client, arguments.data)
+
+
+def record_pane_access(pane_id):
+    if not re.fullmatch(r'%\d+', pane_id):
+        raise ValueError('Recording access requires a stable tmux pane ID.')
+    accessed_at = str(time.time_ns())
+    # Focus hooks deliberately persist visits separately from background output activity.
+    run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_pane_access', accessed_at, ';',
+         'set-option', '-w', '-t', pane_id, '@agent_window_access', accessed_at], check=True)
 
 
 def observed_directories(payload):
@@ -295,16 +306,18 @@ def select_destination(destination_session, clients, wezterm_panes, current_clie
 
 def collect_and_record_pane_rows():
     pane_listing = run(['tmux', 'list-panes', '-a', '-F',
-                        '#{pane_id}\t#{session_name}\t#{window_name}\t#{window_index}.#{pane_index}\t#{pane_current_path}\t#{@agent_nav_directory}\t#{pane_current_command}'], check=True)
+                        '#{pane_id}\t#{session_name}\t#{window_name}\t#{window_index}.#{pane_index}\t#{pane_current_path}\t#{@agent_nav_directory}\t#{pane_current_command}\t#{window_id}\t#{?@agent_window_access,#{@agent_window_access},0}\t#{?@agent_pane_access,#{@agent_pane_access},0}'], check=True)
     pane_rows = []
     option_commands = ['tmux']
     for pane_line in pane_listing.splitlines():
-        pane_id, session_name, window_name, pane_location, working_directory, inspected_directory, command = pane_line.split('\t', 6)
+        pane_id, session_name, window_name, pane_location, working_directory, inspected_directory, command, window_id, window_access, pane_access = pane_line.split('\t')
         if is_feedback_session(session_name):
             continue
         window_label = f'{session_name}:{pane_location} {window_name}'
         pane_rows.append({'pane': pane_id, 'label': window_label, 'command': command,
                           'title': window_name, 'location': f'{session_name}:{pane_location}',
+                          'window': window_id, 'window_access': int(window_access or 0),
+                          'pane_access': int(pane_access or 0),
                           'directory': working_directory, 'inspected_directory': inspected_directory, 'associations': []})
         if len(option_commands) > 1:
             option_commands.append(';')
@@ -336,7 +349,21 @@ def collect_and_record_pane_rows():
                     pane_row['associations'].append(json.loads(association_json))
                 except ValueError:
                     continue
-    return pane_rows
+    return sort_pane_rows_by_access(pane_rows)
+
+
+def sort_pane_rows_by_access(pane_rows):
+    window_access_times = {}
+    for pane_row in pane_rows:
+        window_id = pane_row.get('window', pane_row['pane'])
+        window_access_times[window_id] = max(window_access_times.get(window_id, 0),
+                                           pane_row.get('window_access', 0), pane_row.get('pane_access', 0))
+    window_order = {window_id: index for index, window_id in enumerate(window_access_times)}
+    return sorted(pane_rows, key=lambda pane_row: (
+        -window_access_times[pane_row.get('window', pane_row['pane'])],
+        window_order[pane_row.get('window', pane_row['pane'])],
+        -pane_row.get('pane_access', 0),
+    ))
 
 
 def is_feedback_session(session_name):
@@ -350,7 +377,7 @@ def choose_row(pane_rows):
     repository_width = max([len(format_repository_label(navigation_associations(row))) for row in pane_rows] + [10])
     column_widths = (min(title_width, 36), min(location_width, 24), min(repository_width, 36))
     column_header = (f"{'WINDOW':<{column_widths[0]}}  {'PANE':<{column_widths[1]}}  "
-                     f"{'OWNER':<8}  {'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  BRANCHES")
+                     f"{'OWNER':<8}  {'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  {'PR':<10}  BRANCHES")
     query = ''
     repository_scope = ''
     # Keep one private snapshot directory while the two input fields take turns owning fzf.
@@ -359,7 +386,7 @@ def choose_row(pane_rows):
         preview_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
                                      'preview', '--data', str(preview_path)]) + ' {1}'
         picker_arguments = ['fzf', '--with-shell=/bin/sh -c', '--ansi', '--no-multi', '--layout=reverse',
-                            '--delimiter=\t', '--with-nth=2..', '--tabstop=2', '--gap=1', '--highlight-line',
+                            '--delimiter=\t', '--with-nth=2..', '--tiebreak=index', '--tabstop=2', '--gap=1', '--highlight-line',
                             '--color=fg:252,hl:220,fg+:255,bg+:236,hl+:220,pointer:81,prompt:81',
                             '--bind=ctrl-/:toggle-preview']
         picker_environment = {**os.environ, 'FZF_DEFAULT_OPTS': '', 'FZF_DEFAULT_OPTS_FILE': ''}
@@ -373,7 +400,7 @@ def choose_row(pane_rows):
                                      '--preview-window=down,35%,wrap,border-top', '--query=' + query, '--print-query', '--expect=ctrl-d',
                                      '--prompt=Window / branch / PR > ',
                                      '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
-                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + '\n\n' + column_header,
+                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows / panes first\n\n' + column_header,
                                      '--bind=enter:transform(' + accept_command + ')',
                                      '--bind=start:transform(' + change_command + ')',
                                      '--bind=change:transform(' + change_command + ')',
@@ -512,7 +539,7 @@ def update_query_results(preview_path, query):
             if claimed_panes:
                 candidate_lines = [line for line in candidate_lines if line.split('\t', 1)[0] in claimed_panes]
             # Reuse fzf’s ranking while keeping original ANSI rows for presentation.
-            filtered_lines = run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--filter', query],
+            filtered_lines = run(['fzf', '--ansi', '--delimiter=\t', '--with-nth=2..', '--tiebreak=index', '--filter', query],
                                  input_text='\n'.join(candidate_lines)).splitlines()
             candidates_by_pane_id = {line.split('\t', 1)[0]: line for line in candidate_lines}
             result_lines = [candidates_by_pane_id[line.split('\t', 1)[0]] for line in filtered_lines]
@@ -556,11 +583,14 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
     ownership_label = 'claimed' if any(association.get('source') in {'claim', 'link'} for association in associations) else 'observed'
     process_label = 'claude' if re.fullmatch(r'\d+\.\d+\.\d+', pane_row['command']) else pane_row['command']
     branch_label = ', '.join(branches) or 'No recorded branch'
+    pr_numbers = list(dict.fromkeys(pr_match.group(3) for association in associations
+                                   if (pr_match := PR_PATTERN.fullmatch(association.get('url', '')))))
+    pr_label = ', '.join('#' + pr_number for pr_number in pr_numbers) or '—'
     # Keep complete titles and branches in the row so fuzzy search loses no history.
     return (f"{pane_row['pane']}\t\033[1;37m{title:<{column_widths[0]}}\033[0m\t"
             f"\033[90m{location:<{column_widths[1]}}\033[0m\t"
             f"\033[33m{ownership_label:<8}\033[0m\t\033[32m{process_label:<9}\033[0m\t"
-            f"\033[36m{repository_label:<{column_widths[2]}}\033[0m\t{branch_label}")
+            f"\033[36m{repository_label:<{column_widths[2]}}\033[0m\t\033[35m{pr_label:<10}\033[0m\t{branch_label}")
 
 
 def navigation_associations(pane_row):

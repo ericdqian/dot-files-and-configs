@@ -17,6 +17,12 @@ Rename that window once to a short description of the current or anticipated PR'
 
 Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /commit-conventions skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.
 
+When creating or updating a PR description, include a line-change table with `Category`, `Added`, `Removed`, and `Net` columns. Use these rows in order: `Production code`, `Tests`, `Documentation`, `Generated code`, `Configuration`, and `Total`. Include every category even when its counts are zero; calculate `Net` as added minus removed.
+
+Measure the entire PR against its base branch using the merge-base diff (for example, `git diff --numstat origin/main...HEAD`), not just the latest commit. Classify each changed line exactly once by purpose, rather than file extension, so the category counts sum to the total. Agent guidance belongs under documentation; settings, manifests, and lockfiles belong under configuration. Keep generated code separate from handwritten production code. Report binary files separately when Git cannot provide line counts.
+
+Briefly note substantial code moves or refactors below the table so relocated lines are not mistaken for new functionality. Refresh the table when updating the PR description as the scope changes.
+
 Opened PR branches should use the format `eq/<type>/<description>`, such as `eq/chore/update-install-scripts`, where `<type>` is `feat`, `bug`, or `chore` depending on the PR's purpose. Use `feat` for features, `bug` for fixes, and `chore` for scripts, maintenance, or other changes that do not add real product functionality.
 
 When the user asks you to revise something you already did, or gives guidance that sounds like a reusable principle, ask whether they would like that feedback persisted into an `AGENTS.md` file for future agents.

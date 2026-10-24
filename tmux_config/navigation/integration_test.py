@@ -23,6 +23,10 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
     wezterm_stub = Path(gh_directory, 'wezterm')
     wezterm_stub.write_text('#!/bin/sh\nexit 1\n')
     wezterm_stub.chmod(0o755)
+    chrome_arguments_path = Path(directory, 'chrome-arguments.txt')
+    open_stub = Path(gh_directory, 'open')
+    open_stub.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > ' + shlex.quote(str(chrome_arguments_path)) + '\n')
+    open_stub.chmod(0o755)
     test_environment = {**os.environ, 'PATH': gh_directory + ':' + os.environ['PATH'],
                         'XDG_CACHE_HOME': directory + '/cache'}
     repository = directory + '/repository'
@@ -115,6 +119,12 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         os.write(terminal, b'\x02o')
         read_until(b'Window / branch / PR')
         os.write(terminal, b'https://github.com/owner/repo/pull/123')
+        read_until(b'PR #123')
+        os.write(terminal, b'\x0f')  # Ctrl+O opens Chrome without navigating tmux.
+        read_until(b'Opened 1 PR(s) in Chrome.')
+        assert chrome_arguments_path.read_text().splitlines() == [
+            '-a', 'Google Chrome', 'https://github.com/owner/repo/pull/123']
+        assert tmux('display-message', '-p', '#{session_name}') == 'other-session'
         read_until(b'PR #123')
         os.write(terminal, b'\r')
         observed_output = b''

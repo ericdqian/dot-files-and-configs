@@ -101,6 +101,9 @@ repositories, with window counts and an **All repositories** option. Type to fuz
 filter the list, use Up/Down to choose, and press Enter to select a repository.
 Escape or Ctrl+C cancels. The main window/branch/PR query is preserved, and the
 chosen repository filters by exact identity so similarly named repos stay separate.
+Ctrl+O opens the highlighted window’s recorded PR links in Google Chrome and keeps
+the picker open. A PR URL search opens only that PR. Windows without recorded PRs
+show a message in the picker.
 Automated review sessions named
 `claude-pr-NUMBER-correctness/security/style` (and their `codex-pr-` equivalents)
 are excluded, while ordinary development windows with review-related names stay visible.

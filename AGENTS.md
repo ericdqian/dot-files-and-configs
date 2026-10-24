@@ -60,12 +60,14 @@ Before implementing branch or PR work, reuse the existing Git worktree for the t
 
 Inside tmux, use one session per repository and one window per branch/PR. Reuse the branch's existing window; open a new one for a new branch. Do not repurpose another branch's window or relocate running agents automatically.
 
+For a PR stack, apply this to every PR: reuse its existing window, or create its worktree from the appropriate stack base, open and associate a new window in the repository's session, and launch an agent there. Give each agent the full task context, stack plan, its PR's scope and dependencies, relevant decisions, and validation requirements; fork the parent session when supported, or provide an equivalent complete handoff.
+
 `~/.tmux/navigation/search.py` tracks each window's intended role (repository, branch, worktree, PR, and agent). Navigation search is built on these records, so register ownership explicitly rather than relying on pane directories or window names.
 
 When the helper is available:
 
 - Run `python3 ~/.tmux/navigation/search.py start BRANCH --checkout PATH --base BASE --name 'Short purpose' --pane SOURCE_PANE` from the target repository. It finds the repository's session and creates or reuses the branch's worktree and window. Use the returned worktree and destination pane ID; use `--session NAME` if session selection is ambiguous.
 - To associate an already-open tmux window with a branch's worktree, run `python3 ~/.tmux/navigation/search.py claim --checkout PATH --pane DESTINATION_PANE`. After opening its PR, add the URL with `claim PR_URL --checkout PATH --pane DESTINATION_PANE`. Respect conflicting ownership; do not clear another branch's claim.
-- For an agent handoff, launch the requested coding-agent CLI (`codex` or `claude`) in the destination window's worktree with task context. Opening an idle shell is only preparation. Reuse an existing agent through its messaging or resume flow rather than typing a new CLI command into it.
+- In each new window, start an interactive shell in the worktree, then run the same coding-agent CLI as the parent (`codex` or `claude`) as a child of that shell, with the full task context. Do not replace the shell with `exec` or make the agent the window's sole process: exiting the agent must leave a usable shell and keep the window open. Opening an idle shell alone does not complete the handoff. Reuse an existing agent through its messaging or resume flow rather than typing a new CLI command into it.
 
 Resolve the source pane from the agent's own `$TMUX_PANE` or an explicitly known stable `%ID`, never tmux's implicit current pane. If the helper is unavailable, follow the same session/window rules manually and report missing navigator metadata. Outside tmux, use Git worktrees directly.

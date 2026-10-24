@@ -48,6 +48,10 @@ Mason will require a few things like unzip, npm, and pip to be available in orde
 
 ### Agent window search
 
+The navigation helper and its tests live in `tmux_config/agent_navigation/`.
+`setup.sh` links that directory to `~/.tmux/agent-navigation/`; notification
+hooks call the helper there to record branch history.
+
 Press **Ctrl+b o** for a borderless picker that fills the terminal and searches
 windows across all tmux sessions. Each window appears once; selecting it returns
 to its active pane. Type a window name, repository, or branch;
@@ -97,7 +101,7 @@ worktree paths and optional agent session IDs in the detail panel.
 For a new task, create a dedicated worktree and claim it for the agent’s pane:
 
 ```sh
-python3 ~/.agent-notify/navigation/search.py start eq/feat/example \
+python3 ~/.tmux/agent-navigation/search.py start eq/feat/example \
   --checkout ../repo-worktrees/example --base origin/main
 ```
 
@@ -110,8 +114,8 @@ commands. A branch already checked out elsewhere is rejected by Git.
 For an existing isolated worktree, claim its current branch and then its PR:
 
 ```sh
-python3 ~/.agent-notify/navigation/search.py claim --checkout ../repo-worktrees/example
-python3 ~/.agent-notify/navigation/search.py claim https://github.com/OWNER/REPO/pull/123 \
+python3 ~/.tmux/agent-navigation/search.py claim --checkout ../repo-worktrees/example
+python3 ~/.tmux/agent-navigation/search.py claim https://github.com/OWNER/REPO/pull/123 \
   --checkout ../repo-worktrees/example
 ```
 
@@ -125,8 +129,8 @@ To explicitly backfill earlier work whose branch is no longer checked out, use
 `link` from its repository with a branch name or PR URL:
 
 ```sh
-python3 ~/.agent-notify/navigation/search.py link eq/feat/earlier-branch --pane %ID
-python3 ~/.agent-notify/navigation/search.py link https://github.com/OWNER/REPO/pull/123 --pane %ID
+python3 ~/.tmux/agent-navigation/search.py link eq/feat/earlier-branch --pane %ID
+python3 ~/.tmux/agent-navigation/search.py link https://github.com/OWNER/REPO/pull/123 --pane %ID
 ```
 
 History ends when the pane/server closes and is not restored by tmux-resurrect.
@@ -134,10 +138,10 @@ Existing agents are not relocated or assigned ownership automatically. Work
 performed using shell `cd` or `git -C` without a corresponding hook directory
 can still need an explicit claim or historical link.
 
-Validate with `python3 -m unittest discover -s agent_notify/navigation -p 'test_*.py'`.
-The terminal integration check, `python3 agent_notify/navigation/integration_test.py`,
+Validate with `python3 -m unittest discover -s tmux_config/agent_navigation -p 'test_*.py'`.
+The terminal integration check, `python3 tmux_config/agent_navigation/integration_test.py`,
 uses a separate tmux server and a stub GitHub response.
-Run `python3 agent_notify/navigation/detach_integration_test.py` to verify that
+Run `python3 tmux_config/agent_navigation/detach_integration_test.py` to verify that
 new tabs return to a usable shell after detach and close on explicit shell exit.
 
 ### Karabiner-Elements

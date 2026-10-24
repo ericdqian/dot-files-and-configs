@@ -56,6 +56,7 @@ fi
 link_file "${CUR_DIR}/tmux_config/.tmux.conf" ~/.tmux.conf "tmux config"
 mkdir -p ~/.tmux
 link_file "${CUR_DIR}/tmux_config/fix-resurrect-ps.sh" ~/.tmux/fix-resurrect-ps.sh "tmux resurrect CPU fix"
+link_file "${CUR_DIR}/tmux_config/agent_navigation" ~/.tmux/agent-navigation "tmux agent navigation"
 mkdir -p ~/.config/karabiner/assets/complex_modifications
 link_file "${CUR_DIR}/karabiner_config/option_word_navigation.json" ~/.config/karabiner/assets/complex_modifications/option_word_navigation.json "Karabiner Option-F/B word navigation rule"
 link_file "${CUR_DIR}/karabiner_config/screen_focus.json" ~/.config/karabiner/assets/complex_modifications/screen_focus.json "Karabiner display focus rule"

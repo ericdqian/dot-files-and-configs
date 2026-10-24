@@ -46,6 +46,12 @@ Mason will require a few things like unzip, npm, and pip to be available in orde
 
 ## Terminal
 
+### Quick Codex question
+
+Press **Ctrl+b Shift+C** to open a new window at the end of the current tmux
+session and launch Codex in the current pane's directory. Exit Codex when done;
+the window closes and tmux returns to another window in the session.
+
 ### Tmux window search
 
 This is a general tmux navigation tool; it works without an LLM. Coding-agent

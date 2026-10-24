@@ -22,6 +22,37 @@ class SearchTests(unittest.TestCase):
         cache_environment.start()
         self.addCleanup(cache_environment.stop)
 
+    def test_window_rows_use_active_pane_and_combine_sibling_prs(self):
+        pane_rows = [
+            {'pane': '%1', 'window': '@1', 'location': 'core:1.0', 'window_access': 100,
+             'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
+                               'source': 'claim', 'url': 'https://github.com/owner/repo/pull/80'}]},
+            {'pane': '%2', 'window': '@1', 'location': 'core:1.1', 'active': True, 'window_access': 100,
+             'associations': [{'repository': 'github.com/owner/repo', 'branch': 'other', 'source': 'claim'}]},
+            {'pane': '%3', 'window': '@2', 'location': 'core:2.0', 'window_access': 200,
+             'associations': []},
+        ]
+        original_rows = json.loads(json.dumps(pane_rows))
+        window_rows = search.group_window_rows(pane_rows)
+        self.assertEqual([row['pane'] for row in window_rows], ['%3', '%2'])
+        self.assertEqual(window_rows[1]['location'], 'core:1')
+        self.assertEqual([association['branch'] for association in search.navigation_associations(window_rows[1])],
+                         ['feature', 'other'])
+        self.assertEqual(window_rows[1]['associations'][0]['url'], 'https://github.com/owner/repo/pull/80')
+        self.assertEqual(pane_rows, original_rows)
+
+    def test_window_history_preserves_per_pane_claim_precedence(self):
+        pane_rows = [
+            {'pane': '%1', 'window': '@1', 'associations': [
+                {'repository': 'github.com/owner/repo', 'branch': 'claimed', 'source': 'claim'},
+                {'repository': 'github.com/owner/repo', 'branch': 'incidental', 'source': 'observed'}]},
+            {'pane': '%2', 'window': '@1', 'associations': [
+                {'repository': 'github.com/owner/repo', 'branch': 'sibling', 'source': 'observed'}]},
+        ]
+        window_row = search.group_window_rows(pane_rows)[0]
+        self.assertEqual([association['branch'] for association in search.navigation_associations(window_row)],
+                         ['claimed', 'sibling'])
+
     def test_recent_windows_stay_grouped_with_recent_panes_first(self):
         pane_rows = [
             {'pane': '%1', 'window': '@1', 'window_access': 100, 'pane_access': 80},
@@ -81,15 +112,15 @@ class SearchTests(unittest.TestCase):
             {'pane': '%3', 'associations': [{'repository': 'github.com/owner/core', 'source': 'claim'}]},
         ]
         self.assertEqual(search.repository_options(pane_rows), [
-            '*\tAll repositories\t(3 panes)',
-            'github.com/owner/core\towner/core\t(2 panes)',
-            'github.com/owner/core-api\towner/core-api\t(1 pane)',
+            '*\tAll repositories\t(3 windows)',
+            'github.com/owner/core\towner/core\t(2 windows)',
+            'github.com/owner/core-api\towner/core-api\t(1 window)',
         ])
         self.assertEqual(search.filter_repository_rows(pane_rows, 'github.com/owner/core'),
                          [pane_rows[0], pane_rows[2]])
 
     def test_repository_dropdown_search_does_not_match_pane_counts(self):
-        candidates = 'github.com/owner/other\towner/other\t(1 pane)\ngithub.com/owner/repo\towner/repo\t(2 panes)'
+        candidates = 'github.com/owner/other\towner/other\t(1 window)\ngithub.com/owner/repo\towner/repo\t(2 windows)'
         matches = search.run(['fzf', '--delimiter=\t', '--with-nth=2..', '--nth=1', '--filter', 'owner/repo'],
                              input_text=candidates)
         self.assertEqual(matches.split('\t', 1)[0], 'github.com/owner/repo')
@@ -106,7 +137,7 @@ class SearchTests(unittest.TestCase):
                           subprocess.CompletedProcess([], 0, 'owner/repo\ngithub.com/owner/other\towner/other\n'),
                           subprocess.CompletedProcess([], 130, '')]
         with patch.object(search.subprocess, 'run', side_effect=picker_results) as pickers, \
-             patch.object(search, 'run', return_value='github.com/owner/repo\towner/repo\t(1 pane)'):
+             patch.object(search, 'run', return_value='github.com/owner/repo\towner/repo\t(1 window)'):
             search.choose_row(pane_rows)
         scoped_candidates = pickers.call_args_list[2].kwargs['input']
         self.assertIn('%1\t', scoped_candidates)
@@ -211,9 +242,9 @@ class SearchTests(unittest.TestCase):
 
     def test_feedback_sessions_are_filtered_without_hiding_development_windows(self):
         pane_listing = '\n'.join([
-            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\t/review\tclaude\t@1\t\t',
-            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\t/review\tcodex\t@2\t\t',
-            '%3\tcore\tPR review export\t184.0\t/repo\t/repo\tcodex\t@3\t100\t90',
+            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\t/review\tclaude\t@1\t0\t0\t1',
+            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\t/review\tcodex\t@2\t0\t0\t1',
+            '%3\tcore\tPR review export\t184.0\t/repo\t/repo\tcodex\t@3\t100\t90\t1',
         ])
         with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %3']):
             pane_rows = search.collect_and_record_pane_rows()

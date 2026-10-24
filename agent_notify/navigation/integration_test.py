@@ -46,6 +46,15 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         record()
         options = tmux('show-options', '-p', '-t', pane_one)
         assert options.count('@agent_nav_') == 3, options  # Two branches plus inspected-directory marker.
+        tmux('split-window', '-d', '-t', pane_one, '-c', repository)
+        window_rows = json.loads(subprocess.check_output([
+            'python3', '-c',
+            'import sys,json; sys.path.insert(0,sys.argv[1]); import search; '
+            'print(json.dumps(search.group_window_rows(search.collect_and_record_pane_rows())))',
+            str(Path(search_script).parent)], text=True, env=environment))
+        assert len(window_rows) == 1, window_rows
+        assert window_rows[0]['pane'] == pane_one, window_rows
+        assert '.' not in window_rows[0]['location'], window_rows
         tmux('new-session', '-d', '-s', 'other-session')
         tmux('new-session', '-d', '-s', 'claude-pr-123-security', '-c', repository)
         binding = next(line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines() if line.startswith('bind-key o '))

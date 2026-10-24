@@ -219,7 +219,7 @@ def open_picker(client_name):
 def pick_pane(client_name, selection_path=''):
     if not shutil.which('fzf'):
         raise ValueError('Install fzf to use the agent window picker.')
-    pane_rows = collect_and_record_pane_rows()
+    pane_rows = group_window_rows(collect_and_record_pane_rows())
     selected = choose_row(pane_rows)
     if not selected:
         return
@@ -230,6 +230,26 @@ def pick_pane(client_name, selection_path=''):
         Path(selection_path).write_text(pane_id)
     else:
         navigate_to_pane(pane_id, client_name)
+
+
+def group_window_rows(pane_rows):
+    panes_by_window = {}
+    for pane_row in pane_rows:
+        window_id = pane_row.get('window', pane_row['pane'])
+        panes_by_window.setdefault(window_id, []).append(pane_row)
+    window_rows = []
+    for window_panes in panes_by_window.values():
+        active_pane = next((pane for pane in window_panes if pane.get('active')), window_panes[0])
+        window_location = active_pane.get('location', '').rsplit('.', 1)[0]
+        window_rows.append({
+            **active_pane,
+            'location': window_location,
+            'window_row': True,
+            'window_access': max(pane.get('window_access', 0) for pane in window_panes),
+            'associations': [association for pane in window_panes
+                             for association in navigation_associations(pane)],
+        })
+    return sorted(window_rows, key=lambda window_row: -window_row['window_access'])
 
 
 def navigate_to_pane(pane_id, client_name):
@@ -306,18 +326,18 @@ def select_destination(destination_session, clients, wezterm_panes, current_clie
 
 def collect_and_record_pane_rows():
     pane_listing = run(['tmux', 'list-panes', '-a', '-F',
-                        '#{pane_id}\t#{session_name}\t#{window_name}\t#{window_index}.#{pane_index}\t#{pane_current_path}\t#{@agent_nav_directory}\t#{pane_current_command}\t#{window_id}\t#{?@agent_window_access,#{@agent_window_access},0}\t#{?@agent_pane_access,#{@agent_pane_access},0}'], check=True)
+                        '#{pane_id}\t#{session_name}\t#{window_name}\t#{window_index}.#{pane_index}\t#{pane_current_path}\t#{@agent_nav_directory}\t#{pane_current_command}\t#{window_id}\t#{?@agent_window_access,#{@agent_window_access},0}\t#{?@agent_pane_access,#{@agent_pane_access},0}\t#{pane_active}'], check=True)
     pane_rows = []
     option_commands = ['tmux']
     for pane_line in pane_listing.splitlines():
-        pane_id, session_name, window_name, pane_location, working_directory, inspected_directory, command, window_id, window_access, pane_access = pane_line.split('\t')
+        pane_id, session_name, window_name, pane_location, working_directory, inspected_directory, command, window_id, window_access, pane_access, pane_active = pane_line.split('\t')
         if is_feedback_session(session_name):
             continue
         window_label = f'{session_name}:{pane_location} {window_name}'
         pane_rows.append({'pane': pane_id, 'label': window_label, 'command': command,
                           'title': window_name, 'location': f'{session_name}:{pane_location}',
                           'window': window_id, 'window_access': int(window_access or 0),
-                          'pane_access': int(pane_access or 0),
+                          'pane_access': int(pane_access or 0), 'active': pane_active == '1',
                           'directory': working_directory, 'inspected_directory': inspected_directory, 'associations': []})
         if len(option_commands) > 1:
             option_commands.append(';')
@@ -376,7 +396,7 @@ def choose_row(pane_rows):
     location_width = max([len(row.get('location', '')) for row in pane_rows] + [8])
     repository_width = max([len(format_repository_label(navigation_associations(row))) for row in pane_rows] + [10])
     column_widths = (min(title_width, 36), min(location_width, 24), min(repository_width, 36))
-    column_header = (f"{'WINDOW':<{column_widths[0]}}  {'PANE':<{column_widths[1]}}  "
+    column_header = (f"{'WINDOW':<{column_widths[0]}}  {'LOCATION':<{column_widths[1]}}  "
                      f"{'OWNER':<8}  {'PROCESS':<9}  {'REPOSITORY':<{column_widths[2]}}  {'PR':<10}  BRANCHES")
     query = ''
     repository_scope = ''
@@ -400,7 +420,7 @@ def choose_row(pane_rows):
                                      '--preview-window=down,35%,wrap,border-top', '--query=' + query, '--print-query', '--expect=ctrl-d',
                                      '--prompt=Window / branch / PR > ',
                                      '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+D repository · Ctrl+/ details\n'
-                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows / panes first\n\n' + column_header,
+                                              'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n\n' + column_header,
                                      '--bind=enter:transform(' + accept_command + ')',
                                      '--bind=start:transform(' + change_command + ')',
                                      '--bind=change:transform(' + change_command + ')',
@@ -442,11 +462,11 @@ def choose_row(pane_rows):
 def repository_options(pane_rows):
     repositories = sorted({association['repository'] for row in pane_rows
                            for association in navigation_associations(row)})
-    repository_candidates = [f'*\tAll repositories\t({len(pane_rows)} panes)']
+    repository_candidates = [f'*\tAll repositories\t({len(pane_rows)} windows)']
     for repository in repositories:
-        pane_count = sum(any(association['repository'] == repository
+        window_count = sum(any(association['repository'] == repository
                              for association in navigation_associations(row)) for row in pane_rows)
-        repository_candidates.append(f"{repository}\t{repository.removeprefix('github.com/')}\t({pane_count} {'pane' if pane_count == 1 else 'panes'})")
+        repository_candidates.append(f"{repository}\t{repository.removeprefix('github.com/')}\t({window_count} {'window' if window_count == 1 else 'windows'})")
     return repository_candidates
 
 
@@ -594,6 +614,8 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
 
 
 def navigation_associations(pane_row):
+    if pane_row.get('window_row'):
+        return pane_row['associations']
     claims = [association for association in pane_row['associations']
               if association.get('source') in {'claim', 'link'}]
     return claims or pane_row['associations']

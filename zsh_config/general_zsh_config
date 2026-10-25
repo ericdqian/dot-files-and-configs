@@ -123,7 +123,6 @@ cnwt() {
 
 dwt() {
   local worktree_path
-  local confirmation
   local -a remove_args=()
 
   worktree_path="$(git rev-parse --show-toplevel 2>/dev/null)" || {
@@ -134,12 +133,6 @@ dwt() {
   if [[ "$1" == "--force" ]]; then
     remove_args+=(--force)
   fi
-
-  printf 'Delete worktree %s%s? [y/N] ' \
-    "$worktree_path" \
-    "${remove_args:+ (force)}"
-  read -r confirmation
-  [[ "$confirmation" =~ ^[Yy]$ ]] || return
 
   git worktree remove "${remove_args[@]}" "$worktree_path" || return
   # Close the shell only after its worktree has been successfully removed.

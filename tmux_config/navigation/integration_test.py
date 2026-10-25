@@ -120,7 +120,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         read_until(b'Window / branch / PR')
         os.write(terminal, b'https://github.com/owner/repo/pull/123')
         read_until(b'PR #123')
-        os.write(terminal, b'\x0f')  # Ctrl+O opens Chrome without navigating tmux.
+        os.write(terminal, b'\x1bo')  # Alt+O opens Chrome without navigating tmux.
         read_until(b'Opened 1 PR(s) in Chrome.')
         assert chrome_arguments_path.read_text().splitlines() == [
             '-a', 'Google Chrome', 'https://github.com/owner/repo/pull/123']
@@ -189,21 +189,67 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         command('git', '-C', repository, '-c', 'user.name=Test', '-c', 'user.email=test@example.com',
                 '-c', 'core.hooksPath=/dev/null', 'commit', '--allow-empty', '-m', 'Initial')
         tmux('new-session', '-d', '-s', 'claimed-session', '-c', repository)
-        claimed_pane_id = tmux('display-message', '-p', '-t', 'claimed-session', '#{pane_id}')
+        source_pane_id = tmux('display-message', '-p', '-t', 'claimed-session', '#{pane_id}')
         claimed_checkout = str(Path(directory, 'claimed-worktree'))
-        subprocess.run(['python3', search_script, 'start', 'feature-claimed', '--checkout', claimed_checkout,
-                        '--pane', claimed_pane_id], cwd=repository, env=environment, check=True, capture_output=True)
+        start_result = subprocess.run(['python3', search_script, 'start', 'feature-claimed', '--checkout', claimed_checkout,
+                                       '--name', 'Claimed feature', '--pane', source_pane_id],
+                                      cwd=repository, env=environment, capture_output=True, text=True)
+        assert start_result.returncode == 0, start_result.stderr
+        claimed_pane_id = next(line.removeprefix('Pane: ') for line in start_result.stdout.splitlines() if line.startswith('Pane: '))
+        assert claimed_pane_id != source_pane_id, start_result.stdout
+        assert tmux('display-message', '-p', '-t', claimed_pane_id, '#{session_id}') == tmux(
+            'display-message', '-p', '-t', source_pane_id, '#{session_id}')
+        assert tmux('display-message', '-p', '-t', claimed_pane_id, '#{window_name}') == 'Claimed feature'
+        assert tmux('display-message', '-p', '-t', source_pane_id, '#{@agent_nav_owner}') == ''
+        # Starting again reuses both the existing worktree and its one owning window.
+        repeated_start = subprocess.run(['python3', search_script, 'start', 'feature-claimed',
+                                         '--checkout', str(Path(directory, 'unused-worktree')), '--pane', source_pane_id],
+                                        cwd=repository, env=environment, check=True, capture_output=True, text=True)
+        assert f'Pane: {claimed_pane_id}' in repeated_start.stdout, repeated_start.stdout
+        assert not Path(directory, 'unused-worktree').exists()
         claim_environment = {**environment, 'PATH': test_environment['PATH']}
         subprocess.run(['python3', search_script, 'claim', 'https://github.com/owner/repo/pull/124',
                         '--checkout', claimed_checkout, '--pane', claimed_pane_id],
                        env=claim_environment, check=True, capture_output=True)
-        claimed_options = tmux('show-options', '-p', '-t', claimed_pane_id)
-        claims = [json.loads(shlex.split(line)[1]) for line in claimed_options.splitlines()
-                  if line.startswith('@agent_nav_') and not line.startswith('@agent_nav_directory ')]
-        self_claim = next(association for association in claims if association.get('source') == 'claim')
+        self_claim = json.loads(tmux('show-options', '-wqv', '-t', claimed_pane_id, '@agent_nav_owner'))
         assert self_claim['branch'] == 'feature-claimed'
         assert self_claim['checkout'] == str(Path(claimed_checkout).resolve())
         assert self_claim['url'] == 'https://github.com/owner/repo/pull/124'
+        assert self_claim['description'] == 'Claimed feature'
+        # A sibling shell starts in the owned worktree even after the source pane changes cwd.
+        tmux('send-keys', '-t', claimed_pane_id, 'cd /tmp', 'Enter')
+        directory_deadline = time.monotonic() + 5
+        while time.monotonic() < directory_deadline:
+            if Path(tmux('display-message', '-p', '-t', claimed_pane_id, '#{pane_current_path}')).resolve() == Path('/tmp').resolve():
+                break
+            time.sleep(.05)
+        else:
+            raise AssertionError('Source shell did not change directory before the split test')
+        split_bindings = [line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines()
+                          if line.startswith(('bind-key s split-window', 'bind-key v split-window',
+                                              'bind-key % split-window', 'bind-key \'"\' split-window'))]
+        split_config = Path(directory, 'splits.conf')
+        split_config.write_text('\n'.join(split_bindings) + '\n')
+        tmux('source-file', str(split_config))
+        # Split keybindings run in the selected window; tmux expands -c in that context.
+        tmux('select-window', '-t', claimed_pane_id)
+        tmux('select-pane', '-t', claimed_pane_id)
+        split_pane = tmux('split-window', '-d', '-P', '-F', '#{pane_id}', '-t', claimed_pane_id,
+                          '-c', '#{?@agent_nav_checkout,#{@agent_nav_checkout},#{pane_current_path}}')
+        directory_deadline = time.monotonic() + 5
+        while time.monotonic() < directory_deadline:
+            split_directory = tmux('display-message', '-p', '-t', split_pane, '#{pane_current_path}')
+            if Path(split_directory).resolve() == Path(claimed_checkout).resolve():
+                break
+            time.sleep(.05)
+        else:
+            raise AssertionError((split_directory, claimed_checkout, tmux('show-options', '-w', '-t', split_pane)))
+        conflicting_claim = subprocess.run(['python3', search_script, 'claim', '--checkout', repository, '--pane', split_pane],
+                                           env=environment, capture_output=True, text=True)
+        assert conflicting_claim.returncode != 0 and 'already owns feature-claimed' in conflicting_claim.stderr
+        duplicate_claim = subprocess.run(['python3', search_script, 'claim', '--checkout', claimed_checkout, '--pane', source_pane_id],
+                                         env=environment, capture_output=True, text=True)
+        assert duplicate_claim.returncode != 0 and 'already belongs to window' in duplicate_claim.stderr
         assert command('git', '-C', repository, 'branch', '--show-current') == 'second'
         # Both recorded URLs and previous successful lookups work without GitHub.
         gh_script.write_text('#!/bin/sh\nexit 91\n')
@@ -235,6 +281,19 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         tmux('rename-window', '-t', other_pane_id, 'Scope decoy')
         subprocess.run(['python3', search_script, 'claim', '--checkout', other_repository, '--pane', other_pane_id],
                        env=environment, check=True, capture_output=True)
+        command('git', '-C', other_repository, '-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                '-c', 'core.hooksPath=/dev/null', 'commit', '--allow-empty', '-m', 'Initial')
+        routed_start = subprocess.run(['python3', search_script, 'start', 'cross-repository',
+                                       '--checkout', str(Path(directory, 'cross-repository-worktree')),
+                                       '--name', 'Cross repository task', '--pane', pane_one],
+                                      cwd=other_repository, env=environment, capture_output=True, text=True)
+        assert routed_start.returncode == 0, routed_start.stderr
+        routed_pane = next(line.removeprefix('Pane: ') for line in routed_start.stdout.splitlines() if line.startswith('Pane: '))
+        assert tmux('display-message', '-p', '-t', routed_pane, '#{session_id}') == tmux(
+            'display-message', '-p', '-t', other_pane_id, '#{session_id}')
+        assert tmux('display-message', '-p', '-t', routed_pane, '#{@agent_nav_repository}') == 'github.com/owner/other'
+        assert tmux('display-message', '-p', '-t', pane_one, '#{session_id}') != tmux(
+            'display-message', '-p', '-t', routed_pane, '#{session_id}')
         tmux('switch-client', '-t', 'other-session')
         while select.select([terminal], [], [], .3)[0]:
             os.read(terminal, 65536)

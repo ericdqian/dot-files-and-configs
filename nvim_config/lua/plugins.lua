@@ -13,20 +13,6 @@ vim.opt.rtp:prepend(lazypath)
 
 vim.g.mapleader = " "
 
-local lsp_ui = vim.env.NV_LSP_UI or "lspsaga"
-local supported_lsp_uis = {
-    lspsaga = true,
-    navigator = true,
-}
-
-if not supported_lsp_uis[lsp_ui] then
-    error("NV_LSP_UI must be 'lspsaga' or 'navigator'")
-end
-
-local function use_lsp_ui(name)
-    return not vim.g.vscode and lsp_ui == name
-end
-
 require("lazy").setup({
     -- Directory / searching plugins
     -- For directory navigation
@@ -126,22 +112,6 @@ require("lazy").setup({
         cond = not vim.g.vscode,
     },
 
-    -- Gives diagnostics, pretty popups for goto definition/references/type
-    {
-        "nvimdev/lspsaga.nvim",
-        lazy = true,
-        branch = "main",
-        event = "LspAttach",
-        config = function()
-            require("config/lspsaga").setup()
-        end,
-        dependencies = {
-            { "nvim-tree/nvim-web-devicons" },
-            --Please make sure you install markdown and markdown_inline parser
-            { "nvim-treesitter/nvim-treesitter" },
-        },
-        cond = use_lsp_ui("lspsaga"),
-    },
     {
         dir = vim.fn.expand("~/nv-navigator"),
         name = "nv-navigator",

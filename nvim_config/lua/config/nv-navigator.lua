@@ -28,6 +28,8 @@ function M.setup()
         silent = true,
     })
 
+    -- End of nv-navigator configuration; native Neovim fallbacks follow.
+    -- TODO: Add code actions, diagnostics, and call hierarchy support to nv-navigator.
     vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
     vim.keymap.set("n", "rN", vim.lsp.buf.rename, { desc = "Rename symbol in workspace" })
     vim.keymap.set("n", "<leader>sl", function()

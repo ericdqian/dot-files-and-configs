@@ -122,6 +122,29 @@ cnwt() {
 }
 
 dwt() {
+  local worktree_path
+  local -a remove_args=()
+
+  worktree_path="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    print -u2 -- 'dwt: not inside a Git worktree'
+    return 1
+  }
+
+  if [[ "$1" == "--f" || "$1" == "--force" ]]; then
+    remove_args+=(--force)
+  fi
+
+  if ! git worktree remove "${remove_args[@]}" "$worktree_path"; then
+    if (( ${#remove_args} == 0 )); then
+      print -u2 -- 'dwt: worktree was not deleted; retry with dwt --f to force removal'
+    fi
+    return 1
+  fi
+  # Close the shell only after its worktree has been successfully removed.
+  exit 0
+}
+
+dwtp() {
   local wt
   local current_branch
   local remove_args=()
@@ -131,7 +154,7 @@ dwt() {
   fi
 
   if ! git rev-parse --git-dir &>/dev/null; then
-    print -u2 -- 'dwt: not inside a Git repository'
+    print -u2 -- 'dwtp: not inside a Git repository'
     return 1
   fi
 

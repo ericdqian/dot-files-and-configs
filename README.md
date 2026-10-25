@@ -70,10 +70,11 @@ Mason will require a few things like unzip, npm, and pip to be available in orde
 
 ### Quick Codex question
 
-Press **Ctrl+b Shift+C** to open a window named `question` at the end of the current
+Press **Ctrl+b c** to open a window named `question` at the end of the current
 tmux session and launch Codex in the current pane's directory. The name appears
 in the tmux navigation picker. Exit Codex when done;
 the window closes and tmux returns to another window in the session.
+Use **Ctrl+b w** to open a regular shell window.
 
 ### Tmux window search
 

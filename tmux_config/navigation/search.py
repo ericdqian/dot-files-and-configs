@@ -546,9 +546,9 @@ def choose_row(pane_rows):
             scoped_rows = filter_repository_rows(pane_rows, repository_scope)
             write_picker_snapshot(preview_path, scoped_rows, column_widths)
             selection = picker.run_picker(preview_path, query, [*picker_arguments, '--preview=' + preview_command,
-                                            '--preview-window=down,35%,wrap,border-top', '--print-query', '--expect=ctrl-d,ctrl-o',
+                                            '--preview-window=down,35%,wrap,border-top', '--print-query', '--expect=ctrl-d,ctrl-b',
                                             '--prompt=Window / branch / PR > ',
-                                            '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+O PR in Chrome · Ctrl+D repository · Ctrl+/ details\n'
+                                            '--header=↑/↓ choose · Enter jump · Esc cancel · Ctrl+B PR in Chrome · Ctrl+D repository · Ctrl+/ details\n'
                                                      'Repository: ' + (repository_scope.removeprefix('github.com/') or 'All repositories') + ' · Recent windows first\n'
                                                      + open_status + '\n' + column_header])
             output_lines = selection.stdout.splitlines()
@@ -556,7 +556,7 @@ def choose_row(pane_rows):
             if selection.returncode not in (0, 1) or len(output_lines) < 2:
                 return ''
             query, pressed_key = output_lines[:2]
-            if pressed_key == 'ctrl-o':
+            if pressed_key == 'ctrl-b':
                 selected_id = output_lines[2].split('\t', 1)[0] if len(output_lines) > 2 else ''
                 selected_row = next((row for row in scoped_rows if row['pane'] == selected_id), None)
                 pr_urls = selected_pr_urls(selected_row, query, preview_path)

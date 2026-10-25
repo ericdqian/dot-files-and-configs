@@ -123,7 +123,6 @@ cnwt() {
 
 dwt() {
   local worktree_path
-  local main_worktree_path
   local confirmation
   local -a remove_args=()
 
@@ -131,7 +130,6 @@ dwt() {
     print -u2 -- 'dwt: not inside a Git worktree'
     return 1
   }
-  main_worktree_path="$(git worktree list --porcelain | sed -n '1s/^worktree //p')" || return
 
   if [[ "$1" == "--force" ]]; then
     remove_args+=(--force)
@@ -144,8 +142,8 @@ dwt() {
   [[ "$confirmation" =~ ^[Yy]$ ]] || return
 
   git worktree remove "${remove_args[@]}" "$worktree_path" || return
-  # Leave the deleted directory so the shell remains usable after removal.
-  cd "$main_worktree_path"
+  # Close the shell only after its worktree has been successfully removed.
+  exit 0
 }
 
 dwtp() {

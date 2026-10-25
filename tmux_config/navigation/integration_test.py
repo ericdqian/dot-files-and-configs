@@ -120,7 +120,7 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         read_until(b'Window / branch / PR')
         os.write(terminal, b'https://github.com/owner/repo/pull/123')
         read_until(b'PR #123')
-        os.write(terminal, b'\x02')  # Ctrl+B opens Chrome without navigating tmux.
+        os.write(terminal, b'\x1bo')  # Alt+O opens Chrome without navigating tmux.
         read_until(b'Opened 1 PR(s) in Chrome.')
         assert chrome_arguments_path.read_text().splitlines() == [
             '-a', 'Google Chrome', 'https://github.com/owner/repo/pull/123']

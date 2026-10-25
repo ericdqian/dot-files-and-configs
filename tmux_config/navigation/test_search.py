@@ -285,14 +285,14 @@ class SearchTests(unittest.TestCase):
         self.assertIn('--prompt=Repository > ', pickers.call_args_list[1].args[0])
         self.assertEqual(pickers.call_count, 3)
 
-    def test_ctrl_b_opens_recorded_prs_in_chrome_and_keeps_picker_open(self):
+    def test_alt_o_opens_recorded_prs_in_chrome_and_keeps_picker_open(self):
         pr_url = 'https://github.com/owner/repo/pull/80'
         pane_rows = [{'pane': '%1', 'label': 'Feature', 'command': 'codex', 'associations': [
             {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim', 'url': pr_url},
             {'repository': 'github.com/owner/repo', 'branch': 'other', 'source': 'link', 'url': pr_url},
             {'repository': 'github.com/owner/repo', 'branch': 'old', 'source': 'observed',
              'url': 'https://github.com/owner/repo/pull/1'}]}]
-        picker_results = [subprocess.CompletedProcess([], 0, 'Feature\nctrl-b\n%1\tFeature\n'),
+        picker_results = [subprocess.CompletedProcess([], 0, 'Feature\nalt-o\n%1\tFeature\n'),
                           subprocess.CompletedProcess([], 130, '')]
         with patch.object(search.picker, 'run_picker', side_effect=picker_results) as pickers, \
              patch.object(search, 'run') as commands:
@@ -300,9 +300,9 @@ class SearchTests(unittest.TestCase):
         commands.assert_called_once_with(['open', '-a', 'Google Chrome', pr_url], check=True)
         self.assertEqual(pickers.call_args_list[1].args[1], 'Feature')
 
-    def test_ctrl_b_without_a_pr_or_selection_shows_a_message(self):
+    def test_alt_o_without_a_pr_or_selection_shows_a_message(self):
         pane_rows = [{'pane': '%1', 'label': 'Shell', 'command': 'zsh', 'associations': []}]
-        for selection_output in ['\nctrl-b\n%1\tShell\n', '\nctrl-b\n']:
+        for selection_output in ['\nalt-o\n%1\tShell\n', '\nalt-o\n']:
             with self.subTest(selection_output=selection_output), \
                  patch.object(search.picker, 'run_picker', side_effect=[
                      subprocess.CompletedProcess([], 1, selection_output),

@@ -1,3 +1,2 @@
 alias nv="nvim"
-alias nvc="NV_LSP_UI=navigator nvim"
-alias nvl="NV_LSP_UI=lspsaga nvim"
+alias nvc="nvim"

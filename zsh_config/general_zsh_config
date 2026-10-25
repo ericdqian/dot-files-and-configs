@@ -130,11 +130,16 @@ dwt() {
     return 1
   }
 
-  if [[ "$1" == "--force" ]]; then
+  if [[ "$1" == "--f" || "$1" == "--force" ]]; then
     remove_args+=(--force)
   fi
 
-  git worktree remove "${remove_args[@]}" "$worktree_path" || return
+  if ! git worktree remove "${remove_args[@]}" "$worktree_path"; then
+    if (( ${#remove_args} == 0 )); then
+      print -u2 -- 'dwt: worktree was not deleted; retry with dwt --f to force removal'
+    fi
+    return 1
+  fi
   # Close the shell only after its worktree has been successfully removed.
   exit 0
 }

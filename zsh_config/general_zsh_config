@@ -122,6 +122,33 @@ cnwt() {
 }
 
 dwt() {
+  local worktree_path
+  local main_worktree_path
+  local confirmation
+  local -a remove_args=()
+
+  worktree_path="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    print -u2 -- 'dwt: not inside a Git worktree'
+    return 1
+  }
+  main_worktree_path="$(git worktree list --porcelain | sed -n '1s/^worktree //p')" || return
+
+  if [[ "$1" == "--force" ]]; then
+    remove_args+=(--force)
+  fi
+
+  printf 'Delete worktree %s%s? [y/N] ' \
+    "$worktree_path" \
+    "${remove_args:+ (force)}"
+  read -r confirmation
+  [[ "$confirmation" =~ ^[Yy]$ ]] || return
+
+  git worktree remove "${remove_args[@]}" "$worktree_path" || return
+  # Leave the deleted directory so the shell remains usable after removal.
+  cd "$main_worktree_path"
+}
+
+dwtp() {
   local wt
   local current_branch
   local remove_args=()
@@ -131,7 +158,7 @@ dwt() {
   fi
 
   if ! git rev-parse --git-dir &>/dev/null; then
-    print -u2 -- 'dwt: not inside a Git repository'
+    print -u2 -- 'dwtp: not inside a Git repository'
     return 1
   fi
 

@@ -51,6 +51,7 @@ function M.setup()
     })
 
     local servers = {
+        "marksman",
         "clangd",
         "rust_analyzer",
         "tflint",

@@ -263,8 +263,8 @@ current buffer. Insert mode shows the source for editing. Use
 
 Markdown link navigation uses [Marksman](https://github.com/artempyanykh/marksman),
 installed automatically by Mason. With the cursor on a local Markdown link, press
-`gd` to preview its target, then Enter to open it. In `:Review`'s working-tree
-pane, `gd` opens the target in the separate browsing window. Use `Ctrl-O` to
+`gd` to preview its target, then Enter to open it. `:Review` also uses this server
+to resolve Markdown links for its separate browsing window. Use `Ctrl-O` to
 return after a normal jump, or `Ctrl-W p` to return from the review browsing window.
 After updating this config, restart Neovim and let Mason finish installing
 Marksman. Existing sessions can install it with `:MasonInstall marksman`, then

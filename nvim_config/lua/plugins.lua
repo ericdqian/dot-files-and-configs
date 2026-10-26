@@ -255,7 +255,12 @@ require("lazy").setup({
             "nvim-treesitter/nvim-treesitter",
             "nvim-tree/nvim-web-devicons",
         },
-        opts = {},
+        opts = {
+            anti_conceal = { enabled = false },
+            win_options = {
+                concealcursor = { rendered = "nc" },
+            },
+        },
         keys = {
             { "<leader>mr", "<cmd>RenderMarkdown buf_toggle<CR>", desc = "Toggle Markdown rendering" },
         },

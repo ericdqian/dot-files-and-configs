@@ -15,7 +15,7 @@ function M.setup()
             },
         },
         keymaps = {
-            definition = "gd",
+            goto_definition = "gd",
             type_definition = "gt",
             references = "gr",
             hover = "K",

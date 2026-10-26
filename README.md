@@ -249,6 +249,16 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 
 ### Neovim
 
+Python navigation uses basedpyright, installed by Mason. A `uv.lock` selects the
+workspace root ahead of nested package `pyproject.toml` files, so workspace
+`[tool.basedpyright]` settings and import paths apply. Each language-server client
+selects its interpreter when it starts: the nearest ancestor `.nvimrc`'s
+`python.interpreter_path` (relative to that file, or absolute), then the workspace's
+`.venv/bin/python`, then `python3` on PATH. Restart Neovim after changing this config.
+
+Run the Python LSP regression checks from the repository root with
+`nvim --headless -u NONE -l nvim_config/tests/python_lsp.lua`.
+
 Treesitter installs syntax highlighting for the application and infrastructure
 languages used in `~/corridor/core`, including Bash, YAML, JSON, TOML,
 HCL/Terraform, Dockerfiles, Makefiles, CSS, HTML/XML, and Go templates.

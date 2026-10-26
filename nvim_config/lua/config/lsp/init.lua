@@ -1,42 +1,5 @@
 local M = {}
 
-local DEFAULT_PYTHON = vim.fn.exepath("python3") -- Forces pyright to use the same python as the activated venv instead of potentially `python3`
-
-local config_file_name = ".nvimrc"
-
-local function get_python_path()
-    local null_ls_utils = require("null-ls.utils") -- TODO: figure out how to not use null-ls.utils since it's technically not a lsp thing. Maybe copy it? Should also consolidate this utility function to retrieving arbitrary object paths from the json object.
-    local root_path = null_ls_utils.root_pattern(config_file_name)(vim.api.nvim_buf_get_name(0))
-    if root_path == nil then
-        return DEFAULT_PYTHON
-    end
-    local config_path = root_path .. "/" .. config_file_name
-    local config_file = io.open(config_path, "r")
-    if config_file == nil then
-        return DEFAULT_PYTHON
-    end
-    local raw_config_content = config_file:read("*a")
-    local config_content = vim.fn.json_decode(raw_config_content)
-    if config_content == nil then
-        return DEFAULT_PYTHON
-    end
-    if config_content["python"] == nil then
-        print(
-            "Warning: no Python section in project's .nvimrc config. Check .nvimrc in the project root"
-        )
-        return DEFAULT_PYTHON
-    end
-    if config_content["python"]["interpreter_path"] == nil then
-        print(
-            "Warning: no interpreter_path in project's .nvimrc config. Check .nvimrc in the project root"
-        )
-        return DEFAULT_PYTHON
-    end
-    local full_interpreter_path = root_path .. "/" .. config_content["python"]["interpreter_path"]
-
-    return full_interpreter_path
-end
-
 function M.setup()
     local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
@@ -94,12 +57,19 @@ function M.setup()
         on_attach = eslint_attach,
     })
 
-    vim.lsp.config("pyright", {
-        settings = {
-            python = {
-                pythonPath = get_python_path(),
-            },
+    vim.lsp.config("basedpyright", {
+        -- A uv workspace's configuration lives above its individual packages.
+        root_markers = {
+            "pyrightconfig.json",
+            "uv.lock",
+            "pyproject.toml",
+            "setup.py",
+            "setup.cfg",
+            "requirements.txt",
+            "Pipfile",
+            ".git",
         },
+        before_init = require("config.lsp.python").configure_interpreter,
     })
 
     -- terraform-ls roots at the enclosing .git and indexes every directory under
@@ -126,7 +96,7 @@ function M.setup()
         },
     })
 
-    vim.lsp.enable(vim.list_extend({ "lua_ls", "eslint", "pyright", "ts_ls" }, servers))
+    vim.lsp.enable(vim.list_extend({ "lua_ls", "eslint", "basedpyright", "ts_ls" }, servers))
 
     vim.diagnostic.config({
         update_in_insert = true,

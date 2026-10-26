@@ -8,7 +8,7 @@ function M.setup()
             "rust_analyzer", --brew install rust-analyzer
             "ts_ls", -- yarn global add tsserver
             "clangd",
-            "pyright",
+            "basedpyright",
             "bashls", -- you may need to run `sudo nvim` in order to install this properly
             "terraformls",
             "tflint",

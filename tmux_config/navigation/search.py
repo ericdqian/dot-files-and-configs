@@ -24,7 +24,7 @@ OPTION_PREFIX = '@agent_nav_'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'open-pr', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -49,6 +49,8 @@ def main():
 def execute_action(arguments):
     if arguments.action == 'open':
         open_picker(arguments.client)
+    elif arguments.action == 'open-pr':
+        open_window_prs(arguments.pane)
     elif arguments.action == 'record-access':
         record_pane_access(arguments.pane)
     elif arguments.action == 'start':
@@ -80,6 +82,25 @@ def execute_action(arguments):
               Path(arguments.data).with_name('status.txt').read_text())
     else:
         pick_pane(arguments.client, arguments.data)
+
+
+def open_window_prs(pane_id):
+    if not re.fullmatch(r'%\d+', pane_id):
+        raise ValueError('Opening a PR requires a stable --pane %ID.')
+    window_id = run(['tmux', 'display-message', '-p', '-t', pane_id, '#{window_id}'], check=True)
+    window_rows = group_window_rows([row for row in collect_and_record_pane_rows()
+                                     if row['window'] == window_id])
+    pr_urls = recorded_pr_urls(window_rows[0]) if window_rows else []
+    status = 'No recorded PR for this window. Link it with search.py claim PR_URL.'
+    if pr_urls:
+        try:
+            # Only the explicit shortcut launches Chrome; the foreground app keeps its input.
+            run(['open', '-a', 'Google Chrome', *pr_urls], check=True)
+            status = f'Opened {len(pr_urls)} PR(s) in Chrome.'
+        except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+            status = f'Could not open Chrome: {error}'
+    # Background tmux bindings need visible feedback without reading terminal input.
+    run(['tmux', 'display-message', '-t', pane_id, status], check=True)
 
 
 def record_pane_access(pane_id):
@@ -607,6 +628,10 @@ def selected_pr_urls(selected_row, query, preview_path):
         if result_path.exists() and selected_row['pane'] in json.loads(result_path.read_text()):
             return [query_pr_url]
         return []
+    return recorded_pr_urls(selected_row)
+
+
+def recorded_pr_urls(selected_row):
     return list(dict.fromkeys(pr_url for association in navigation_associations(selected_row)
                               if (pr_url := github.canonical_pr_url(association.get('url', '')))))
 

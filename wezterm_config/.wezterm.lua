@@ -60,6 +60,12 @@ local function send_tmux_prefix_key(key)
 end
 
 config.keys = {
+    -- Send Meta-O to tmux instead of composing a macOS Option character.
+    {
+        key = "o",
+        mods = "OPT",
+        action = act.SendString("\x1bo"),
+    },
     -- Karabiner maps Option-B/F to Option-Left/Right globally. Translate those
     -- arrows into the Meta-B/F sequences that shell line editors use for words.
     {

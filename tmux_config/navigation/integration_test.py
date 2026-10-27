@@ -65,7 +65,9 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         binding_file = Path(directory, 'binding.conf')
         access_hooks = [line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines()
                         if line.startswith('set-hook ') and 'record-access' in line]
-        binding_file.write_text('\n'.join([binding, 'set-option -g focus-events on', *access_hooks]).replace(
+        pr_binding = next(line for line in (repository_root / 'tmux_config/.tmux.conf').read_text().splitlines()
+                          if line.startswith('bind-key -n M-o '))
+        binding_file.write_text('\n'.join([binding, pr_binding, 'set-option -g focus-events on', *access_hooks]).replace(
             '~/.tmux/navigation/search.py', search_script) + '\n')
         tmux('source-file', str(binding_file))
         client_pid, terminal = pty.fork()
@@ -216,6 +218,14 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
         assert self_claim['checkout'] == str(Path(claimed_checkout).resolve())
         assert self_claim['url'] == 'https://github.com/owner/repo/pull/124'
         assert self_claim['description'] == 'Claimed feature'
+        # The root-table shortcut opens the claimed PR without entering the picker.
+        chrome_arguments_path.unlink()
+        tmux('switch-client', '-t', claimed_pane_id)
+        os.write(terminal, b'\x1bo')
+        read_until(b'Opened 1 PR(s) in Chrome.')
+        assert chrome_arguments_path.read_text().splitlines() == [
+            '-a', 'Google Chrome', 'https://github.com/owner/repo/pull/124']
+        assert tmux('display-message', '-p', '#{pane_id}') == claimed_pane_id
         # A sibling shell starts in the owned worktree even after the source pane changes cwd.
         tmux('send-keys', '-t', claimed_pane_id, 'cd /tmp', 'Enter')
         directory_deadline = time.monotonic() + 5

@@ -22,6 +22,26 @@ Only windows in an attached session are marked. A window nobody is attached to c
 
 Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call; after recording the observed branch, the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
+## Neovim Markdown navigation
+
+Marksman's definition requests have a local-link fallback for Markdown inline
+links. If Marksman returns no definition, Neovim resolves the link directly from
+the requesting file. This supports absolute paths into other worktrees and
+relative links into Git-ignored draft directories without changing indexing or
+ignore rules. Existing server definitions and errors pass through unchanged.
+The result still uses nv-navigator's usual preview and jump behavior.
+
+The fallback uses the installed Markdown Tree-sitter parsers, accepts local file
+URIs and escaped/encoded paths, and resolves Markdown headings and `#L42` source
+line anchors. It does not follow web links or create missing files.
+
+Run the integration checks with installed Marksman, Markdown parsers, and
+nv-navigator available in Neovim's data directory:
+
+```sh
+nvim --headless -u NONE -i NONE -l nvim_config/tests/markdown_lsp.lua
+```
+
 ## Worktree navigation
 
 `cwt` switches to an existing worktree by path or branch, or opens a fuzzy picker

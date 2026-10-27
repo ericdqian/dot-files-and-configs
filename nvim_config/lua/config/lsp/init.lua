@@ -22,6 +22,13 @@ function M.setup()
         "terraformls",
     }
 
+    vim.lsp.config("marksman", {
+        on_attach = function(client, bufnr)
+            custom_attach(client, bufnr)
+            require("config.lsp.markdown").attach_definition_fallback(client)
+        end,
+    })
+
     vim.lsp.config("lua_ls", {
         settings = {
             Lua = {

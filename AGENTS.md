@@ -48,7 +48,13 @@ needed, while leaving request order and retry behavior visible at the call site.
 
 Do not mutate input parameters, including objects, arrays, maps, or sets passed by callers. Prefer returning new values and keeping data flow lean and functional. If input mutation is necessary for performance, an external API contract, transaction semantics, or another strong reason, call out why the mutation is acceptable near the mutation site and keep it narrowly scoped.
 
-Only define a named TypeScript type when it is used more than once. For one-off input or output shapes, inline the type at the function, method, or variable boundary instead of naming it.
+Avoid object and array spreads: they typically require more surrounding context to read and understand which values are included or overwritten. Prefer explicit fields and arguments when they make the data flow clear.
+
+Types represent semantic concepts, not just convenient groupings of fields. Keep types and their variants to those with meaningful semantic distinctions; both each type's name and its actual usage should reflect that meaning. Multiple types with mostly the same fields and only a couple of differences are a design smell: reconsider whether those variants represent distinct concepts.
+
+Design semantically meaningful types to compose. A function can accept multiple cohesive types as separate parameters rather than requiring a giant input type that adds one-off fields to an existing type. Prefer composing the concepts the function needs over introducing another nearly identical type variant.
+
+Only define a named TypeScript type when it is used more than once and represents a meaningful semantic concept. For one-off input or output shapes, inline the type at the function, method, or variable boundary instead of naming it.
 
 Scope `AGENTS.md` files to the directory where the guidance applies. Generic agent behavior and cross-repo preferences belong in this root `AGENTS.md`, which is symlinked into the global agent locations. Repo-specific instructions should live in that repo's `AGENTS.md`, and directory- or subsystem-specific instructions should live in the deepest relevant directory so only the right files inherit them. If a repo-specific rule reveals a broader reusable principle, that generalized principle may be added to this root `AGENTS.md` while the concrete repo-specific rule stays in the relevant repo or directory. Do not duplicate narrow instructions in broader files unless the broader file needs to point agents to where the narrower guidance lives.
 

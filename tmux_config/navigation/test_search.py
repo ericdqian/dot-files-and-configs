@@ -285,6 +285,34 @@ class SearchTests(unittest.TestCase):
         self.assertIn('--prompt=Repository > ', pickers.call_args_list[1].args[0])
         self.assertEqual(pickers.call_count, 3)
 
+    def test_open_window_prs_uses_sibling_claim_and_excludes_other_windows(self):
+        pr_url = 'https://github.com/owner/repo/pull/80'
+        pane_rows = [
+            {'pane': '%1', 'window': '@1', 'associations': []},
+            {'pane': '%2', 'window': '@1', 'associations': [
+                {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim', 'url': pr_url}]},
+            {'pane': '%3', 'window': '@2', 'associations': [
+                {'repository': 'github.com/owner/repo', 'branch': 'other', 'source': 'claim',
+                 'url': 'https://github.com/owner/repo/pull/81'}]},
+        ]
+        with patch.object(search, 'collect_and_record_pane_rows', return_value=pane_rows), \
+             patch.object(search, 'run', return_value='@1') as commands:
+            search.open_window_prs('%1')
+        self.assertEqual(commands.call_args_list[1].args[0], ['open', '-a', 'Google Chrome', pr_url])
+        self.assertIn('Opened 1 PR(s)', commands.call_args_list[2].args[0][-1])
+
+    def test_open_window_prs_reports_missing_pr_and_browser_failure(self):
+        for pr_urls, browser_error, expected_status in [
+                ([], None, 'No recorded PR'),
+                (['https://github.com/owner/repo/pull/80'], ValueError('browser failed'), 'Could not open Chrome')]:
+            with self.subTest(expected_status=expected_status), \
+                 patch.object(search, 'collect_and_record_pane_rows', return_value=[
+                     {'pane': '%1', 'window': '@1', 'associations': []}]), \
+                 patch.object(search, 'recorded_pr_urls', return_value=pr_urls), \
+                 patch.object(search, 'run', side_effect=['@1', browser_error, ''] if browser_error else ['@1', '']) as commands:
+                search.open_window_prs('%1')
+            self.assertIn(expected_status, commands.call_args.args[0][-1])
+
     def test_alt_o_opens_recorded_prs_in_chrome_and_keeps_picker_open(self):
         pr_url = 'https://github.com/owner/repo/pull/80'
         pane_rows = [{'pane': '%1', 'label': 'Feature', 'command': 'codex', 'associations': [

@@ -257,6 +257,12 @@ require("lazy").setup({
         },
         opts = {
             anti_conceal = { enabled = false },
+            custom_handlers = {
+                markdown_inline = {
+                    extends = true,
+                    parse = require("config.markdown_links").parse,
+                },
+            },
             win_options = {
                 concealcursor = { rendered = "nc" },
             },

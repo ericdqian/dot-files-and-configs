@@ -11,12 +11,13 @@ Carry an identified PR through rebase, validation, push, checks, and merge. A re
 
 1. **Identify the PR and protect concurrent work**
    - Confirm the repository, PR number, head repository/branch, target branch, and current remote head SHA. Read the repository's agent guidance and merge conventions; reuse the head branch's existing worktree.
-   - Use the PR's current target branch (`baseRefName`) as the rebase base, including non-main and stacked PR targets. Do not substitute `main` or silently retarget the PR.
+   - Use the PR's current target branch (`baseRefName`) as the rebase base, including non-main and stacked PR targets. If that branch's PR has been merged, you may update this PR's target to the merged PR's destination branch. Verify the matching repository, head branch, merged state, and destination; a closed-but-unmerged PR or deleted branch alone is insufficient. Follow a verified chain of merged parent PRs if needed, and report any target change. Otherwise preserve the target; do not substitute `main`.
    - Check for uncommitted work, an in-progress Git operation, and commits pushed by other sessions. Do not stash, discard, overwrite, or include another session's work automatically. Coordinate when safe ownership of the rebase is unclear.
    - Record the remote branch SHA that was inspected before rewriting history. Reconcile any local/remote divergence without dropping commits, and keep a local recovery reference to the pre-rebase head.
 
 2. **Rebase onto the latest target branch**
    - Fetch the base repository's target branch and the PR head from their actual remotes (which can differ for fork PRs), then rebase the complete PR branch onto the fetched target branch.
+   - When retargeting a stacked PR after its parent merged, preserve the original stack boundary and transplant only this PR's commits (for example with `git rebase --onto NEW_TARGET OLD_PARENT_HEAD`). Account for squash or rebase merges so parent commits are not replayed as new changes. If the boundary cannot be established, stop for a decision.
    - Resolve conflicts only when the intended result is clear. Stop for a decision when a conflict changes behavior or risks losing concurrent work; do not skip commits merely to finish the rebase.
 
 3. **Validate migration lineage when relevant**

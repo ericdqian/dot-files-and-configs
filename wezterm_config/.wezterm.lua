@@ -211,6 +211,7 @@ wezterm.on("format-tab-title", function(tab)
     if not title or #title == 0 then
         title = tab.active_pane.title
     end
+    title = string.format("%d: %s", tab.tab_index + 1, title)
 
     local alert = tab.active_pane.user_vars.agent_alert
     if not alert or #alert == 0 then

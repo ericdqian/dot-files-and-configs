@@ -1,6 +1,6 @@
 ---
 name: merge-pr
-description: Rebase a GitHub pull request onto latest main, validate migration lineage when relevant, push, and merge once all checks pass and no unresolved or actionable feedback remains. Use when the user asks to merge a PR or finish its merge workflow.
+description: Rebase a GitHub pull request onto its latest target branch, validate migration lineage when relevant, push, and merge once all checks pass and no unresolved or actionable feedback remains. Use when the user asks to merge a PR or finish its merge workflow.
 ---
 
 # Merge PR
@@ -11,17 +11,17 @@ Carry an identified PR through rebase, validation, push, checks, and merge. A re
 
 1. **Identify the PR and protect concurrent work**
    - Confirm the repository, PR number, head repository/branch, target branch, and current remote head SHA. Read the repository's agent guidance and merge conventions; reuse the head branch's existing worktree.
-   - Use latest `main` as the rebase base. If the PR targets another branch (including a stacked PR), clarify the intended base before rebasing; do not silently retarget it.
+   - Use the PR's current target branch (`baseRefName`) as the rebase base, including non-main and stacked PR targets. Do not substitute `main` or silently retarget the PR.
    - Check for uncommitted work, an in-progress Git operation, and commits pushed by other sessions. Do not stash, discard, overwrite, or include another session's work automatically. Coordinate when safe ownership of the rebase is unclear.
    - Record the remote branch SHA that was inspected before rewriting history. Reconcile any local/remote divergence without dropping commits, and keep a local recovery reference to the pre-rebase head.
 
-2. **Rebase onto latest main**
-   - Fetch the base repository's `main` and the PR head from their actual remotes (which can differ for fork PRs), then rebase the complete PR branch onto the fetched `main`.
+2. **Rebase onto the latest target branch**
+   - Fetch the base repository's target branch and the PR head from their actual remotes (which can differ for fork PRs), then rebase the complete PR branch onto the fetched target branch.
    - Resolve conflicts only when the intended result is clear. Stop for a decision when a conflict changes behavior or risks losing concurrent work; do not skip commits merely to finish the rebase.
 
 3. **Validate migration lineage when relevant**
-   - Inspect migrations in both the PR diff and newly fetched `main`. When either changes migration ancestry or ordering, use the repository's migration tooling and conventions to verify a single linear chain per intended migration lineage: no competing heads, duplicate identifiers, missing predecessors, or cycles.
-   - Reparent or renumber only PR-local, unapplied migrations where the framework permits it, preserving dependencies and execution order after the latest migration on `main`. Do not add a merge migration that leaves branching ancestry merely to reduce the head count.
+   - Inspect migrations in both the PR diff and newly fetched target branch. When either changes migration ancestry or ordering, use the repository's migration tooling and conventions to verify a single linear chain per intended migration lineage: no competing heads, duplicate identifiers, missing predecessors, or cycles.
+   - Reparent or renumber only PR-local, unapplied migrations where the framework permits it, preserving dependencies and execution order after the latest migration on the target branch. Do not add a merge migration that leaves branching ancestry merely to reduce the head count.
    - Do not rewrite migrations already applied, merged, or shared without explicit direction. If existing history branches or application status is uncertain, report the conflict and obtain a decision before changing that history or merging.
    - Run the repository's lineage validation and focused migration tests in its supported local/test environment. Do not apply migrations to a shared or production database as part of this workflow. Skip this step when migrations are irrelevant.
 
@@ -40,7 +40,7 @@ Carry an identified PR through rebase, validation, push, checks, and merge. A re
    - After any fix or new push, repeat the push, check, and feedback gates for the new head SHA. If progress depends on a reviewer, permissions, unavailable checks, or a human decision, report the specific blocker rather than bypassing it or polling indefinitely.
 
 6. **Recheck and merge the verified head**
-   - Immediately before merging, fetch `main` again and verify it is an ancestor of the PR head. If `main` advanced beyond that head, repeat the rebase, migration validation, push, and gates.
+   - Immediately before merging, re-read the PR's target branch and fetch it again. Verify its latest commit is an ancestor of the PR head. If the target changed or advanced beyond that head, repeat the rebase, migration validation, push, and gates against the current target.
    - Re-fetch the PR head SHA, all check results, feedback, and mergeability. Require the head to match the SHA just validated, all checks to pass, the feedback gate to remain clear, and repository review/protection requirements to be met. Restart the relevant gates if anything changed.
    - Merge using the repository's supported method and `gh pr merge PR --match-head-commit VERIFIED_SHA` with the appropriate strategy flag. Respect required merge queues; do not use `--admin` or auto-merge to bypass this skill's checks and feedback gate.
    - Verify GitHub reports the PR as merged. If queued, continue monitoring its checks and feedback until merged or blocked; queue admission alone is not completion. Report the PR URL, merge commit, validation performed, and any remaining blocker if it did not merge.

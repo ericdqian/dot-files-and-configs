@@ -70,6 +70,8 @@ When creating a window for a new PR or child agent session, insert it immediatel
 
 For a PR stack, apply this to every PR: reuse its existing window, or create its worktree from the appropriate stack base, open and associate a new window in the repository's session, and launch an agent there. Fork the parent coding session by default to preserve its context, then give the child a focused prompt covering its PR’s scope, stack dependencies, and validation requirements. If the parent session cannot be forked, provide an equivalent complete handoff including the full task context, stack plan, and relevant decisions.
 
+Once the fork is running in its intended worktree and has the complete handoff, let it run independently. The child owns implementation, validation, commits, pushing, and PR updates for its task. The parent should tell the user where the work continues and yield rather than stay active to poll the child, send unsolicited instructions, or duplicate its implementation or review. Resume coordination only when the user requests it, the child asks for help or reports a blocker, or a dependency between tasks requires coordination.
+
 `~/.tmux/navigation/search.py` tracks each window's intended role (repository, branch, worktree, PR, and agent). Navigation search is built on these records, so register ownership explicitly rather than relying on pane directories or window names.
 
 When the helper is available:

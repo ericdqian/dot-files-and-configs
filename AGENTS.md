@@ -15,6 +15,8 @@ tmux rename-window -t "$tmux_window_id" 'short purpose'
 
 Rename that window once to a short description of the current or anticipated PR's purpose, approximately three words long. Keep that window name stable throughout the PR; do not rename it for individual tasks or implementation phases. Rename it again only if the PR's overall purpose materially changes.
 
+A coding session may create at most one pull request unless the human user explicitly authorizes additional PRs. Do not split work into multiple PRs or create a PR stack without that authorization; continue updating the session's existing PR when appropriate.
+
 Before you return control to the user, if you have new commits, push. If no PR exists yet, make one. Make the PR description using the /commit-conventions skill. Keep the PR title and description updated so they accurately reflect the current status and scope of the PR as it evolves.
 
 When creating or updating a PR description, include a line-change table with `Category`, `Added`, `Removed`, and `Net` columns. Use these rows in order: `Production code`, `Tests`, `Documentation`, `Generated code`, `Configuration`, and `Total`. Include every category even when its counts are zero; calculate `Net` as added minus removed.

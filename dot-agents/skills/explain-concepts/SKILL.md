@@ -1,21 +1,21 @@
 ---
 name: explain-concepts
-description: Explain a concept, subsystem, PR or piece of code so the user can build a precise mental model. Use whenever the user asks what something is, how or why it works, what a PR or change does, how pieces relate, or asks a clarifying follow-up ("wait, so…", "X vs Y?", "where does this come from?"). Focuses on ordering concepts by dependency and keeping terminology unambiguous.
+description: Explain a concept, subsystem, PR or piece of code so the reader can build a precise mental model. Use whenever someone asks what something is, how or why it works, what a PR or change does, how pieces relate, or asks a clarifying follow-up ("wait, so…", "X vs Y?", "where does this come from?"). Focuses on ordering concepts by dependency and keeping terminology unambiguous.
 ---
 
 # Explain Concepts
 
-Two things matter most when explaining to this user:
+An explanation succeeds when the reader can follow it from start to finish
+without supplying missing context. Two properties matter most:
 
 1. **Order**: introduce each concept only after everything it depends on, starting
    from its purpose.
 2. **Unambiguous terminology**: every term has been introduced before it is used,
    refers to exactly one thing, and leaves only one plausible reading.
 
-Most of the user's confusion in past sessions came from breaking one of these:
-a term used before it was explained, a new component appearing mid-answer, a
-word that shifted meaning between answers, or similar names defined separately
-without their relationship.
+Explanations usually break down by violating one of these: a term used before it
+is explained, a new component appearing mid-answer, a word that shifts meaning
+between answers, or similar names defined separately without their relationship.
 
 Keep the planning implicit. Don't narrate the order you are about to follow;
 just explain in that order.
@@ -82,14 +82,14 @@ just explain in that order.
 - Answer at the scope asked. Don't restart the explanation.
 - If the question is ambiguous, answer the likeliest reading and name the
   assumption in a few words.
-- When the user restates their understanding, confirm it or correct exactly the
+- When the reader restates their understanding, confirm it or correct exactly the
   part that's wrong.
 - If a follow-up reveals that an earlier answer used a term loosely or out of
   order, correct that explicitly instead of quietly using the term differently.
 
 ## Check before sending
 
-- Every term is introduced before its first use, in words the user already has.
+- Every term is introduced before its first use, in words the reader already has.
 - No concept is used in reasoning before it is explained.
 - No new name appears without saying what it is.
 - Each term means the same thing everywhere it appears.

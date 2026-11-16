@@ -4,6 +4,8 @@ alias et="exit"
 alias co="codex"
 alias cos="codex -m gpt-6-luna -c model_reasoning_effort=\"high\""
 alias ck="\"$HOME/codex/codex-rs/target/debug/codex\""
+# Start or resume (le --resume) a learning conversation with the ~/learning toolkit.
+alias le="python3 ~/learning/learn.py"
 alias os="overmind start"
 alias spoofmac="spoof randomize en0"
 alias t="tmux"

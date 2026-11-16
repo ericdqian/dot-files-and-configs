@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explain Concepts"
+  short_description: "Explain concepts in dependency order with unambiguous terms"
+  default_prompt: "Use $explain-concepts to explain this so each concept is introduced after its dependencies and every term is unambiguous."

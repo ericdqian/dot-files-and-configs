@@ -21,8 +21,20 @@ function M.attach_definition_fallback(client)
         end
 
         -- Capture the source before the asynchronous response can change focus.
-        local location_resolved, fallback_location =
-            pcall(local_link_location, request_params, request_client.offset_encoding)
+        local source_captured, source_link = pcall(function()
+            local source_bufnr = vim.uri_to_bufnr(request_params.textDocument.uri)
+            if vim.bo[source_bufnr].filetype ~= "markdown" then
+                return nil
+            end
+            return {
+                target = link_at_position(
+                    source_bufnr,
+                    request_params.position,
+                    request_client.offset_encoding
+                ),
+                source = vim.api.nvim_buf_get_name(source_bufnr),
+            }
+        end)
         local response_handler = handler
             or request_client.handlers[method]
             or vim.lsp.handlers[method]
@@ -36,11 +48,16 @@ function M.attach_definition_fallback(client)
             function(request_error, definition_result, context, config)
                 if
                     not request_error
-                    and location_resolved
-                    and fallback_location
+                    and source_captured
+                    and source_link
                     and (definition_result == nil or vim.tbl_isempty(definition_result))
                 then
-                    definition_result = { fallback_location }
+                    local resolved, location = pcall(local_link_location, source_link)
+                    if resolved and location then
+                        definition_result = { location }
+                    elseif not resolved then
+                        vim.notify("Markdown link: " .. tostring(location), vim.log.levels.WARN)
+                    end
                 end
                 return response_handler(request_error, definition_result, context, config)
             end,
@@ -49,17 +66,19 @@ function M.attach_definition_fallback(client)
     end
 end
 
-function local_link_location(params, position_encoding)
-    local source_bufnr = vim.uri_to_bufnr(params.textDocument.uri)
-    if vim.bo[source_bufnr].filetype ~= "markdown" then
-        return nil
-    end
-    local link_target = link_at_position(source_bufnr, params.position, position_encoding)
+function local_link_location(source_link)
+    local link_target = source_link.target
     if not link_target then
         return nil
     end
-    local target_path, fragment =
-        resolve_link_path(link_target, vim.api.nvim_buf_get_name(source_bufnr))
+    link_target = link_target:gsub("^<(.*)>$", "%1")
+    if link_target:match("^concept://") then
+        return require("config.lsp.concept_links").resolve_and_load_location(
+            link_target,
+            source_link.source
+        )
+    end
+    local target_path, fragment = resolve_link_path(link_target, source_link.source)
     if not target_path or vim.fn.filereadable(target_path) ~= 1 then
         return nil
     end

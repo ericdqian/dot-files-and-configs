@@ -212,9 +212,13 @@ require("lazy").setup({
 
     {
         "ericdqian/nvim-review",
-        branch = "eq/feat/neovim-diff-viewer",
         dev = true,
-        cmd = { "Review", "ReviewClose", "ReviewRefresh" },
+        -- Loaded at startup so it can say when the branch has an open PR to review.
+        event = "VimEnter",
+        cmd = {
+            "Review", "ReviewPR", "ReviewPieces", "ReviewExplanations", "ReviewReconcile", "ReviewClose", "ReviewRefresh",
+        },
+        opts = { learning_root = "~/learning" },
         cond = not vim.g.vscode,
     },
 

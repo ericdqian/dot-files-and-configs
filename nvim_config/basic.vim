@@ -222,6 +222,10 @@ map <C-k> <C-W>k
 map <C-h> <C-W>h
 map <C-l> <C-W>l
 
+" Move between tabs (gt is taken by go-to-type-definition)
+nnoremap ]t <cmd>tabnext<cr>
+nnoremap [t <cmd>tabprevious<cr>
+
 " " Close the current buffer
 " map <leader>bd :Bclose<cr>:tabclose<cr>gT
 "

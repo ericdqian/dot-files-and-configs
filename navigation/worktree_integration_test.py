@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='cwt-picker-') as test_directory:
     (test_root / 'navigation').symlink_to(repository_path / 'navigation')
     shell_source = (repository_path / 'zsh_config/general_zsh_config').read_text()
     shell_fixture = shell_directory / 'worktrees.zsh'
-    shell_fixture.write_text(shell_source[shell_source.index('cwt() {'):shell_source.index('dwt() {')])
+    shell_fixture.write_text(shell_source[shell_source.index('\ncwt() {'):shell_source.index('\nccwt() {')])
     feature_path = test_root / 'feature checkout'
     main_path = test_root / 'main checkout'
     feature_path.mkdir()

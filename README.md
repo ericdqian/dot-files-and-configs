@@ -44,6 +44,10 @@ nvim --headless -u NONE -i NONE -l nvim_config/tests/markdown_lsp.lua
 
 ## Worktree navigation
 
+`dwt` is provided by [worktree-manager](https://github.com/ericdqian/worktree-manager).
+Install a build that includes `remove-current` and put it on your `PATH`. Zsh
+loads `dwt` and `wt` from `worktree-manager shell-init` at the first prompt.
+
 `cwt` switches to an existing worktree by path or branch, or opens a fuzzy picker
 when there is no exact match. It also accepts a PR number (`cwt 42`, `cwt '#42'`)
 or URL (`cwt https://github.com/OWNER/REPO/pull/42`). PR lookup requires an

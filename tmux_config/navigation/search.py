@@ -24,7 +24,7 @@ OPTION_PREFIX = '@agent_nav_'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'open-pr', 'start', 'claim', 'record', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'open-pr', 'start', 'claim', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -60,10 +60,6 @@ def execute_action(arguments):
         record_branch(arguments.pane, arguments.checkout or os.getcwd(), arguments.reference,
                       source='claim', session_id=arguments.agent_session, window_name=arguments.name)
         print(f'Claim recorded for pane {arguments.pane}.')
-    elif arguments.action == 'record':
-        payload = json.load(sys.stdin)
-        for working_directory in observed_directories(payload):
-            record_branch(arguments.pane, working_directory, session_id=payload.get('session_id', ''))
     elif arguments.action == 'link':
         if not arguments.reference:
             raise ValueError('Supply a branch name or GitHub PR URL to link.')
@@ -110,15 +106,6 @@ def record_pane_access(pane_id):
     # Focus hooks deliberately persist visits separately from background output activity.
     run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_pane_access', accessed_at, ';',
          'set-option', '-w', '-t', pane_id, '@agent_window_access', accessed_at], check=True)
-
-
-def observed_directories(payload):
-    agent_directory = payload.get('cwd') or os.getcwd()
-    tool_input = payload.get('tool_input') or {}
-    tool_directory = tool_input.get('workdir') or tool_input.get('cwd')
-    if tool_directory and not os.path.isabs(tool_directory):
-        tool_directory = os.path.join(agent_directory, tool_directory)
-    return list(dict.fromkeys(directory for directory in [agent_directory, tool_directory] if directory))
 
 
 def start_branch_window(pane_id, branch, checkout, base, window_name='', session_id='', target_session=''):
@@ -720,8 +707,6 @@ if __name__ == '__main__':
     try:
         main()
     except (ValueError, OSError, KeyError, subprocess.TimeoutExpired) as error:
-        if len(sys.argv) > 1 and sys.argv[1] == 'record':
-            sys.exit(0)  # Navigation must never block an agent lifecycle hook.
         print(f'Agent search: {error}', file=sys.stderr)
         if sys.stdin.isatty():
             input('Press Enter to close…')

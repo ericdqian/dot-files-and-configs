@@ -380,11 +380,6 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(len(stored_options), 2)
         self.assertEqual({value['branch'] for value in stored_options.values()}, {'first', 'second'})
 
-    def test_tool_workdir_is_recorded_alongside_agent_directory(self):
-        self.assertEqual(search.observed_directories({
-            'cwd': '/repo', 'tool_input': {'workdir': '../worktree'}}), ['/repo', '/repo/../worktree'])
-        self.assertEqual(search.observed_directories({'cwd': '/repo'}), ['/repo'])
-
     def test_hook_observation_does_not_erase_explicit_pr_url(self):
         stored_options = {}
         def fake_run(command, check=False):

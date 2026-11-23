@@ -41,7 +41,10 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
     pane_one = tmux('display-message', '-p', '#{pane_id}')
     environment = {**test_environment, 'TMUX': f'{socket},0,0', 'TMUX_PANE': pane_one}
     def record():
-        subprocess.run(['python3', search_script, 'record'], input=json.dumps({'cwd': repository}),
+        subprocess.run(['python3', '-c',
+                        'import sys; sys.path.insert(0, sys.argv[1]); import search; '
+                        'search.record_branch(sys.argv[2], sys.argv[3])',
+                        str(Path(search_script).parent), pane_one, repository],
                        text=True, env=environment, check=True)
     try:
         record()

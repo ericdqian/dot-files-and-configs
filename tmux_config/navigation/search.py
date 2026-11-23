@@ -84,7 +84,7 @@ def open_window_prs(pane_id):
     if not re.fullmatch(r'%\d+', pane_id):
         raise ValueError('Opening a PR requires a stable --pane %ID.')
     window_id = run(['tmux', 'display-message', '-p', '-t', pane_id, '#{window_id}'], check=True)
-    window_rows = group_window_rows([row for row in collect_and_record_pane_rows()
+    window_rows = group_window_rows([row for row in collect_pane_rows()
                                      if row['window'] == window_id])
     pr_urls = recorded_pr_urls(window_rows[0]) if window_rows else []
     status = 'No recorded PR for this window. Link it with search.py claim PR_URL.'
@@ -228,15 +228,13 @@ def create_agent_worktree(pane_id, branch, checkout, base):
     return checkout_path
 
 
-def record_branch(pane_id, working_directory, reference='', source='observed', session_id='', window_name=''):
+def record_branch(pane_id, working_directory, reference='', *, source, session_id='', window_name=''):
+    # Only explicit claims and links are recorded; a pane's current checkout is never
+    # taken as evidence of what its window is for.
     if not pane_id:
-        if source in {'claim', 'link'}:
-            raise ValueError('A claim needs a live tmux pane; pass --pane %ID outside tmux.')
-        return
+        raise ValueError('A claim needs a live tmux pane; pass --pane %ID outside tmux.')
     if not re.fullmatch(r'%\d+', pane_id):
         raise ValueError('Navigation ownership requires a stable tmux --pane %ID.')
-    # Remember non-Git directories too, so shell panes need no repeated Git probes.
-    run(['tmux', 'set-option', '-p', '-t', pane_id, '@agent_nav_directory', working_directory], check=True)
     repository = github.repository_identity(run(['git', '-C', working_directory, 'remote', 'get-url', 'origin']))
     checkout_repository = repository
     current_branch = run(['git', '-C', working_directory, 'branch', '--show-current'])
@@ -257,9 +255,7 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
     if source == 'claim' and branch != current_branch:
         raise ValueError(f"This checkout is on {current_branch or 'a detached HEAD'}, not {branch}. Use its dedicated worktree, or link historical work explicitly.")
     if not repository or not branch:
-        if reference or source == 'claim':
-            raise ValueError('Run branch links from a Git repository with a named branch.')
-        return
+        raise ValueError('Run branch links from a Git repository with a named branch.')
     association = {'repository': repository, 'branch': branch, 'checkout': checkout_root, 'source': source}
     association_identity = json.dumps(association, sort_keys=True)
     option_key = OPTION_PREFIX + hashlib.sha256(association_identity.encode()).hexdigest()
@@ -280,10 +276,8 @@ def record_branch(pane_id, working_directory, reference='', source='observed', s
         return
     window_owner = run(['tmux', 'show-options', '-wqv', '-t', pane_id, '@agent_nav_owner'])
     if window_owner:
-        if source == 'link':
-            raise ValueError('This window has an owner. Use claim for its PR, or start a separate branch window.')
-        return  # Incidental checkout observations cannot change an owned window's identity.
-    # Each association owns an option, so observations cannot overwrite explicit claims.
+        raise ValueError('This window has an owner. Use claim for its PR, or start a separate branch window.')
+    # Each link owns an option, so a pane can keep several historical branches.
     run(['tmux', 'set-option', '-p', '-t', pane_id, option_key, json.dumps(association)], check=True)
 
 
@@ -351,13 +345,13 @@ def open_picker(client_name):
 def pick_pane(client_name, selection_path=''):
     if not shutil.which('fzf'):
         raise ValueError('Install fzf to use the agent window picker.')
-    pane_rows = group_window_rows(collect_and_record_pane_rows())
+    pane_rows = group_window_rows(collect_pane_rows())
     selected = choose_row(pane_rows)
     if not selected:
         return
     pane_id = selected.split('\t', 1)[0]
     if not re.fullmatch(r'%\d+', pane_id):
-        raise ValueError('No matching pane. Paste a GitHub PR URL, or search an observed branch/window name.')
+        raise ValueError('No matching pane. Paste a GitHub PR URL, or search a recorded branch/window name.')
     if selection_path:
         Path(selection_path).write_text(pane_id)
     else:
@@ -458,13 +452,13 @@ def select_destination(destination_session, clients, wezterm_panes, current_clie
     return current_client, None
 
 
-def collect_and_record_pane_rows():
+def collect_pane_rows():
     pane_listing = run(['tmux', 'list-panes', '-a', '-F',
-                        '#{pane_id}\t#{session_name}\t#{window_name}\t#{window_index}.#{pane_index}\t#{pane_current_path}\t#{@agent_nav_directory}\t#{pane_current_command}\t#{window_id}\t#{?@agent_window_access,#{@agent_window_access},0}\t#{?@agent_pane_access,#{@agent_pane_access},0}\t#{pane_active}'], check=True)
+                        '#{pane_id}\t#{session_name}\t#{window_name}\t#{window_index}.#{pane_index}\t#{pane_current_path}\t#{pane_current_command}\t#{window_id}\t#{?@agent_window_access,#{@agent_window_access},0}\t#{?@agent_pane_access,#{@agent_pane_access},0}\t#{pane_active}'], check=True)
     pane_rows = []
     option_commands = ['tmux']
     for pane_line in pane_listing.splitlines():
-        pane_id, session_name, window_name, pane_location, working_directory, inspected_directory, command, window_id, window_access, pane_access, pane_active = pane_line.split('\t')
+        pane_id, session_name, window_name, pane_location, working_directory, command, window_id, window_access, pane_access, pane_active = pane_line.split('\t')
         if is_feedback_session(session_name):
             continue
         window_label = f'{session_name}:{pane_location} {window_name}'
@@ -472,7 +466,7 @@ def collect_and_record_pane_rows():
                           'title': window_name, 'location': f'{session_name}:{pane_location}',
                           'window': window_id, 'window_access': int(window_access or 0),
                           'pane_access': int(pane_access or 0), 'active': pane_active == '1',
-                          'directory': working_directory, 'inspected_directory': inspected_directory, 'associations': []})
+                          'directory': working_directory, 'associations': []})
         if len(option_commands) > 1:
             option_commands.append(';')
         option_commands.extend(['display-message', '-p', '-t', pane_id, 'agent-pane #{pane_id}', ';',
@@ -490,24 +484,12 @@ def collect_and_record_pane_rows():
             owner_json = option_line.removeprefix('agent-owner ')
             if owner_json:
                 pane_rows_by_id[current_pane_id]['window_owner'] = json.loads(owner_json)
-        elif option_line.startswith(OPTION_PREFIX) and not option_line.startswith('@agent_nav_directory '):
+        elif option_line.startswith(OPTION_PREFIX):
             try:
                 option_name, association_json = shlex.split(option_line)
                 pane_rows_by_id[current_pane_id]['associations'].append(json.loads(association_json))
             except (ValueError, KeyError):
                 continue
-    for pane_row in pane_rows:
-        if pane_row.get('window_owner') or pane_row['directory'] == pane_row['inspected_directory']:
-            continue
-        # Seed each pane directory once; hooks record subsequent branch changes.
-        record_branch(pane_row['pane'], pane_row['directory'])
-        for option_line in run(['tmux', 'show-options', '-p', '-t', pane_row['pane']]).splitlines():
-            if option_line.startswith(OPTION_PREFIX) and not option_line.startswith('@agent_nav_directory '):
-                try:
-                    option_name, association_json = shlex.split(option_line)
-                    pane_row['associations'].append(json.loads(association_json))
-                except ValueError:
-                    continue
     return sort_pane_rows_by_access(pane_rows)
 
 
@@ -653,7 +635,7 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
     associations = navigation_associations(pane_row)
     branches = list(dict.fromkeys(association['branch'] for association in associations))
     repository_label = format_repository_label(associations)
-    ownership_label = 'claimed' if any(association.get('source') in {'claim', 'link'} for association in associations) else 'observed'
+    ownership_label = 'claimed' if associations else '—'
     process_label = 'claude' if re.fullmatch(r'\d+\.\d+\.\d+', pane_row['command']) else pane_row['command']
     branch_label = ', '.join(branches) or 'No recorded branch'
     pr_numbers = list(dict.fromkeys(pr_match.group(3) for association in associations
@@ -669,11 +651,7 @@ def format_row(pane_row, column_widths=(30, 18, 24)):
 def navigation_associations(pane_row):
     if pane_row.get('window_owner'):
         return [pane_row['window_owner']]
-    if pane_row.get('window_row'):
-        return pane_row['associations']
-    claims = [association for association in pane_row['associations']
-              if association.get('source') in {'claim', 'link'}]
-    return claims or pane_row['associations']
+    return pane_row['associations']
 
 
 def format_repository_label(associations):
@@ -690,7 +668,7 @@ def format_details(pane_row):
                            for association in navigation_associations(pane_row)}
     for association in unique_associations.values():
         detail_lines.append(f"  {association['branch']}  \033[90m{association['repository']}\033[0m")
-        ownership = 'Explicit ownership' if association.get('source') in {'claim', 'link'} else 'Checkout observation only; no ownership claim'
+        ownership = 'Window ownership claim' if association.get('source') == 'claim' else 'Linked history'
         detail_lines.append(f'    {ownership}')
         if association.get('checkout'):
             detail_lines.append(f"    Worktree: {association['checkout']}")

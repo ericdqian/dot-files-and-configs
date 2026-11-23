@@ -40,24 +40,21 @@ with tempfile.TemporaryDirectory(prefix='agent-search-') as directory:
     tmux('new-session', '-d', '-s', 'first-session', '-c', repository, '-x', '100', '-y', '40')
     pane_one = tmux('display-message', '-p', '#{pane_id}')
     environment = {**test_environment, 'TMUX': f'{socket},0,0', 'TMUX_PANE': pane_one}
-    def record():
-        subprocess.run(['python3', '-c',
-                        'import sys; sys.path.insert(0, sys.argv[1]); import search; '
-                        'search.record_branch(sys.argv[2], sys.argv[3])',
-                        str(Path(search_script).parent), pane_one, repository],
+    def link(branch):
+        subprocess.run(['python3', search_script, 'link', branch, '--checkout', repository],
                        text=True, env=environment, check=True)
     try:
-        record()
+        link('first')
         command('git', '-C', repository, 'symbolic-ref', 'HEAD', 'refs/heads/second')
-        record()
-        record()
+        link('second')
+        link('second')
         options = tmux('show-options', '-p', '-t', pane_one)
-        assert options.count('@agent_nav_') == 3, options  # Two branches plus inspected-directory marker.
+        assert options.count('@agent_nav_') == 2, options  # One option per linked branch.
         tmux('split-window', '-d', '-t', pane_one, '-c', repository)
         window_rows = json.loads(subprocess.check_output([
             'python3', '-c',
             'import sys,json; sys.path.insert(0,sys.argv[1]); import search; '
-            'print(json.dumps(search.group_window_rows(search.collect_and_record_pane_rows())))',
+            'print(json.dumps(search.group_window_rows(search.collect_pane_rows())))',
             str(Path(search_script).parent)], text=True, env=environment))
         assert len(window_rows) == 1, window_rows
         assert window_rows[0]['pane'] == pane_one, window_rows

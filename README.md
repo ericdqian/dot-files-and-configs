@@ -149,13 +149,12 @@ ordinary window/branch search filters the cached list live in fzf, without a typ
 delay or Python filtering process. Exact branch claims retain ownership precedence. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
 
-The OWNER column distinguishes an explicit `claimed` branch/worktree from an
-`observed` checkout. Picker seeding only observes directories; they do
-not establish that every pane sharing a checkout owns its current branch. Once a
-pane has explicit claims, incidental branch observations are hidden from its
-navigation history. PR URLs and exact branch searches prefer explicit claims
-over observations. Multiple genuine claims remain selectable, with their full
-worktree paths and optional agent session IDs in the detail panel.
+Branches and PRs come only from explicit `start`, `claim`, and `link` records.
+Neither the picker nor the status bar inspects a pane's current checkout, because
+a directory does not establish what a window is for. A window without a record
+shows `—` in the OWNER column and matches only by window name or location.
+Multiple genuine claims remain selectable, with their full worktree paths and
+optional agent session IDs in the detail panel.
 
 For a new task, create a dedicated worktree and claim it for the agent’s pane:
 

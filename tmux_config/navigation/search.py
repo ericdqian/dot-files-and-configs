@@ -18,13 +18,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from navigation import github, picker, worktrees
 from navigation.picker import query_result_path, update_query_results, print_accept_action
 from navigation.commands import run
+from tmux_config.navigation import claim_snapshot
 
 OPTION_PREFIX = '@agent_nav_'
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['open', 'open-pr', 'start', 'claim', 'record-access', 'link', 'pick', 'preview', 'query', 'accept'])
+    parser.add_argument('action', choices=['open', 'open-pr', 'start', 'claim', 'record-access', 'link', 'save-claims', 'restore-claims',
+                                                   'pick', 'preview', 'query', 'accept'])
     parser.add_argument('reference', nargs='?', default='')
     parser.add_argument('--pane', default=os.environ.get('TMUX_PANE', ''))
     parser.add_argument('--client', default='')
@@ -35,7 +37,7 @@ def main():
     parser.add_argument('--session', default='', help='Exact destination tmux session name or stable $ID.')
     parser.add_argument('--agent-session', default=os.environ.get('CODEX_SESSION_ID', os.environ.get('CLAUDE_CODE_SESSION_ID', '')))
     arguments = parser.parse_args()
-    if arguments.action in {'start', 'claim'}:
+    if arguments.action in {'start', 'claim', 'restore-claims'}:
         # Serialize ownership checks and writes across agents sharing the tmux server.
         run(['tmux', 'wait-for', '-L', 'agent-nav-ownership'], check=True)
         try:
@@ -67,6 +69,10 @@ def execute_action(arguments):
             raise ValueError('Run link inside the agent’s tmux pane, or pass --pane %ID.')
         record_branch(arguments.pane, arguments.checkout or os.getcwd(), arguments.reference,
                       source='link', session_id=arguments.agent_session)
+    elif arguments.action == 'save-claims':
+        save_claim_snapshot(Path(arguments.data) if arguments.data else default_snapshot_path())
+    elif arguments.action == 'restore-claims':
+        restore_claim_snapshot(Path(arguments.data) if arguments.data else default_snapshot_path())
     elif arguments.action == 'accept':
         print_accept_action(Path(arguments.data), arguments.reference, arguments.pane)
     elif arguments.action == 'query':
@@ -324,6 +330,55 @@ def claimed_windows():
             owner = json.loads(owner_json)
             owned_windows.append({'window': window_id, 'pane': pane_id, 'owner': owner})
     return owned_windows
+
+
+def default_snapshot_path():
+    state_directory = os.environ.get('XDG_STATE_HOME') or str(Path.home() / '.local/state')
+    return Path(state_directory, 'tmux-navigation', 'claims.json')
+
+
+def save_claim_snapshot(snapshot_path):
+    # Runs from tmux-resurrect's post-save hook, so claims are saved with the layout.
+    pane_layout = claim_snapshot.parse_pane_layout(
+        run(['tmux', 'list-panes', '-a', '-F', claim_snapshot.PANE_LAYOUT_FORMAT], check=True))
+    options_by_target = read_navigation_options(pane_layout)
+    snapshot = claim_snapshot.build_snapshot(pane_layout, options_by_target)
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    # Replace atomically so a restore never reads a half-written snapshot.
+    partial_path = snapshot_path.with_name(snapshot_path.name + '.partial')
+    partial_path.write_text(json.dumps(snapshot, indent=1))
+    partial_path.replace(snapshot_path)
+
+
+def restore_claim_snapshot(snapshot_path):
+    # Runs from tmux-resurrect's post-restore hook, after it recreates the saved layout.
+    if not snapshot_path.exists():
+        return
+    snapshot = json.loads(snapshot_path.read_text())
+    pane_layout = claim_snapshot.parse_pane_layout(
+        run(['tmux', 'list-panes', '-a', '-F', claim_snapshot.PANE_LAYOUT_FORMAT], check=True))
+    live_options_by_target = read_navigation_options(pane_layout)
+    option_assignments = claim_snapshot.plan_restore(snapshot, pane_layout, live_options_by_target)
+    batch_size = claim_snapshot.COMMAND_BATCH_SIZE
+    for batch_start in range(0, len(option_assignments), batch_size):
+        run(claim_snapshot.set_options_command(option_assignments[batch_start:batch_start + batch_size]), check=True)
+
+
+def read_navigation_options(pane_layout):
+    batch_size = claim_snapshot.COMMAND_BATCH_SIZE
+    target_ids = claim_snapshot.navigation_target_ids(pane_layout)
+    option_names_by_target = {}
+    for batch_start in range(0, len(target_ids), batch_size):
+        names_listing = run(claim_snapshot.option_names_command(target_ids[batch_start:batch_start + batch_size]), check=True)
+        option_names_by_target.update(claim_snapshot.parse_option_names(names_listing))
+    target_option_names = [(target_id, option_name) for target_id, option_names in option_names_by_target.items()
+                           for option_name in option_names]
+    options_by_target = {}
+    for batch_start in range(0, len(target_option_names), batch_size):
+        values_listing = run(claim_snapshot.option_values_command(target_option_names[batch_start:batch_start + batch_size]), check=True)
+        for target_id, target_options in claim_snapshot.parse_option_values(values_listing).items():
+            options_by_target.setdefault(target_id, {}).update(target_options)
+    return options_by_target
 
 
 

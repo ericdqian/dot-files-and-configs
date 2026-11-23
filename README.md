@@ -156,6 +156,15 @@ shows `—` in the OWNER column and matches only by window name or location.
 Multiple genuine claims remain selectable, with their full worktree paths and
 optional agent session IDs in the detail panel.
 
+tmux keeps these records only in server memory, and tmux-resurrect restores the
+layout without them. Resurrect's save hook therefore writes every session, window,
+and pane `@agent_nav_*` option and visit time to
+`${XDG_STATE_HOME:-~/.local/state}/tmux-navigation/claims.json`, and its restore
+hook reapplies them. A window gets its saved options back only when its session
+name, window index, and every pane directory match the snapshot. Restoring never
+overwrites a live option or gives a branch to a second window. Claims made after
+the last save (every 15 minutes, or **Ctrl+b Ctrl+s**) are not yet in the snapshot.
+
 For a new task, create a dedicated worktree and claim it for the agent’s pane:
 
 ```sh

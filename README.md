@@ -20,7 +20,7 @@ Markers retire themselves. A finished marker clears as soon as its window is loo
 
 Only windows in an attached session are marked. A window nobody is attached to cannot be looked at, so a marker there would sit in a count that nothing can ever clear — on a machine running background review agents in detached sessions, that is most of them. Such an agent still bounces the Dock if it blocks, since that needs answering wherever it runs, though with no marker to track it there is nothing to re-bounce from.
 
-Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call; after recording the observed branch, the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
+Two cases need more than that, because neither agent reports them. No hook fires when a permission is *approved*, so a waiting marker would outlive the block and be re-bounced at for the rest of the turn; `PostToolUse` stands in, since a tool that has run proves the approval happened. That hook fires on every tool call, so the handler skips notification work when the marker is unchanged. And a session killed hard never fires `SessionEnd`, so the re-bounce supervisor drops markers from windows whose panes have all fallen back to a shell — asking whether a window still runs *anything*, rather than matching agent process names, which for Claude Code is its version number.
 
 ## Neovim Markdown navigation
 
@@ -102,12 +102,11 @@ Use **Ctrl+b w** to open a regular shell window.
 
 ### Tmux window search
 
-This is a general tmux navigation tool; it works without an LLM. Coding-agent
-hooks optionally record branch history, and associations can also be added manually.
+This is a general tmux navigation tool; it works without an LLM. Agents register
+branch ownership with `start` and `claim`, and associations can also be added manually.
 
 The navigation helper and its tests live in `tmux_config/navigation/`.
-`setup.sh` links that directory to `~/.tmux/navigation/`; notification
-hooks call the helper there to record branch history.
+`setup.sh` links that directory to `~/.tmux/navigation/`.
 
 Press **Ctrl+;** in WezTerm (or **Ctrl+b o** in any terminal) for a borderless picker
 that fills the terminal and searches windows across all tmux sessions. Each window appears once; selecting it returns
@@ -150,13 +149,21 @@ ordinary window/branch search filters the cached list live in fzf, without a typ
 delay or Python filtering process. Exact branch claims retain ownership precedence. The picker requires Python 3.9+ and
 fzf with interactive reload and preview support (tested with fzf 0.70 and tmux 3.6a).
 
-The OWNER column distinguishes an explicit `claimed` branch/worktree from an
-`observed` checkout. Hooks and picker seeding only observe directories; they do
-not establish that every pane sharing a checkout owns its current branch. Once a
-pane has explicit claims, incidental branch observations are hidden from its
-navigation history. PR URLs and exact branch searches prefer explicit claims
-over observations. Multiple genuine claims remain selectable, with their full
-worktree paths and optional agent session IDs in the detail panel.
+Branches and PRs come only from explicit `start`, `claim`, and `link` records.
+Neither the picker nor the status bar inspects a pane's current checkout, because
+a directory does not establish what a window is for. A window without a record
+shows `—` in the OWNER column and matches only by window name or location.
+Multiple genuine claims remain selectable, with their full worktree paths and
+optional agent session IDs in the detail panel.
+
+tmux keeps these records only in server memory, and tmux-resurrect restores the
+layout without them. Resurrect's save hook therefore writes every session, window,
+and pane `@agent_nav_*` option and visit time to
+`${XDG_STATE_HOME:-~/.local/state}/tmux-navigation/claims.json`, and its restore
+hook reapplies them. A window gets its saved options back only when its session
+name, window index, and every pane directory match the snapshot. Restoring never
+overwrites a live option or gives a branch to a second window. Claims made after
+the last save (every 15 minutes, or **Ctrl+b Ctrl+s**) are not yet in the snapshot.
 
 For a new task, create a dedicated worktree and claim it for the agent’s pane:
 

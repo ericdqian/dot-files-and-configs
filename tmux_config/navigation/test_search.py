@@ -41,18 +41,6 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(window_rows[1]['associations'][0]['url'], 'https://github.com/owner/repo/pull/80')
         self.assertEqual(pane_rows, original_rows)
 
-    def test_window_history_preserves_per_pane_claim_precedence(self):
-        pane_rows = [
-            {'pane': '%1', 'window': '@1', 'associations': [
-                {'repository': 'github.com/owner/repo', 'branch': 'claimed', 'source': 'claim'},
-                {'repository': 'github.com/owner/repo', 'branch': 'incidental', 'source': 'observed'}]},
-            {'pane': '%2', 'window': '@1', 'associations': [
-                {'repository': 'github.com/owner/repo', 'branch': 'sibling', 'source': 'observed'}]},
-        ]
-        window_row = search.group_window_rows(pane_rows)[0]
-        self.assertEqual([association['branch'] for association in search.navigation_associations(window_row)],
-                         ['claimed', 'sibling'])
-
     def test_window_owner_hides_other_branches_even_when_a_sibling_pane_is_active(self):
         window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim'}
         pane_rows = [
@@ -64,14 +52,13 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(window_row['pane'], '%2')
         self.assertEqual(search.navigation_associations(window_row), [window_owner])
 
-    def test_collection_reads_window_ownership_and_skips_checkout_observations(self):
+    def test_collection_reads_window_ownership_without_inspecting_checkouts(self):
         window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim'}
-        pane_listing = '%1\tcore\tFeature\t0.0\t/other\t/repo\tzsh\t@1\t0\t0\t1'
-        with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %1\nagent-owner ' + json.dumps(window_owner)]), \
-             patch.object(search, 'record_branch') as observations:
-            pane_rows = search.collect_and_record_pane_rows()
+        pane_listing = '%1\tcore\tFeature\t0.0\t/other\tzsh\t@1\t0\t0\t1'
+        with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %1\nagent-owner ' + json.dumps(window_owner)]) as commands:
+            pane_rows = search.collect_pane_rows()
         self.assertEqual(search.navigation_associations(pane_rows[0]), [window_owner])
-        observations.assert_not_called()
+        self.assertEqual(commands.call_count, 2)
 
     def test_claim_rejects_another_branch_or_checkout_in_the_same_window(self):
         window_owner = {'repository': 'github.com/owner/repo', 'branch': 'feature', 'checkout': '/feature'}
@@ -234,12 +221,11 @@ class SearchTests(unittest.TestCase):
                                      '--filter', 'alpha'], input_text=candidates)
         self.assertEqual(native_matches.split('\t', 1)[0], '%1')
 
-    def test_repository_dropdown_deduplicates_panes_and_excludes_incidental_observations(self):
+    def test_repository_dropdown_deduplicates_panes(self):
         pane_rows = [
             {'pane': '%1', 'associations': [
                 {'repository': 'github.com/owner/core', 'source': 'claim'},
-                {'repository': 'github.com/owner/core', 'source': 'link'},
-                {'repository': 'github.com/owner/observed', 'source': 'observed'}]},
+                {'repository': 'github.com/owner/core', 'source': 'link'}]},
             {'pane': '%2', 'associations': [{'repository': 'github.com/owner/core-api', 'source': 'claim'}]},
             {'pane': '%3', 'associations': [{'repository': 'github.com/owner/core', 'source': 'claim'}]},
         ]
@@ -295,7 +281,7 @@ class SearchTests(unittest.TestCase):
                 {'repository': 'github.com/owner/repo', 'branch': 'other', 'source': 'claim',
                  'url': 'https://github.com/owner/repo/pull/81'}]},
         ]
-        with patch.object(search, 'collect_and_record_pane_rows', return_value=pane_rows), \
+        with patch.object(search, 'collect_pane_rows', return_value=pane_rows), \
              patch.object(search, 'run', return_value='@1') as commands:
             search.open_window_prs('%1')
         self.assertEqual(commands.call_args_list[1].args[0], ['open', '-a', 'Google Chrome', pr_url])
@@ -306,7 +292,7 @@ class SearchTests(unittest.TestCase):
                 ([], None, 'No recorded PR'),
                 (['https://github.com/owner/repo/pull/80'], ValueError('browser failed'), 'Could not open Chrome')]:
             with self.subTest(expected_status=expected_status), \
-                 patch.object(search, 'collect_and_record_pane_rows', return_value=[
+                 patch.object(search, 'collect_pane_rows', return_value=[
                      {'pane': '%1', 'window': '@1', 'associations': []}]), \
                  patch.object(search, 'recorded_pr_urls', return_value=pr_urls), \
                  patch.object(search, 'run', side_effect=['@1', browser_error, ''] if browser_error else ['@1', '']) as commands:
@@ -317,9 +303,7 @@ class SearchTests(unittest.TestCase):
         pr_url = 'https://github.com/owner/repo/pull/80'
         pane_rows = [{'pane': '%1', 'label': 'Feature', 'command': 'codex', 'associations': [
             {'repository': 'github.com/owner/repo', 'branch': 'feature', 'source': 'claim', 'url': pr_url},
-            {'repository': 'github.com/owner/repo', 'branch': 'other', 'source': 'link', 'url': pr_url},
-            {'repository': 'github.com/owner/repo', 'branch': 'old', 'source': 'observed',
-             'url': 'https://github.com/owner/repo/pull/1'}]}]
+            {'repository': 'github.com/owner/repo', 'branch': 'other', 'source': 'link', 'url': pr_url}]}]
         picker_results = [subprocess.CompletedProcess([], 0, 'Feature\nalt-o\n%1\tFeature\n'),
                           subprocess.CompletedProcess([], 130, '')]
         with patch.object(search.picker, 'run_picker', side_effect=picker_results) as pickers, \
@@ -371,40 +355,41 @@ class SearchTests(unittest.TestCase):
                 return 'git@github.com:owner/repo.git' if 'remote' in command else 'first'
             if command[1] == 'show-options':
                 return json.dumps(stored_options[command[-1]]) if command[-1] in stored_options else ''
-            if command[-2] != '@agent_nav_directory':
-                stored_options[command[-2]] = json.loads(command[-1])
+            stored_options[command[-2]] = json.loads(command[-1])
             return ''
         with patch.object(search, 'run', side_effect=fake_run):
             for branch in ['first', 'second', 'first']:
-                search.record_branch('%42', '/repo', branch)
+                search.record_branch('%42', '/repo', branch, source='link')
         self.assertEqual(len(stored_options), 2)
         self.assertEqual({value['branch'] for value in stored_options.values()}, {'first', 'second'})
 
-    def test_tool_workdir_is_recorded_alongside_agent_directory(self):
-        self.assertEqual(search.observed_directories({
-            'cwd': '/repo', 'tool_input': {'workdir': '../worktree'}}), ['/repo', '/repo/../worktree'])
-        self.assertEqual(search.observed_directories({'cwd': '/repo'}), ['/repo'])
-
-    def test_hook_observation_does_not_erase_explicit_pr_url(self):
+    def test_relinking_a_branch_by_name_keeps_its_pr_url(self):
         stored_options = {}
         def fake_run(command, check=False):
             if command[0] == 'git':
                 return 'git@github.com:owner/repo.git' if 'remote' in command else 'feature'
             if command[1] == 'show-options':
                 return json.dumps(stored_options[command[-1]]) if command[-1] in stored_options else ''
-            if command[-2] != '@agent_nav_directory':
-                stored_options[command[-2]] = json.loads(command[-1])
+            stored_options[command[-2]] = json.loads(command[-1])
             return ''
         with patch.object(search, 'run', side_effect=fake_run), \
              patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')):
-            search.record_branch('%42', '/repo', 'https://github.com/owner/repo/pull/7')
-            search.record_branch('%42', '/repo')
-        self.assertTrue(any(association.get('url') for association in stored_options.values()))
+            search.record_branch('%42', '/repo', 'https://github.com/owner/repo/pull/7', source='link')
+            search.record_branch('%42', '/repo', 'feature', source='link')
+        self.assertEqual([association.get('url') for association in stored_options.values()],
+                         ['https://github.com/owner/repo/pull/7'])
+
+    def test_link_and_claim_refuse_to_guess_without_a_named_branch(self):
+        with patch.object(search, 'run', return_value='') as commands:
+            for source in ['link', 'claim']:
+                with self.subTest(source=source), self.assertRaisesRegex(ValueError, 'named branch'):
+                    search.record_branch('%42', '/not-a-repository', source=source)
+        self.assertFalse(any(call.args[0][:2] == ['tmux', 'set-option'] for call in commands.call_args_list))
 
     def test_explicit_pr_link_retains_url(self):
         with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
              patch.object(search, 'run', return_value='') as commands:
-            search.record_branch('%42', '/repo', 'https://github.com/owner/repo/pull/7')
+            search.record_branch('%42', '/repo', 'https://github.com/owner/repo/pull/7', source='link')
         association = json.loads(commands.call_args.args[0][-1])
         self.assertEqual(association['url'], 'https://github.com/owner/repo/pull/7')
 
@@ -418,7 +403,7 @@ class SearchTests(unittest.TestCase):
             {'pane': '%3', 'label': 'other', 'command': 'codex', 'associations': [
                 {'repository': 'github.com/other/repo', 'branch': 'old'}]},
         ]
-        with patch.object(search, 'collect_and_record_pane_rows', return_value=pane_rows), \
+        with patch.object(search, 'collect_pane_rows', return_value=pane_rows), \
              patch.object(search, 'choose_row', return_value=search.format_row(pane_rows[1])), \
              patch.object(search, 'find_destination', return_value=('/dev/ttys123', None)), \
              patch.object(search, 'run', return_value='') as commands:
@@ -429,12 +414,12 @@ class SearchTests(unittest.TestCase):
 
     def test_feedback_sessions_are_filtered_without_hiding_development_windows(self):
         pane_listing = '\n'.join([
-            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\t/review\tclaude\t@1\t0\t0\t1',
-            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\t/review\tcodex\t@2\t0\t0\t1',
-            '%3\tcore\tPR review export\t184.0\t/repo\t/repo\tcodex\t@3\t100\t90\t1',
+            '%1\tclaude-pr-2351-security\tzsh\t0.0\t/review\tclaude\t@1\t0\t0\t1',
+            '%2\tcodex-pr-2351-correctness\tcodex\t0.0\t/review\tcodex\t@2\t0\t0\t1',
+            '%3\tcore\tPR review export\t184.0\t/repo\tcodex\t@3\t100\t90\t1',
         ])
         with patch.object(search, 'run', side_effect=[pane_listing, 'agent-pane %3']):
-            pane_rows = search.collect_and_record_pane_rows()
+            pane_rows = search.collect_pane_rows()
         self.assertEqual([row['pane'] for row in pane_rows], ['%3'])
         self.assertEqual(pane_rows[0]['title'], 'PR review export')
         self.assertEqual(pane_rows[0]['location'], 'core:184.0')
@@ -473,10 +458,8 @@ class SearchTests(unittest.TestCase):
                 search.update_query_results(preview_path, 'Other pane')
             self.assertIn('%2\tOther pane', output.getvalue())
 
-    def test_recorded_pr_url_search_is_local_and_prefers_claims(self):
+    def test_recorded_pr_url_search_is_local(self):
         associations = [
-            {'pane': '%1', 'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
-                'source': 'observed', 'url': 'https://github.com/owner/repo/pull/7'}]},
             {'pane': '%2', 'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
                 'source': 'claim', 'url': 'https://github.com/Owner/Repo/pull/7'}]},
             {'pane': '%3', 'associations': [{'repository': 'github.com/owner/repo', 'branch': 'feature',
@@ -485,12 +468,11 @@ class SearchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             preview_path = Path(directory, 'panes.json')
             preview_path.write_text(json.dumps({row['pane']: row for row in associations}))
-            Path(directory, 'candidates.txt').write_text('%1\tObserved feature\n%2\tClaimed feature\n%3\tAnother claim')
+            Path(directory, 'candidates.txt').write_text('%2\tClaimed feature\n%3\tAnother claim')
             with patch.object(search.github, 'resolve_pr', side_effect=AssertionError('Unexpected GitHub lookup')), \
                  redirect_stdout(io.StringIO()) as output:
                 search.update_query_results(preview_path, 'https://github.com/OWNER/repo/pull/7/files#review')
             self.assertIn('%2\t', output.getvalue())
-            self.assertNotIn('%1\t', output.getvalue())
             self.assertIn('PR #7', output.getvalue())
             self.assertIn('%3\t', output.getvalue())
 
@@ -618,38 +600,12 @@ class SearchTests(unittest.TestCase):
     def test_popup_picker_only_writes_selection_without_switching(self):
         with tempfile.TemporaryDirectory() as directory:
             selection_path = Path(directory, 'selection.txt')
-            with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
+            with patch.object(search, 'collect_pane_rows', return_value=[]), \
                  patch.object(search, 'choose_row', return_value='%42\tSelected pane'), \
                  patch.object(search, 'navigate_to_pane') as navigate:
                 search.pick_pane('/dev/origin', selection_path)
             self.assertEqual(selection_path.read_text(), '%42')
             navigate.assert_not_called()
-
-    def test_explicit_pr_and_branch_claims_exclude_shared_checkout_observations(self):
-        pane_rows = {
-            '%1': {'pane': '%1', 'associations': [{'repository': 'github.com/owner/repo',
-                'branch': 'feature', 'source': 'observed', 'checkout': '/shared'}]},
-            '%2': {'pane': '%2', 'associations': [{'repository': 'github.com/owner/repo',
-                'branch': 'feature', 'source': 'claim', 'checkout': '/worktrees/feature'}]},
-        }
-        with tempfile.TemporaryDirectory() as directory:
-            preview_path = Path(directory, 'panes.json')
-            preview_path.write_text(json.dumps(pane_rows))
-            Path(directory, 'candidates.txt').write_text('%1\tObserved feature\n%2\tClaimed feature')
-            for query in ['feature', 'https://github.com/owner/repo/pull/7']:
-                with patch.object(search.github, 'resolve_pr', return_value=('github.com/owner/repo', 'feature')), \
-                     redirect_stdout(io.StringIO()) as output:
-                    search.update_query_results(preview_path, query)
-                self.assertIn('%2\t', output.getvalue())
-                self.assertIn('Claimed feature', output.getvalue())
-                self.assertNotIn('%1\t', output.getvalue())
-
-    def test_claimed_pane_does_not_inherit_another_agents_shared_checkout_branch(self):
-        explicit_claim = {'repository': 'github.com/owner/repo', 'branch': 'my-work',
-                          'source': 'claim', 'checkout': '/worktrees/my-work'}
-        pane_row = {'associations': [explicit_claim,
-            {'repository': 'github.com/owner/repo', 'branch': 'someone-elses-work', 'source': 'observed'}]}
-        self.assertEqual(search.navigation_associations(pane_row), [explicit_claim])
 
     def test_claim_rejects_a_branch_not_checked_out_in_the_target_worktree(self):
         def fake_run(command, **kwargs):
@@ -707,7 +663,7 @@ class SearchTests(unittest.TestCase):
             self.assertFalse(Path(directory, 'unused').exists())
 
     def test_cancel_does_not_switch(self):
-        with patch.object(search, 'collect_and_record_pane_rows', return_value=[]), \
+        with patch.object(search, 'collect_pane_rows', return_value=[]), \
              patch.object(search, 'choose_row', return_value=''), \
              patch.object(search, 'run') as commands:
             search.pick_pane('client')
